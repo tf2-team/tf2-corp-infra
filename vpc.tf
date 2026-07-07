@@ -23,9 +23,9 @@ resource "aws_subnet" "public_1" {
   map_public_ip_on_launch = true # Bắt buộc để EC2 Nodes nhận được IP Public kết nối tới EKS
 
   tags = {
-    Name = "eks-public-subnet-1"
+    Name                                        = "eks-public-subnet-1"
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
-    "kubernetes.io/role/elb"                     = "1"
+    "kubernetes.io/role/elb"                    = "1"
   }
 }
 
@@ -36,9 +36,9 @@ resource "aws_subnet" "public_2" {
   map_public_ip_on_launch = true # Bắt buộc để EC2 Nodes nhận được IP Public kết nối tới EKS
 
   tags = {
-    Name = "eks-public-subnet-2"
+    Name                                        = "eks-public-subnet-2"
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
-    "kubernetes.io/role/elb"                     = "1"
+    "kubernetes.io/role/elb"                    = "1"
   }
 }
 
