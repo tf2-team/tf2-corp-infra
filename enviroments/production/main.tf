@@ -25,4 +25,7 @@ module "eks" {
 
   node_groups = var.node_groups
   addons      = var.addons
+
+  create_oidc_provider       = var.create_oidc_provider
+  existing_oidc_provider_arn = var.existing_oidc_provider_arn
 }
