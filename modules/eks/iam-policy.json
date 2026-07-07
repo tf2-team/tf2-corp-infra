@@ -193,9 +193,7 @@
                 "elasticloadbalancing:ModifyTargetGroup",
                 "elasticloadbalancing:ModifyTargetGroupAttributes",
                 "elasticloadbalancing:DeleteTargetGroup",
-                "elasticloadbalancing:ModifyListenerAttributes",
-                "elasticloadbalancing:ModifyCapacityReservation",
-                "elasticloadbalancing:ModifyIpPools"
+                "elasticloadbalancing:ModifyListenerAttributes"
             ],
             "Resource": "*",
             "Condition": {
