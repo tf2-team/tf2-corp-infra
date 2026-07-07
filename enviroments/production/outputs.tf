@@ -69,3 +69,18 @@ output "oidc_issuer" {
   value       = module.eks.oidc_issuer
   description = "OIDC issuer URL của cluster (dùng cấu hình IRSA)"
 }
+
+# ──────────────────────────────────────────────
+# AWS Load Balancer Controller Outputs
+# ──────────────────────────────────────────────
+
+output "aws_load_balancer_controller_role_arn" {
+  description = "IAM Role ARN for AWS Load Balancer Controller"
+  value       = module.eks.aws_load_balancer_controller_role_arn
+}
+
+output "aws_load_balancer_controller_helm_command" {
+  description = "Helm command to install the AWS Load Balancer Controller"
+  value       = "helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=${module.eks.cluster_name} --set serviceAccount.create=true --set serviceAccount.name=aws-load-balancer-controller --set serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn=${module.eks.aws_load_balancer_controller_role_arn}"
+}
+
