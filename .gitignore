@@ -1,32 +1,43 @@
-# Local .terraform directory (chứa providers, modules tải về)
+# Terraform
 .terraform/
-
-# Terraform state files (chứa trạng thái hạ tầng và có thể có thông tin nhạy cảm ở dạng plaintext)
-*.tfstate
-*.tfstate.*
-
-# Crash log files
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfstate.d/
 crash.log
 crash.*.log
 
-# Tệp tin biến môi trường chứa thông tin bảo mật (như Access Keys, Passwords...)
-*.tfvars
-*.tfvars.json
-*.auto.tfvars
-*.auto.tfvars.json
-
-# Cấu hình ghi đè cục bộ của lập trình viên
+# Override files (dùng cho local dev, không thuộc về repo chung)
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
 
-# Các tệp tin lock tạm thời của Terraform state
-.terraform.tfstate.lock.info
+# CLI output / plan files
+*.tfplan
+*.plan
+tfplan
 
-# Các tệp tin hệ điều hành tự sinh
+# OS & editor
 .DS_Store
 Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
 
-# LƯU Ý: Không nên ignore file `.terraform.lock.hcl` vì file này lưu cấu hình lock
-# phiên bản provider chính xác để đảm bảo tính đồng nhất giữa các thành viên.
+# Python (load-generator, scripts)
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Node (nếu có script helper)
+node_modules/
+
+# Log files
+*.log
+
+.antigravity/

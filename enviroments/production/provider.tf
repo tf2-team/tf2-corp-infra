@@ -10,4 +10,13 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
+
+  default_tags {
+    tags = {
+      Environment = var.tags["Environment"]
+      Owner       = var.tags["Owner"]
+      Project     = var.project_name
+      ManagedBy   = "Terraform"
+    }
+  }
 }
