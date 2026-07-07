@@ -43,8 +43,7 @@
                 "elasticloadbalancing:DescribeTargetHealth",
                 "elasticloadbalancing:DescribeTags",
                 "elasticloadbalancing:DescribeTrustStores",
-                "elasticloadbalancing:DescribeListenerAttributes",
-                "elasticloadbalancing:DescribeCapacityReservation"
+                "elasticloadbalancing:DescribeListenerAttributes"
             ],
             "Resource": "*"
         },
