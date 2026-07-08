@@ -55,7 +55,7 @@ nat_gateways = {
 # EKS Configuration
 # ──────────────────────────────────────────────
 cluster_name       = "techx-tf2"
-kubernetes_version = "1.36"
+kubernetes_version = "1.32"
 
 node_groups = {
   "general" = {
@@ -72,7 +72,8 @@ node_groups = {
 }
 
 addons = {
-  "vpc-cni"    = {}
-  "coredns"    = {}
-  "kube-proxy" = {}
+  "vpc-cni"            = {}
+  "coredns"            = {}
+  "kube-proxy"         = {}
+  "aws-ebs-csi-driver" = {}
 }

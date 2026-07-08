@@ -52,6 +52,11 @@ resource "aws_iam_role_policy_attachment" "node_ecr_policy" {
   role       = aws_iam_role.node.name
 }
 
+resource "aws_iam_role_policy_attachment" "node_ebs_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  role       = aws_iam_role.node.name
+}
+
 # ──────────────────────────────────────────────
 # EKS Cluster (Control Plane)
 # ──────────────────────────────────────────────
@@ -102,6 +107,7 @@ resource "aws_eks_node_group" "this" {
     aws_iam_role_policy_attachment.node_worker_policy,
     aws_iam_role_policy_attachment.node_cni_policy,
     aws_iam_role_policy_attachment.node_ecr_policy,
+    aws_iam_role_policy_attachment.node_ebs_policy,
   ]
 }
 
