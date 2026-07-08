@@ -37,7 +37,7 @@ variable "public_subnets" {
     cidr_block        = string
     availability_zone = string
   }))
-  description = "Bản đồ các Public Subnet"
+  description = "Bản đồ các Public Subnets"
 }
 
 variable "private_subnets" {
@@ -47,7 +47,7 @@ variable "private_subnets" {
     nat_gateway_key   = optional(string)
   }))
   default     = {}
-  description = "Bản đồ các Private Subnet"
+  description = "Bản đồ các Private Subnets"
 }
 
 variable "nat_gateways" {

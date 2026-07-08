@@ -1,0 +1,50 @@
+name: Terraform CD
+
+on:
+    # push:
+    #     branches:
+    #         - main
+    #     paths:
+    #         - "enviroments/**"
+    #         - "modules/**"
+
+    workflow_dispatch:
+
+permissions:
+    id-token: write
+    contents: read
+
+concurrency:
+    group: terraform-production
+    cancel-in-progress: false
+
+jobs:
+    terraform:
+        name: Apply
+        if: github.ref == 'refs/heads/main'
+        runs-on: ubuntu-latest
+
+        defaults:
+            run:
+                working-directory: enviroments/production
+
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v3
+              with:
+                  terraform_version: "1.10.0"
+
+            - name: Configure AWS Credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+                  aws-region: ${{ vars.AWS_REGION }}
+
+            - name: Terraform Init
+              run: terraform init
+
+            - name: Terraform Apply
+              run: terraform apply -auto-approve -no-color
