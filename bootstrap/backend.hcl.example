@@ -1,0 +1,9 @@
+# backend.hcl.example
+# Copy this file to backend.hcl and fill in the bucket name and region from bootstrap outputs.
+# Do NOT commit backend.hcl to the git repository.
+
+bucket       = "<state_bucket_name>"
+key          = "bootstrap/terraform.tfstate"
+region       = "<state_bucket_region>"
+encrypt      = true
+use_lockfile = true

@@ -1,6 +1,7 @@
 # Terraform
 .terraform/
-.terraform.lock.hcl
+# .terraform.lock.hcl is not ignored to commit provider selections intentionally
+backend.hcl
 terraform.tfstate
 terraform.tfstate.backup
 terraform.tfstate.d/
