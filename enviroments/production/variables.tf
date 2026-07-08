@@ -96,3 +96,22 @@ variable "addons" {
   default     = {}
   description = "Bản đồ các EKS Managed Add-on"
 }
+
+variable "create_oidc_provider" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "Quyết định xem có tạo IAM OIDC provider mới hay không"
+}
+
+variable "existing_oidc_provider_arn" {
+  type        = string
+  default     = null
+  description = "ARN của IAM OIDC provider đã tồn tại"
+
+  validation {
+    condition     = var.existing_oidc_provider_arn == null ? true : can(regex("^arn:[a-z0-9-]+:iam::[0-9]{12}:oidc-provider/.+$", var.existing_oidc_provider_arn))
+    error_message = "The existing_oidc_provider_arn must be a valid IAM OIDC provider ARN matching the format: arn:<partition>:iam::<account>:oidc-provider/..."
+  }
+}
+
