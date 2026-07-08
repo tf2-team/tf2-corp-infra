@@ -57,9 +57,10 @@ resource "aws_iam_role_policy_attachment" "node_ecr_policy" {
 # ──────────────────────────────────────────────
 
 resource "aws_eks_cluster" "this" {
-  name     = var.cluster_name
-  version  = var.kubernetes_version
-  role_arn = aws_iam_role.cluster.arn
+  name                          = var.cluster_name
+  version                       = var.kubernetes_version
+  role_arn                      = aws_iam_role.cluster.arn
+  bootstrap_self_managed_addons = false
 
   vpc_config {
     subnet_ids              = var.subnet_ids

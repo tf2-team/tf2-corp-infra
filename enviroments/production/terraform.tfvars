@@ -3,7 +3,7 @@ project_name = "techx"
 
 tags = {
   Environment = "production"
-  Owner       = "CDO-03"
+  Owner       = "CDO-03-06"
   Project     = "techx-platform"
 }
 
@@ -55,7 +55,7 @@ nat_gateways = {
 # EKS Configuration
 # ──────────────────────────────────────────────
 cluster_name       = "techx-tf2"
-kubernetes_version = "1.31"
+kubernetes_version = "1.36"
 
 node_groups = {
   "general" = {
