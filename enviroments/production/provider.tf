@@ -12,7 +12,9 @@ terraform {
   }
 
   backend "s3" {
-    key          = "production/terraform.tfstate"
+    bucket       = "tfstate-capstone-tf2"
+    key          = "infra/environments/production/terraform.tfstate"
+    region       = "us-east-1"
     encrypt      = true
     use_lockfile = true
   }
