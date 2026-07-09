@@ -50,3 +50,11 @@ module "eks" {
   create_oidc_provider       = var.create_oidc_provider
   existing_oidc_provider_arn = var.existing_oidc_provider_arn
 }
+
+# GitOps control plane (REL-09). Prefer enable on development first; keep prod off until cutover.
+module "argocd" {
+  source = "../../modules/argocd"
+
+  enabled       = var.argocd_enabled
+  chart_version = var.argocd_chart_version
+}

@@ -193,6 +193,29 @@ variable "existing_github_oidc_provider_arn" {
 }
 
 # ──────────────────────────────────────────────
+# Argo CD (GitOps control plane — REL-09)
+# ──────────────────────────────────────────────
+
+variable "argocd_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Install Argo CD via Helm. Prefer enable on development first; keep false until prod cutover."
+}
+
+variable "argocd_chart_version" {
+  type        = string
+  default     = "7.8.28"
+  description = "Pinned argo-helm argo-cd chart version"
+}
+
+variable "argocd_chart_repo_url" {
+  type        = string
+  default     = "https://github.com/tmcmanhcuong/techx-corp-chart.git"
+  description = "Git URL of the Helm chart repo used by Argo CD Applications"
+}
+
+# ──────────────────────────────────────────────
 # Storefront public ALB path blocking (Helm-applied)
 # ──────────────────────────────────────────────
 # Path rules are enforced by techx-corp-chart Ingress annotations (ALB Controller),

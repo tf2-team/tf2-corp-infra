@@ -148,14 +148,65 @@ output "storefront_alb_helm_set_flags" {
 
 output "storefront_alb_helm_deploy_command" {
   value = <<-EOT
+    # Preferred after GitOps cutover: commit tag in values-prod.yaml + Argo CD sync.
+    # Break-glass only (disable Argo auto-sync first):
     helm upgrade --install techx-corp techx-corp-chart \
       -n techx-corp --create-namespace \
       -f techx-corp-chart/values-public-alb.yaml \
-      --set default.image.repository=${module.ecr.image_base_url} \
-      --set default.image.tag=<VERSION> \
+      -f techx-corp-chart/values-prod.yaml \
       --set components.frontend-proxy.publicAlb.blockSensitivePaths=${var.storefront_alb_block_sensitive_paths} \
       --wait --atomic --timeout 10m --history-max 10
   EOT
-  description = "Example Helm deploy command including ALB path-block toggle (replace <VERSION>)"
+  description = "Break-glass Helm deploy (prefer Argo CD GitOps after REL-09 cutover)"
+}
+
+# ──────────────────────────────────────────────
+# Argo CD (GitOps)
+# ──────────────────────────────────────────────
+
+output "argocd_enabled" {
+  value       = var.argocd_enabled
+  description = "Whether Terraform manages Argo CD install"
+}
+
+output "argocd_namespace" {
+  value       = module.argocd.namespace
+  description = "Argo CD namespace"
+}
+
+output "argocd_chart_version" {
+  value       = module.argocd.chart_version
+  description = "Pinned Argo CD Helm chart version"
+}
+
+output "argocd_port_forward_command" {
+  value       = module.argocd.port_forward_command
+  description = "Local access to Argo CD UI (no public Ingress)"
+}
+
+output "argocd_admin_password_command" {
+  value       = module.argocd.admin_password_command
+  description = "Retrieve initial admin password"
+}
+
+output "argocd_bootstrap_note" {
+  value       = module.argocd.bootstrap_note
+  description = "Next steps after Argo CD install"
+}
+
+output "argocd_bootstrap_apply_commands" {
+  value = <<-EOT
+    # After argocd_enabled=true apply and Git credentials in argocd NS:
+    kubectl apply -f techx-corp-chart/gitops/clusters/prod/
+    argocd app sync techx-corp --dry-run
+    argocd app sync techx-corp
+    argocd app wait techx-corp --sync --health --timeout 600
+  EOT
+  description = "Prod bootstrap Application apply + sync wait (10m); start with manual sync"
+}
+
+output "argocd_chart_repo_url" {
+  value       = var.argocd_chart_repo_url
+  description = "Expected chart Git repo URL for Argo CD Applications"
 }
 

@@ -50,3 +50,11 @@ module "eks" {
   create_oidc_provider       = var.create_oidc_provider
   existing_oidc_provider_arn = var.existing_oidc_provider_arn
 }
+
+# GitOps control plane (REL-09). Default off until cluster + kubectl path is ready.
+module "argocd" {
+  source = "../../modules/argocd"
+
+  enabled       = var.argocd_enabled
+  chart_version = var.argocd_chart_version
+}

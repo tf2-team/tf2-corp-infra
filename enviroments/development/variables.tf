@@ -193,6 +193,29 @@ variable "existing_github_oidc_provider_arn" {
 }
 
 # ──────────────────────────────────────────────
+# Argo CD (GitOps control plane — REL-09)
+# ──────────────────────────────────────────────
+
+variable "argocd_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Install Argo CD via Helm into the cluster. Requires API access at terraform apply time."
+}
+
+variable "argocd_chart_version" {
+  type        = string
+  default     = "7.8.28"
+  description = "Pinned argo-helm argo-cd chart version"
+}
+
+variable "argocd_chart_repo_url" {
+  type        = string
+  default     = "https://github.com/tmcmanhcuong/techx-corp-chart.git"
+  description = "Git URL of the Helm chart repo used by Argo CD Applications (document only; apps live in chart gitops/)"
+}
+
+# ──────────────────────────────────────────────
 # Storefront public ALB path blocking (Helm-applied)
 # ──────────────────────────────────────────────
 

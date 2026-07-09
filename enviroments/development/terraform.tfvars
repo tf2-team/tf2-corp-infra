@@ -92,6 +92,15 @@ github_actions_allowed_refs  = ["refs/heads/techx-dev-corp"]
 create_github_oidc_provider  = false
 
 # ──────────────────────────────────────────────
+# Argo CD (REL-09) — set true when ready to install control plane
+# Requires: aws eks update-kubeconfig + cluster API reachable during apply
+# ──────────────────────────────────────────────
+argocd_enabled       = false
+argocd_chart_version = "7.8.28"
+# Override if chart lives under a different GitHub path:
+# argocd_chart_repo_url = "https://github.com/tmcmanhcuong/techx-corp-chart.git"
+
+# ──────────────────────────────────────────────
 # Storefront public ALB path blocking (Helm)
 # ──────────────────────────────────────────────
 storefront_alb_block_sensitive_paths = false

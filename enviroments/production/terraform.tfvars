@@ -87,6 +87,12 @@ github_actions_allowed_refs  = ["refs/heads/main", "refs/tags/v*"]
 create_github_oidc_provider  = true
 
 # ──────────────────────────────────────────────
+# Argo CD (REL-09) — keep false until dev cutover is proven
+# ──────────────────────────────────────────────
+argocd_enabled       = false
+argocd_chart_version = "7.8.28"
+
+# ──────────────────────────────────────────────
 # Storefront public ALB path blocking (Helm)
 # true  = block /grafana,/jaeger,/loadgen,/feature,/flagservice,/otlp-http (403)
 # false = allow all paths through to frontend-proxy

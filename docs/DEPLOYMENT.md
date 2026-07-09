@@ -214,6 +214,29 @@ kubectl get deployment -n kube-system aws-load-balancer-controller
 
 ---
 
+## Phase 2b: Argo CD (GitOps control plane — REL-09)
+
+Opt-in: set `argocd_enabled = true` in `enviroments/<env>/terraform.tfvars` (dev first).  
+Requires cluster API reachable during `terraform apply` (kubeconfig + network).
+
+```bash
+# tfvars: argocd_enabled = true
+terraform -chdir=enviroments/development plan -out=dev.tfplan
+terraform -chdir=enviroments/development apply "dev.tfplan"
+
+kubectl -n argocd get pods
+terraform -chdir=enviroments/development output -raw argocd_port_forward_command
+terraform -chdir=enviroments/development output -raw argocd_admin_password_command
+terraform -chdir=enviroments/development output -raw argocd_bootstrap_apply_commands
+```
+
+- Module: `modules/argocd` (pinned argo-cd chart, ClusterIP, **no** public Ingress).  
+- Applications live in **chart** repo: `techx-corp-chart/gitops/clusters/{dev,prod}/`.  
+- Repo credentials: create Secret in `argocd` NS (not in Git).  
+- Full plan: workspace `docs/gitops-argocd.md`.
+
+---
+
 ## Phase 3: Docker Image Build & Push (tham chiếu platform)
 
 *Repo `techx-corp-platform` — không chạy bake trong infra.*
@@ -234,19 +257,30 @@ OIDC: workflow assume role từ `github_actions_ecr_role_arn` (permissions đã 
 
 ---
 
-## Phase 4: Helm Deploy (tham chiếu chart)
+## Phase 4: Deploy app (GitOps / chart)
+
+**Preferred (REL-09):** commit image tag in `values-prod.yaml` or `values-dev.yaml` → Argo CD sync:
+
+```bash
+argocd app sync techx-corp --dry-run
+argocd app sync techx-corp
+argocd app wait techx-corp --sync --health --timeout 600
+```
+
+See `techx-corp-chart/docs/operations/gitops-argocd.md`.
+
+**Break-glass Helm** (disable Argo auto-sync first):
 
 ```bash
 helm upgrade --install techx-corp techx-corp-chart \
   -n techx-corp --create-namespace \
   -f techx-corp-chart/values-public-alb.yaml \
-  --set default.image.repository=493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-corp \
-  --set default.image.tag=sha-a1b2c3d \
+  -f techx-corp-chart/values-prod.yaml \
   --wait --atomic --timeout 10m --history-max 10
 ```
 
-- `repository` = output `ecr_image_base_url` (REGISTRY/PROJECT)
-- `tag` = VERSION đã push
+- `repository` / `tag` live in env values files (Git), not only operator `--set`
+- Primary rollback after GitOps: **git revert**, not Helm rollback
 - Chart append `/SERVICE` → full nested image path
 
 ### Storefront ALB path blocking (Terraform flag → Helm)
