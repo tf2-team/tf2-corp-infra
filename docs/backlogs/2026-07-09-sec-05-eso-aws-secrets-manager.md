@@ -64,8 +64,8 @@ Backlog tổng: [`docs/backlogs/2026-07-09-sec-05-eso-aws-secrets-manager.md`](.
 ## Kiểm thử / xác minh
 
 ```sh
-terraform -chdir=enviroments/development plan
-terraform -chdir=enviroments/development apply
+terraform -chdir=environments/development plan
+terraform -chdir=environments/development apply
 
 # Không expect secret_string app password trong state
 aws secretsmanager list-secrets --region us-east-1 \

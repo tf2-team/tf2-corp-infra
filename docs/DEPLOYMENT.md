@@ -42,7 +42,7 @@
 | State bucket (sau bootstrap) | `techx-tf-state-493499579600-us-east-1` |
 | Image format | `REGISTRY/PROJECT/SERVICE:VERSION` |
 
-### Production (`enviroments/production`)
+### Production (`environments/production`)
 
 | Hằng số | Giá trị |
 |---|---|
@@ -57,7 +57,7 @@
 | Creates GitHub OIDC provider | **yes** (account singleton) |
 | State key | `production/terraform.tfstate` |
 
-### Development (`enviroments/development`)
+### Development (`environments/development`)
 
 | Hằng số | Giá trị |
 |---|---|
@@ -131,7 +131,7 @@ terraform -chdir=bootstrap state list
 
 ### Bước 2: Production stack
 
-Tạo `enviroments/production/backend.hcl`:
+Tạo `environments/production/backend.hcl`:
 
 ```hcl
 bucket       = "techx-tf-state-493499579600-us-east-1"
@@ -142,10 +142,10 @@ use_lockfile = true
 ```
 
 ```bash
-terraform -chdir=enviroments/production init -backend-config=backend.hcl
-terraform -chdir=enviroments/production fmt -check
-terraform -chdir=enviroments/production validate
-terraform -chdir=enviroments/production plan -out=prod.tfplan
+terraform -chdir=environments/production init -backend-config=backend.hcl
+terraform -chdir=environments/production fmt -check
+terraform -chdir=environments/production validate
+terraform -chdir=environments/production plan -out=prod.tfplan
 ```
 
 **Review plan** — kỳ vọng tạo (trong số khác):
@@ -156,37 +156,37 @@ terraform -chdir=enviroments/production plan -out=prod.tfplan
 - VPC / EKS / ALB controller role
 
 ```bash
-terraform -chdir=enviroments/production apply "prod.tfplan"
+terraform -chdir=environments/production apply "prod.tfplan"
 ```
 
 ### Bước 3: Development stack
 
 ```bash
 # backend.hcl key = "development/terraform.tfstate"
-terraform -chdir=enviroments/development init -backend-config=backend.hcl
-terraform -chdir=enviroments/development plan -out=dev.tfplan
+terraform -chdir=environments/development init -backend-config=backend.hcl
+terraform -chdir=environments/development plan -out=dev.tfplan
 # Kỳ vọng: techx-dev-corp/<service>, role techx-gha-platform-dev, KHÔNG tạo lại OIDC provider
-terraform -chdir=enviroments/development apply "dev.tfplan"
+terraform -chdir=environments/development apply "dev.tfplan"
 ```
 
 ### Bước 4: Outputs cho CI/CD & Helm
 
 ```bash
 # Production
-terraform -chdir=enviroments/production output ecr_image_base_url
+terraform -chdir=environments/production output ecr_image_base_url
 # 493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-corp
 
-terraform -chdir=enviroments/production output ecr_service_names
-terraform -chdir=enviroments/production output ecr_repository_names
-terraform -chdir=enviroments/production output github_actions_ecr_role_arn
-terraform -chdir=enviroments/production output github_actions_allowed_subjects
-terraform -chdir=enviroments/production output aws_load_balancer_controller_role_arn
-terraform -chdir=enviroments/production output -raw aws_load_balancer_controller_helm_command
+terraform -chdir=environments/production output ecr_service_names
+terraform -chdir=environments/production output ecr_repository_names
+terraform -chdir=environments/production output github_actions_ecr_role_arn
+terraform -chdir=environments/production output github_actions_allowed_subjects
+terraform -chdir=environments/production output aws_load_balancer_controller_role_arn
+terraform -chdir=environments/production output -raw aws_load_balancer_controller_helm_command
 
 # Development
-terraform -chdir=enviroments/development output ecr_image_base_url
+terraform -chdir=environments/development output ecr_image_base_url
 # .../techx-dev-corp
-terraform -chdir=enviroments/development output github_actions_ecr_role_arn
+terraform -chdir=environments/development output github_actions_ecr_role_arn
 ```
 
 **Gán GitHub Environments** (repo platform):
@@ -207,7 +207,7 @@ aws eks update-kubeconfig --region us-east-1 --name techx-tf2
 kubectl get nodes
 
 helm repo add eks https://aws.github.io/eks-charts && helm repo update
-terraform -chdir=enviroments/production output -raw aws_load_balancer_controller_helm_command
+terraform -chdir=environments/production output -raw aws_load_balancer_controller_helm_command
 # Chạy lệnh in ra
 kubectl get deployment -n kube-system aws-load-balancer-controller
 ```
@@ -216,18 +216,18 @@ kubectl get deployment -n kube-system aws-load-balancer-controller
 
 ## Phase 2b: Argo CD (GitOps control plane — REL-09)
 
-Opt-in: set `argocd_enabled = true` in `enviroments/<env>/terraform.tfvars` (dev first).  
+Opt-in: set `argocd_enabled = true` in `environments/<env>/terraform.tfvars` (dev first).  
 Requires cluster API reachable during `terraform apply` (kubeconfig + network).
 
 ```bash
 # tfvars: argocd_enabled = true
-terraform -chdir=enviroments/development plan -out=dev.tfplan
-terraform -chdir=enviroments/development apply "dev.tfplan"
+terraform -chdir=environments/development plan -out=dev.tfplan
+terraform -chdir=environments/development apply "dev.tfplan"
 
 kubectl -n argocd get pods
-terraform -chdir=enviroments/development output -raw argocd_port_forward_command
-terraform -chdir=enviroments/development output -raw argocd_admin_password_command
-terraform -chdir=enviroments/development output -raw argocd_bootstrap_apply_commands
+terraform -chdir=environments/development output -raw argocd_port_forward_command
+terraform -chdir=environments/development output -raw argocd_admin_password_command
+terraform -chdir=environments/development output -raw argocd_bootstrap_apply_commands
 ```
 
 - Module: `modules/argocd` (pinned argo-cd chart, ClusterIP, **no** public Ingress).  
@@ -288,14 +288,14 @@ helm upgrade --install techx-corp techx-corp-chart \
 IaC toggle (does not create AWS rules by itself; applied via Helm Ingress):
 
 ```hcl
-# enviroments/production/terraform.tfvars (or development)
+# environments/production/terraform.tfvars (or development)
 storefront_alb_block_sensitive_paths = true   # or false
 ```
 
 ```bash
-terraform -chdir=enviroments/production output storefront_alb_block_sensitive_paths
-terraform -chdir=enviroments/production output storefront_alb_helm_set_flags
-terraform -chdir=enviroments/production output storefront_alb_security_posture
+terraform -chdir=environments/production output storefront_alb_block_sensitive_paths
+terraform -chdir=environments/production output storefront_alb_helm_set_flags
+terraform -chdir=environments/production output storefront_alb_security_posture
 ```
 
 If the app Helm release is **already installed**, toggle **only** the block flag (no image change):
@@ -342,7 +342,7 @@ Smoke test + `helm rollback` — xem `techx-corp-chart/docs/DEPLOYMENT.md`.
 ### 1. State lock
 
 ```bash
-terraform -chdir=enviroments/production force-unlock <LOCK_ID>
+terraform -chdir=environments/production force-unlock <LOCK_ID>
 ```
 
 ### 2. OIDC provider already exists (development)

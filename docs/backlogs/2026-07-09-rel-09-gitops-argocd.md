@@ -22,7 +22,7 @@ Hạ tầng `techx-corp-infra` đã có EKS, OIDC/IRSA, ALB controller IAM. Chư
    - Server ClusterIP; Ingress **disabled**  
    - ApplicationSet / notifications off mặc định (Phase 7)  
 
-2. **Wire env** `enviroments/development` & `production`  
+2. **Wire env** `environments/development` & `production`  
    - `argocd_enabled` (default **false**)  
    - `argocd_chart_version`, `argocd_chart_repo_url` (document)  
    - Provider kubernetes/helm dùng EKS token  
@@ -49,12 +49,12 @@ Hạ tầng `techx-corp-infra` đã có EKS, OIDC/IRSA, ALB controller IAM. Chư
 
 ```sh
 # tfvars: argocd_enabled = true
-terraform -chdir=enviroments/development plan
-terraform -chdir=enviroments/development apply
+terraform -chdir=environments/development plan
+terraform -chdir=environments/development apply
 
 kubectl -n argocd get pods
-terraform -chdir=enviroments/development output argocd_port_forward_command
-terraform -chdir=enviroments/development output argocd_bootstrap_apply_commands
+terraform -chdir=environments/development output argocd_port_forward_command
+terraform -chdir=environments/development output argocd_bootstrap_apply_commands
 ```
 
 ## Rủi ro & rollback
