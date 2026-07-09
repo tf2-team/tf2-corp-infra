@@ -67,6 +67,12 @@ resource "aws_eks_cluster" "this" {
   role_arn                      = aws_iam_role.cluster.arn
   bootstrap_self_managed_addons = false
 
+  # STANDARD = regular support window (no extended-support billing after end of standard support).
+  # EXTENDED keeps the cluster on an older version past standard EOL (extra cost).
+  upgrade_policy {
+    support_type = var.upgrade_policy_support_type
+  }
+
   vpc_config {
     subnet_ids              = var.subnet_ids
     endpoint_public_access  = var.endpoint_public_access
@@ -95,14 +101,27 @@ locals {
   # CNI + kube-proxy are required for nodes to become NetworkReady.
   network_addon_names = toset(["vpc-cni", "kube-proxy"])
 
+  # Auto-wire EBS CSI IRSA when addon is requested without an explicit role ARN.
+  # Prevents controller CrashLoopBackOff when IMDS is unreachable from pods.
+  addons_effective = {
+    for name, cfg in var.addons : name => {
+      addon_version = cfg.addon_version
+      service_account_role_arn = (
+        name == "aws-ebs-csi-driver" && cfg.service_account_role_arn == null
+        ? aws_iam_role.ebs_csi_controller.arn
+        : cfg.service_account_role_arn
+      )
+    }
+  }
+
   network_addons = {
-    for name, cfg in var.addons : name => cfg
+    for name, cfg in local.addons_effective : name => cfg
     if contains(local.network_addon_names, name)
   }
 
   # CoreDNS, EBS CSI, etc. need worker nodes present.
   post_node_addons = {
-    for name, cfg in var.addons : name => cfg
+    for name, cfg in local.addons_effective : name => cfg
     if !contains(local.network_addon_names, name)
   }
 }
@@ -162,5 +181,8 @@ resource "aws_eks_addon" "this" {
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
 
-  depends_on = [aws_eks_node_group.this]
+  depends_on = [
+    aws_eks_node_group.this,
+    aws_iam_role_policy_attachment.ebs_csi_controller,
+  ]
 }

@@ -108,15 +108,19 @@ variable "node_groups" {
   type = map(object({
     instance_types = list(string)
     capacity_type  = optional(string, "ON_DEMAND")
-    ami_type       = optional(string, "AL2_x86_64")
-    disk_size      = optional(number, 20)
-    desired_size   = optional(number, 2)
-    min_size       = optional(number, 1)
-    max_size       = optional(number, 4)
-    subnet_ids     = optional(list(string))
-    labels         = optional(map(string), {})
+    # AL2 only supported through k8s 1.32; AL2023 required for 1.33+
+    ami_type     = optional(string, "AL2023_x86_64")
+    disk_size    = optional(number, 20)
+    desired_size = optional(number, 2)
+    min_size     = optional(number, 1)
+    max_size     = optional(number, 4)
+    # Prefer subnet_keys (VPC private map keys, e.g. priv-1a) — resolved to IDs in main.tf
+    subnet_keys = optional(list(string))
+    # Optional raw IDs (overrides subnet_keys when set)
+    subnet_ids = optional(list(string))
+    labels     = optional(map(string), {})
   }))
-  description = "Bản đồ các Managed Node Groups"
+  description = "Managed Node Groups. Pin one group per AZ via subnet_keys for multi-AZ balance."
 }
 
 variable "addons" {
@@ -244,4 +248,53 @@ variable "storefront_alb_blocked_prefixes" {
     "/otlp-http",
   ]
   description = "Sensitive path prefixes blocked when storefront_alb_block_sensitive_paths is true"
+}
+
+# ──────────────────────────────────────────────
+# SEC-05: Secrets Manager + External Secrets Operator
+# ──────────────────────────────────────────────
+
+variable "secrets_manager_name_prefix" {
+  type        = string
+  description = "ASM path prefix for secret shells (e.g. techx-corp/development)"
+  default     = "techx-corp/development"
+}
+
+variable "secrets_manager_recovery_window_in_days" {
+  type        = number
+  description = "ASM recovery window for secret shells (0 = force delete; else 7–30)"
+  default     = 7
+}
+
+variable "secrets_manager_kms_key_id" {
+  type        = string
+  description = "Optional CMK for ASM secrets (null = AWS managed key)"
+  default     = null
+}
+
+variable "external_secrets_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "Create ESO IRSA + IAM policy scoped to ASM secret ARNs"
+}
+
+variable "external_secrets_install_helm" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Install ESO Helm chart from Terraform (requires cluster API at apply). Prefer false until kube path is ready; use helm_command output."
+}
+
+variable "external_secrets_create_cluster_secret_store" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Apply ClusterSecretStore via kubernetes_manifest (requires ESO CRDs installed)"
+}
+
+variable "external_secrets_chart_version" {
+  type        = string
+  default     = "0.14.4"
+  description = "Pinned external-secrets Helm chart version"
 }

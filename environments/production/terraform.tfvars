@@ -56,16 +56,36 @@ nat_gateways = {
 cluster_name       = "techx-tf2"
 kubernetes_version = "1.32"
 
+# One managed node group per AZ (EBS / StatefulSet scheduling across zones).
+# Apply destroys techx-tf2-general and creates techx-tf2-general-1a + techx-tf2-general-1b.
 node_groups = {
-  "general" = {
+  "general-1a" = {
     instance_types = ["t3.large"]
     capacity_type  = "ON_DEMAND"
-    disk_size      = 30
-    desired_size   = 2
-    min_size       = 2
-    max_size       = 4
+    # Prefer AL2023 (AL2 only supported through k8s 1.32)
+    ami_type     = "AL2023_x86_64"
+    disk_size    = 30
+    desired_size = 1
+    min_size     = 1
+    max_size     = 2
+    subnet_keys  = ["priv-1a"]
     labels = {
       role = "general"
+      az   = "us-east-1a"
+    }
+  }
+  "general-1b" = {
+    instance_types = ["t3.large"]
+    capacity_type  = "ON_DEMAND"
+    ami_type       = "AL2023_x86_64"
+    disk_size      = 30
+    desired_size   = 1
+    min_size       = 1
+    max_size       = 2
+    subnet_keys    = ["priv-1b"]
+    labels = {
+      role = "general"
+      az   = "us-east-1b"
     }
   }
 }

@@ -55,30 +55,55 @@ nat_gateways = {
 # EKS Configuration (cost-optimized for development)
 # ──────────────────────────────────────────────
 cluster_name       = "techx-dev"
-kubernetes_version = "1.34"
+kubernetes_version = "1.36"
 
+# One managed node group per AZ so EBS volumes / pods can schedule in both zones.
+# Replaces single multi-subnet NG (ASG could put all capacity in one AZ).
+# Apply destroys techx-dev-general and creates techx-dev-general-1a + techx-dev-general-1b.
 node_groups = {
-  "general" = {
-    # t3.medium (4 GiB) was too small for full stack: Insufficient memory + Too many pods
-    # t3.large: 2 vCPU / 8 GiB — enough for demo services + observability
-    # t3.xlarge: 4 vCPU / 16 GiB — enough for demo services + observability
+  "general-1a" = {
     instance_types = ["t3.large"]
-    capacity_type  = "SPOT"
-    disk_size      = 30
-    desired_size   = 2
-    min_size       = 2
-    max_size       = 4
+    capacity_type  = "ON_DEMAND"
+    # EKS 1.33+ rejects AL2_x86_64; use Amazon Linux 2023
+    ami_type     = "AL2023_x86_64_STANDARD"
+    disk_size    = 30
+    desired_size = 1
+    min_size     = 1
+    max_size     = 2
+    subnet_keys  = ["priv-1a"]
     labels = {
       role = "general"
       env  = "development"
+      az   = "us-east-1a"
+    }
+  }
+  "general-1b" = {
+    instance_types = ["t3.large"]
+    capacity_type  = "ON_DEMAND"
+    ami_type       = "AL2023_x86_64_STANDARD"
+    disk_size      = 30
+    desired_size   = 1
+    min_size       = 1
+    max_size       = 2
+    subnet_keys    = ["priv-1b"]
+    labels = {
+      role = "general"
+      env  = "development"
+      az   = "us-east-1b"
     }
   }
 }
 
 addons = {
-  "vpc-cni"            = {}
-  "coredns"            = {}
-  "kube-proxy"         = {}
+  "vpc-cni" = {
+    addon_version = "v1.22.3-eksbuild.1"
+  }
+  "coredns" = {
+    addon_version = "v1.14.3-eksbuild.3"
+  }
+  "kube-proxy" = {
+    addon_version = "v1.36.0-eksbuild.9"
+  }
   "aws-ebs-csi-driver" = {}
 }
 
@@ -96,12 +121,14 @@ create_github_oidc_provider  = false
 # Argo CD (REL-09) — set true when ready to install control plane
 # Requires: aws eks update-kubeconfig + cluster API reachable during apply
 # ──────────────────────────────────────────────
-argocd_enabled       = false
+argocd_enabled       = true
 argocd_chart_version = "7.8.28"
 # Override if chart lives under a different GitHub path:
-# argocd_chart_repo_url = "https://github.com/tmcmanhcuong/techx-corp-chart.git"
+argocd_chart_repo_url = "https://github.com/tmcmanhcuong/techx-corp-chart.git"
 
 # ──────────────────────────────────────────────
 # Storefront public ALB path blocking (Helm)
 # ──────────────────────────────────────────────
 storefront_alb_block_sensitive_paths = false
+
+secrets_manager_recovery_window_in_days = 0

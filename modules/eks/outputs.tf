@@ -28,6 +28,11 @@ output "oidc_issuer" {
   description = "OIDC issuer URL của cluster (dùng để tạo IRSA — IAM Role for Service Account)"
 }
 
+output "oidc_provider_arn" {
+  value       = local.oidc_provider_arn
+  description = "IAM OIDC provider ARN for IRSA (created by this module or existing_oidc_provider_arn)"
+}
+
 output "node_group_arns" {
   value       = { for k, v in aws_eks_node_group.this : k => v.arn }
   description = "Bản đồ ARN của các Node Group (key = tên ngắn)"
@@ -46,4 +51,9 @@ output "cluster_role_arn" {
 output "aws_load_balancer_controller_role_arn" {
   value       = aws_iam_role.aws_load_balancer_controller.arn
   description = "ARN của IAM Role dùng cho AWS Load Balancer Controller"
+}
+
+output "ebs_csi_controller_role_arn" {
+  value       = aws_iam_role.ebs_csi_controller.arn
+  description = "ARN of IRSA role for EKS managed addon aws-ebs-csi-driver (ebs-csi-controller-sa)"
 }

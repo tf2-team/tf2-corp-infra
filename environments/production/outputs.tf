@@ -84,14 +84,28 @@ output "oidc_issuer" {
 # AWS Load Balancer Controller Outputs
 # ──────────────────────────────────────────────
 
+output "ebs_csi_controller_role_arn" {
+  description = "IRSA role for aws-ebs-csi-driver controller (auto-wired into managed addon)"
+  value       = module.eks.ebs_csi_controller_role_arn
+}
+
 output "aws_load_balancer_controller_role_arn" {
   description = "IAM Role ARN for AWS Load Balancer Controller"
   value       = module.eks.aws_load_balancer_controller_role_arn
 }
 
 output "aws_load_balancer_controller_helm_command" {
-  description = "Helm command to install the AWS Load Balancer Controller"
-  value       = "helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=${module.eks.cluster_name} --set serviceAccount.create=true --set serviceAccount.name=aws-load-balancer-controller --set serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn=${module.eks.aws_load_balancer_controller_role_arn}"
+  description = "Helm command to install AWS Load Balancer Controller (region + vpcId avoid IMDS hop-limit failures)"
+  value       = <<-EOT
+    helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+      -n kube-system \
+      --set clusterName=${module.eks.cluster_name} \
+      --set region=${var.aws_region} \
+      --set vpcId=${module.vpc.vpc_id} \
+      --set serviceAccount.create=true \
+      --set serviceAccount.name=aws-load-balancer-controller \
+      --set serviceAccount.annotations.eks\.amazonaws\.com/role-arn=${module.eks.aws_load_balancer_controller_role_arn}
+  EOT
 }
 
 # ──────────────────────────────────────────────
@@ -147,7 +161,7 @@ output "storefront_alb_helm_set_flags" {
 }
 
 output "storefront_alb_helm_deploy_command" {
-  value = <<-EOT
+  value       = <<-EOT
     # Preferred after GitOps cutover: commit tag in values-prod.yaml + Argo CD sync.
     # Break-glass only (disable Argo auto-sync first):
     helm upgrade --install techx-corp techx-corp-chart \
@@ -195,7 +209,7 @@ output "argocd_bootstrap_note" {
 }
 
 output "argocd_bootstrap_apply_commands" {
-  value = <<-EOT
+  value       = <<-EOT
     # After argocd_enabled=true apply and Git credentials in argocd NS:
     kubectl apply -f techx-corp-chart/gitops/clusters/prod/
     argocd app sync techx-corp --dry-run
@@ -208,5 +222,55 @@ output "argocd_bootstrap_apply_commands" {
 output "argocd_chart_repo_url" {
   value       = var.argocd_chart_repo_url
   description = "Expected chart Git repo URL for Argo CD Applications"
+}
+
+# ──────────────────────────────────────────────
+# SEC-05: Secrets Manager + External Secrets
+# ──────────────────────────────────────────────
+
+output "secrets_manager_name_prefix" {
+  value       = module.secrets_manager.name_prefix
+  description = "ASM path prefix (metadata shells only; no secret values in state)"
+}
+
+output "secrets_manager_secret_arns" {
+  value       = module.secrets_manager.secret_arns
+  description = "Map of secret key → ARN"
+}
+
+output "secrets_manager_secret_names" {
+  value       = module.secrets_manager.secret_names
+  description = "Map of secret key → full ASM name"
+}
+
+output "external_secrets_role_arn" {
+  value       = module.external_secrets.role_arn
+  description = "IRSA role ARN for ESO controller"
+}
+
+output "external_secrets_helm_command" {
+  value       = module.external_secrets.helm_command
+  description = "Install ESO when external_secrets_install_helm=false"
+}
+
+output "external_secrets_cluster_secret_store_manifest" {
+  value       = module.external_secrets.cluster_secret_store_manifest
+  description = "ClusterSecretStore YAML (JWT/IRSA) when not created by Terraform"
+}
+
+output "external_secrets_bootstrap_note" {
+  value       = <<-EOT
+    SEC-05 order:
+    1) terraform apply (ASM shells + ESO IRSA; no secret values)
+    2) Bootstrap CURRENT live credentials (not new random DB passwords):
+       ps1:  .\scripts\bootstrap-asm-secrets.ps1 ${var.secrets_manager_name_prefix} ${var.aws_region}
+       cmd:  scripts\bootstrap-asm-secrets.cmd ${var.secrets_manager_name_prefix} ${var.aws_region}
+       bash: ./scripts/bootstrap-asm-secrets.sh ${var.secrets_manager_name_prefix} ${var.aws_region}
+    3) helm_command / install ESO + apply ClusterSecretStore
+    4) helm upgrade techx-corp-secrets (ExternalSecrets) → kubectl wait Ready
+    5) helm upgrade techx-corp (secretKeyRef consumers)
+    See techx-corp-chart/docs/operations/external-secrets.md
+  EOT
+  description = "Operator bootstrap order for ESO cutover"
 }
 
