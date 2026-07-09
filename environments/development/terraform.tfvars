@@ -55,13 +55,14 @@ nat_gateways = {
 # EKS Configuration (cost-optimized for development)
 # ──────────────────────────────────────────────
 cluster_name       = "techx-dev"
-kubernetes_version = "1.32"
+kubernetes_version = "1.34"
 
 node_groups = {
   "general" = {
     # t3.medium (4 GiB) was too small for full stack: Insufficient memory + Too many pods
+    # t3.large: 2 vCPU / 8 GiB — enough for demo services + observability
     # t3.xlarge: 4 vCPU / 16 GiB — enough for demo services + observability
-    instance_types = ["t3.xlarge"]
+    instance_types = ["t3.large"]
     capacity_type  = "SPOT"
     disk_size      = 30
     desired_size   = 2
