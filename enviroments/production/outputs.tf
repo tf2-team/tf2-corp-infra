@@ -84,3 +84,17 @@ output "aws_load_balancer_controller_helm_command" {
   value       = "helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=${module.eks.cluster_name} --set serviceAccount.create=true --set serviceAccount.name=aws-load-balancer-controller --set serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn=${module.eks.aws_load_balancer_controller_role_arn}"
 }
 
+# ──────────────────────────────────────────────
+# External Secrets Operator Outputs
+# ──────────────────────────────────────────────
+
+output "eso_role_arn" {
+  description = "IAM Role ARN for External Secrets Operator (IRSA) - điền vào values.yaml khi cài ESO"
+  value       = module.eks.eso_role_arn
+}
+
+output "eso_helm_command" {
+  description = "Helm command to install External Secrets Operator with IRSA"
+  value       = "helm upgrade --install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn=${module.eks.eso_role_arn}"
+}
+

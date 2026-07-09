@@ -7,6 +7,10 @@ terraform.tfstate.backup
 terraform.tfstate.d/
 crash.log
 crash.*.log
+# tfvars chứa secret thật (password, keys) - KHÔNG commit
+# Dùng terraform.tfvars.example làm template
+terraform.tfvars.secret
+*.secret.tfvars
 
 # Override files (dùng cho local dev, không thuộc về repo chung)
 override.tf

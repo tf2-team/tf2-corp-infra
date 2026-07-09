@@ -47,3 +47,8 @@ output "aws_load_balancer_controller_role_arn" {
   value       = aws_iam_role.aws_load_balancer_controller.arn
   description = "ARN của IAM Role dùng cho AWS Load Balancer Controller"
 }
+
+output "eso_role_arn" {
+  value       = aws_iam_role.eso.arn
+  description = "ARN của IAM Role dùng cho External Secrets Operator (IRSA) - dùng khi annotate ServiceAccount của ESO"
+}
