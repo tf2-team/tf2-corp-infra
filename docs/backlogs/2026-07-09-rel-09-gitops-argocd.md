@@ -2,52 +2,71 @@
 
 ## Bối cảnh
 
-EKS đã có OIDC/IRSA và ALB controller; chưa có GitOps controller. REL-09 yêu cầu cài **Argo CD** (pin version) trên từng cluster qua Terraform, không public UI.
+Hạ tầng `techx-corp-infra` đã có EKS, OIDC/IRSA, ALB controller IAM. Chưa có GitOps controller. REL-09 yêu cầu cài **Argo CD** (pin version) trên từng cluster qua Terraform, opt-in, không public UI.
 
-Kế hoạch: [`docs/gitops-argocd.md`](../../../docs/gitops-argocd.md)
+- Kế hoạch tổng: [`docs/gitops-argocd.md`](../../../docs/gitops-argocd.md)
+- Backlog tổng: [`docs/backlogs/2026-07-09-rel-09-gitops-argocd.md`](../../../docs/backlogs/2026-07-09-rel-09-gitops-argocd.md)
 
 ## Vấn đề
 
-1. Không có nơi cài Argo CD lặp lại được (dev/prod).  
-2. Cần pin chart version và opt-in (`argocd_enabled`) để không phá apply hiện tại.  
-3. Apply Helm in-cluster cần provider kubernetes/helm + EKS auth.
+1. Không có module lặp lại được để cài Argo CD trên dev/prod.
+2. Cần pin chart version và cờ `argocd_enabled` để không phá apply hiện tại.
+3. `helm_release` in-cluster cần provider `kubernetes`/`helm` + EKS auth tại apply time.
+4. UI không được expose qua public storefront ALB.
 
-## Giải pháp
+## Giải pháp đề xuất (infra)
 
-1. Module `modules/argocd`: `helm_release` argo-cd pin version, namespace `argocd`, ClusterIP, Ingress off.  
-2. Wire `enviroments/{development,production}` với `argocd_enabled` (default **false**).  
-3. Outputs: port-forward, admin password command, bootstrap note.  
-4. Dev bật trước; prod sau khi cutover dev ổn.  
-5. Không quản app-of-apps bằng TF v1 — Application apply từ chart `gitops/`.
+1. **Module `modules/argocd`**  
+   - Namespace `argocd`  
+   - Helm chart `argo-cd` (pin, ví dụ `7.8.28`)  
+   - Server ClusterIP; Ingress **disabled**  
+   - ApplicationSet / notifications off mặc định (Phase 7)  
+
+2. **Wire env** `enviroments/development` & `production`  
+   - `argocd_enabled` (default **false**)  
+   - `argocd_chart_version`, `argocd_chart_repo_url` (document)  
+   - Provider kubernetes/helm dùng EKS token  
+
+3. **Outputs**  
+   - port-forward command  
+   - admin password command  
+   - bootstrap apply commands (trỏ chart `gitops/clusters/`)  
+
+4. **Thứ tự**  
+   - Bật dev trước; prod sau khi cutover dev ổn.  
+   - Application CRs **không** quản bằng TF v1 — nằm trong chart repo.
 
 ## Acceptance Criteria
 
-- [ ] Module argocd + versions helm/kubernetes.  
-- [ ] `argocd_enabled=false` mặc định; bật được bằng tfvars.  
-- [ ] Outputs bootstrap + port-forward.  
-- [ ] DEPLOYMENT.md mô tả phase cài Argo CD.  
-- [ ] Không public Ingress cho argocd-server.
+- [ ] Module `argocd` + required_providers helm/kubernetes.
+- [ ] `argocd_enabled=false` mặc định; bật được qua tfvars.
+- [ ] Outputs: port-forward, admin password, bootstrap note/commands.
+- [ ] `docs/DEPLOYMENT.md` có Phase 2b Argo CD.
+- [ ] Không public Ingress cho `argocd-server`.
+- [ ] Pin chart version; upgrade chỉ sau validate dev.
 
-## Kiểm thử
+## Kiểm thử / xác minh
 
 ```sh
 # tfvars: argocd_enabled = true
 terraform -chdir=enviroments/development plan
 terraform -chdir=enviroments/development apply
+
 kubectl -n argocd get pods
-# theo output port_forward_command / admin_password_command
+terraform -chdir=enviroments/development output argocd_port_forward_command
+terraform -chdir=enviroments/development output argocd_bootstrap_apply_commands
 ```
 
 ## Rủi ro & rollback
 
 | Rủi ro | Giảm thiểu |
 |--------|------------|
-| Apply không reach API EKS | default enabled=false; kubeconfig trước apply |
-| Upgrade chart breaking | pin version; thử dev |
-| Rollback | `argocd_enabled=false` không tự gỡ release — destroy helm_release có chủ đích hoặc helm uninstall |
+| Apply không reach EKS API | default enabled=false; kubeconfig trước apply |
+| Chart upgrade breaking | pin version; thử dev |
+| Gỡ control plane | chủ đích `helm uninstall` / destroy module — không flip flag rồi quên cleanup |
 
 ---
 
 ## English Summary
 
-Infra REL-09: Terraform module installs pinned Argo CD (opt-in), ClusterIP only, outputs for bootstrap. Applications live in the chart repo.
+Infra-level REL-09: Terraform module installs pinned Argo CD (opt-in), ClusterIP only, bootstrap outputs. Application manifests live in the chart repo.
