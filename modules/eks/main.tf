@@ -81,6 +81,45 @@ resource "aws_eks_cluster" "this" {
 # Managed Node Groups
 # ──────────────────────────────────────────────
 
+# ──────────────────────────────────────────────
+# EKS Managed Add-ons
+#
+# bootstrap_self_managed_addons = false means EKS does NOT install
+# vpc-cni / kube-proxy / coredns automatically. Network addons MUST be
+# created before (or at least without waiting on) node groups; otherwise
+# nodes stay NotReady with "cni plugin not initialized" and node-group
+# create can hang while addons wait on node groups (deadlock).
+# ──────────────────────────────────────────────
+
+locals {
+  # CNI + kube-proxy are required for nodes to become NetworkReady.
+  network_addon_names = toset(["vpc-cni", "kube-proxy"])
+
+  network_addons = {
+    for name, cfg in var.addons : name => cfg
+    if contains(local.network_addon_names, name)
+  }
+
+  # CoreDNS, EBS CSI, etc. need worker nodes present.
+  post_node_addons = {
+    for name, cfg in var.addons : name => cfg
+    if !contains(local.network_addon_names, name)
+  }
+}
+
+resource "aws_eks_addon" "network" {
+  for_each = local.network_addons
+
+  cluster_name                = aws_eks_cluster.this.name
+  addon_name                  = each.key
+  addon_version               = each.value.addon_version
+  service_account_role_arn    = each.value.service_account_role_arn
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+
+  depends_on = [aws_eks_cluster.this]
+}
+
 resource "aws_eks_node_group" "this" {
   for_each = var.node_groups
 
@@ -108,20 +147,20 @@ resource "aws_eks_node_group" "this" {
     aws_iam_role_policy_attachment.node_cni_policy,
     aws_iam_role_policy_attachment.node_ecr_policy,
     aws_iam_role_policy_attachment.node_ebs_policy,
+    # Ensure CNI is present before nodes are expected to become Ready.
+    aws_eks_addon.network,
   ]
 }
 
-# ──────────────────────────────────────────────
-# EKS Managed Add-ons
-# ──────────────────────────────────────────────
-
 resource "aws_eks_addon" "this" {
-  for_each = var.addons
+  for_each = local.post_node_addons
 
-  cluster_name             = aws_eks_cluster.this.name
-  addon_name               = each.key
-  addon_version            = each.value.addon_version
-  service_account_role_arn = each.value.service_account_role_arn
+  cluster_name                = aws_eks_cluster.this.name
+  addon_name                  = each.key
+  addon_version               = each.value.addon_version
+  service_account_role_arn    = each.value.service_account_role_arn
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
 
   depends_on = [aws_eks_node_group.this]
 }

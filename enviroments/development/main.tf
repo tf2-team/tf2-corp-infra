@@ -1,7 +1,7 @@
 module "ecr" {
   source = "../../modules/ecr"
 
-  # Creates techx-corp/<service> for every platform bake service (module default catalog)
+  # Creates techx-dev-corp/<service> for every platform bake service (module default catalog)
   project_name       = var.ecr_project_name
   naming_mode        = var.ecr_naming_mode
   keep_last_n_images = var.ecr_keep_last_n_images
@@ -19,7 +19,7 @@ module "github_actions_ecr" {
   allowed_refs        = var.github_actions_allowed_refs
   ecr_repository_arns = values(module.ecr.repository_arns)
 
-  # Account-level OIDC provider: create in production; development looks it up.
+  # Reuse account-level GitHub OIDC provider created by production (or pre-existing).
   create_oidc_provider       = var.create_github_oidc_provider
   existing_oidc_provider_arn = var.existing_github_oidc_provider_arn
 

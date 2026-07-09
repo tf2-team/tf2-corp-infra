@@ -15,8 +15,8 @@ variable "tags" {
 
 variable "ecr_project_name" {
   type        = string
-  description = "ECR project path segment (e.g. techx-corp). Full image: registry/ecr_project_name/service:tag"
-  default     = "techx-corp"
+  description = "ECR project path segment (e.g. techx-dev-corp). Full image: registry/ecr_project_name/service:tag"
+  default     = "techx-dev-corp"
 }
 
 variable "ecr_naming_mode" {
@@ -28,7 +28,7 @@ variable "ecr_naming_mode" {
 variable "ecr_keep_last_n_images" {
   type        = number
   description = "Lifecycle: keep N most recent images per service repo"
-  default     = 20
+  default     = 10
 }
 
 variable "ecr_scan_on_push" {
@@ -159,32 +159,32 @@ variable "github_repository" {
 variable "github_actions_ecr_role_name" {
   type        = string
   description = "IAM role name for GitHub Actions ECR push"
-  default     = "techx-gha-platform-prod"
+  default     = "techx-gha-platform-dev"
 }
 
 variable "github_actions_environments" {
   type        = list(string)
   description = "GitHub Environments allowed to assume this role"
-  default     = ["production"]
+  default     = ["development"]
 }
 
 variable "github_actions_allowed_refs" {
   type        = list(string)
   description = "Optional extra git refs allowed (OIDC sub repo:...:ref:...)"
-  default     = ["refs/heads/main", "refs/tags/v*"]
+  default     = ["refs/heads/techx-dev-corp"]
 }
 
 variable "create_github_oidc_provider" {
   type        = bool
-  default     = true
+  default     = false
   nullable    = false
-  description = "Create the account-level GitHub Actions OIDC provider (only one per account)"
+  description = "Create the account-level GitHub Actions OIDC provider. Default false — production creates it; development looks it up."
 }
 
 variable "existing_github_oidc_provider_arn" {
   type        = string
   default     = null
-  description = "ARN of an existing GitHub OIDC provider when create_github_oidc_provider is false"
+  description = "ARN of an existing GitHub OIDC provider when create_github_oidc_provider is false (null = lookup by URL)"
 
   validation {
     condition     = var.existing_github_oidc_provider_arn == null ? true : can(regex("^arn:[a-z0-9-]+:iam::[0-9]{12}:oidc-provider/.+$", var.existing_github_oidc_provider_arn))
@@ -195,9 +195,6 @@ variable "existing_github_oidc_provider_arn" {
 # ──────────────────────────────────────────────
 # Storefront public ALB path blocking (Helm-applied)
 # ──────────────────────────────────────────────
-# Path rules are enforced by techx-corp-chart Ingress annotations (ALB Controller),
-# not by raw AWS Terraform resources. These variables are the IaC source of truth
-# for operators / deploy scripts.
 
 variable "storefront_alb_block_sensitive_paths" {
   type        = bool
@@ -206,12 +203,10 @@ variable "storefront_alb_block_sensitive_paths" {
   description = <<-EOT
     Toggle ALB fixed-response 403 for sensitive paths on the public storefront Ingress.
     true  → BLOCK: /grafana, /jaeger, /loadgen, /feature, /flagservice, /otlp-http
-            ALLOW: / , /api/* , /images/* (and other non-blocked prefixes via catch-all /)
-    false → no path blocks; all prefixes forward to frontend-proxy
+            ALLOW: / , /api/* , /images/* (via catch-all /)
+    false → no path blocks
 
-    Applied via Helm:
-      --set components.frontend-proxy.publicAlb.blockSensitivePaths=<true|false>
-    See outputs storefront_alb_helm_set_flags and storefront_alb_helm_deploy_command.
+    Applied via Helm --set components.frontend-proxy.publicAlb.blockSensitivePaths=<bool>
   EOT
 }
 
@@ -225,6 +220,5 @@ variable "storefront_alb_blocked_prefixes" {
     "/flagservice",
     "/otlp-http",
   ]
-  description = "Sensitive path prefixes blocked when storefront_alb_block_sensitive_paths is true (must match chart values)"
+  description = "Sensitive path prefixes blocked when storefront_alb_block_sensitive_paths is true"
 }
-

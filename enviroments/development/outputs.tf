@@ -24,7 +24,7 @@ output "ecr_image_base_url" {
 
 output "ecr_service_names" {
   value       = module.ecr.service_names
-  description = "Services that have nested ECR repos under techx-corp/<service>"
+  description = "Services that have nested ECR repos under techx-dev-corp/<service>"
 }
 
 # ──────────────────────────────────────────────
@@ -100,7 +100,7 @@ output "aws_load_balancer_controller_helm_command" {
 
 output "github_actions_ecr_role_arn" {
   value       = module.github_actions_ecr.role_arn
-  description = "Set as GitHub Environment variable AWS_ROLE_ARN on environment 'production'"
+  description = "Set as GitHub Environment variable AWS_ROLE_ARN on environment 'development'"
 }
 
 output "github_actions_ecr_role_name" {
@@ -110,12 +110,12 @@ output "github_actions_ecr_role_name" {
 
 output "github_oidc_provider_arn" {
   value       = module.github_actions_ecr.oidc_provider_arn
-  description = "GitHub Actions OIDC provider ARN (account-level)"
+  description = "GitHub Actions OIDC provider ARN (account-level; looked up if not created here)"
 }
 
 output "github_actions_allowed_subjects" {
   value       = module.github_actions_ecr.allowed_subjects
-  description = "OIDC subjects allowed to assume the production ECR push role"
+  description = "OIDC subjects allowed to assume the development ECR push role"
 }
 
 # ──────────────────────────────────────────────
@@ -158,4 +158,3 @@ output "storefront_alb_helm_deploy_command" {
   EOT
   description = "Example Helm deploy command including ALB path-block toggle (replace <VERSION>)"
 }
-

@@ -1,44 +1,45 @@
 aws_region   = "us-east-1"
-project_name = "techx"
+project_name = "techx-dev"
 
 tags = {
-  Environment = "production"
+  Environment = "development"
   Owner       = "CDO-03-06"
   Project     = "techx-platform"
 }
 
-# Image format: REGISTRY/techx-corp/SERVICE:VERSION
+# Image format: REGISTRY/techx-dev-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
-ecr_project_name       = "techx-corp"
+ecr_project_name       = "techx-dev-corp"
 ecr_naming_mode        = "nested"
-ecr_keep_last_n_images = 20
+ecr_keep_last_n_images = 10
 ecr_scan_on_push       = true
 ecr_force_delete       = true
 
 # ──────────────────────────────────────────────
 # VPC Configuration
+# Non-overlapping CIDR with production (10.0.0.0/16)
 # ──────────────────────────────────────────────
-vpc_cidr_block = "10.0.0.0/16"
+vpc_cidr_block = "10.1.0.0/16"
 
 public_subnets = {
   "pub-1a" = {
-    cidr_block        = "10.0.1.0/24"
+    cidr_block        = "10.1.1.0/24"
     availability_zone = "us-east-1a"
   }
   "pub-1b" = {
-    cidr_block        = "10.0.2.0/24"
+    cidr_block        = "10.1.2.0/24"
     availability_zone = "us-east-1b"
   }
 }
 
 private_subnets = {
   "priv-1a" = {
-    cidr_block        = "10.0.10.0/24"
+    cidr_block        = "10.1.10.0/24"
     availability_zone = "us-east-1a"
     nat_gateway_key   = "nat-1a"
   }
   "priv-1b" = {
-    cidr_block        = "10.0.11.0/24"
+    cidr_block        = "10.1.11.0/24"
     availability_zone = "us-east-1b"
     nat_gateway_key   = "nat-1a"
   }
@@ -51,21 +52,24 @@ nat_gateways = {
 }
 
 # ──────────────────────────────────────────────
-# EKS Configuration
+# EKS Configuration (cost-optimized for development)
 # ──────────────────────────────────────────────
-cluster_name       = "techx-tf2"
+cluster_name       = "techx-dev"
 kubernetes_version = "1.32"
 
 node_groups = {
   "general" = {
-    instance_types = ["t3.large"]
-    capacity_type  = "ON_DEMAND"
+    # t3.medium (4 GiB) was too small for full stack: Insufficient memory + Too many pods
+    # t3.xlarge: 4 vCPU / 16 GiB — enough for demo services + observability
+    instance_types = ["t3.xlarge"]
+    capacity_type  = "SPOT"
     disk_size      = 30
     desired_size   = 2
     min_size       = 2
     max_size       = 4
     labels = {
       role = "general"
+      env  = "development"
     }
   }
 }
@@ -79,16 +83,15 @@ addons = {
 
 # ──────────────────────────────────────────────
 # GitHub Actions → ECR push (OIDC)
+# OIDC provider is created by production; this env reuses it.
 # ──────────────────────────────────────────────
 github_repository            = "tmcmanhcuong/tf2-corp-platform"
-github_actions_ecr_role_name = "techx-gha-platform-prod"
-github_actions_environments  = ["production"]
-github_actions_allowed_refs  = ["refs/heads/main", "refs/tags/v*"]
-create_github_oidc_provider  = true
+github_actions_ecr_role_name = "techx-gha-platform-dev"
+github_actions_environments  = ["development"]
+github_actions_allowed_refs  = ["refs/heads/techx-dev-corp"]
+create_github_oidc_provider  = false
 
 # ──────────────────────────────────────────────
 # Storefront public ALB path blocking (Helm)
-# true  = block /grafana,/jaeger,/loadgen,/feature,/flagservice,/otlp-http (403)
-# false = allow all paths through to frontend-proxy
 # ──────────────────────────────────────────────
-storefront_alb_block_sensitive_paths = true
+storefront_alb_block_sensitive_paths = false
