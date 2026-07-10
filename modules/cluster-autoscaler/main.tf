@@ -6,15 +6,31 @@
 # disabled unless deliberately running CA-only mode.
 # ──────────────────────────────────────────────
 
+data "aws_caller_identity" "current" {
+  count = var.enabled ? 1 : 0
+}
+
+data "aws_partition" "current" {
+  count = var.enabled ? 1 : 0
+}
+
 locals {
   oidc_issuer_path = replace(var.oidc_issuer_url, "https://", "")
   sa_subject       = "system:serviceaccount:${var.namespace}:${var.service_account_name}"
+  partition        = var.enabled ? data.aws_partition.current[0].partition : "aws"
+  account_id       = var.enabled ? data.aws_caller_identity.current[0].account_id : "000000000000"
+  # ASG ARN shape for SetDesiredCapacity / TerminateInstanceInAutoScalingGroup (CKV_AWS_356).
+  asg_resource_arns = [
+    "arn:${local.partition}:autoscaling:${var.aws_region}:${local.account_id}:autoScalingGroup:*:autoScalingGroupName/*",
+  ]
 }
 
 # ── IAM policy (AWS CA recommendations + tag-scoped mutate) ─
-# checkov:skip=CKV_AWS_356: Describe* APIs are not resource-level; mutate uses ASG resource-tag condition (AWS CA IRSA pattern)
+# Describe* / GetInstanceTypes* are not resource-level in IAM → resources=["*"] is required.
+# Mutate is scoped to ASG ARNs + ResourceTag condition (cluster ownership).
 
 data "aws_iam_policy_document" "cluster_autoscaler" {
+  # checkov:skip=CKV_AWS_356: Describe/GetInstanceTypes APIs have no resource-level ARNs; mutate is ASG ARN + tag condition
   count = var.enabled ? 1 : 0
 
   statement {
@@ -36,7 +52,7 @@ data "aws_iam_policy_document" "cluster_autoscaler" {
     resources = ["*"]
   }
 
-  # Mutating ASG actions restricted to ASGs tagged for this cluster.
+  # Mutating ASG actions: ARN pattern + tag condition for this cluster's CA-owned ASGs.
   statement {
     sid    = "ClusterAutoscalerMutateTaggedASGs"
     effect = "Allow"
@@ -44,7 +60,7 @@ data "aws_iam_policy_document" "cluster_autoscaler" {
       "autoscaling:SetDesiredCapacity",
       "autoscaling:TerminateInstanceInAutoScalingGroup",
     ]
-    resources = ["*"]
+    resources = local.asg_resource_arns
     condition {
       test     = "StringEquals"
       variable = "autoscaling:ResourceTag/k8s.io/cluster-autoscaler/${var.cluster_name}"

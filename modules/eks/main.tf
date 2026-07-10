@@ -175,6 +175,14 @@ resource "aws_launch_template" "node" {
     }
   }
 
+  # Require IMDSv2 (CKV_AWS_79). hop_limit=1 blocks pod SSRF to IMDS; IRSA does not need IMDS.
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "disabled"
+  }
+
   # MIME multipart NodeConfig; EKS merges cluster bootstrap for managed node groups.
   user_data = base64encode(<<-EOT
 MIME-Version: 1.0

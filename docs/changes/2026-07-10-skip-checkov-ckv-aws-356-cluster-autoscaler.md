@@ -15,8 +15,8 @@ Checkov `CKV_AWS_356` failed on `module.cluster_autoscaler.aws_iam_policy_docume
 
 ## After
 
-* A `# checkov:skip=CKV_AWS_356: ...` comment is present immediately above the policy document data source, with a justification for the intentional `*` resources.
-* Checkov should treat this finding as skipped rather than failed for this resource.
+* Initial approach: skip comment above the data source (proved unreliable with Checkov 3.x attachment rules).
+* **Superseded by** `docs/changes/2026-07-10-fix-checkov-imdsv2-and-ca-iam.md`: mutate resources scoped to ASG ARNs; skip comment moved **inside** the data block so Checkov records SKIPPED correctly.
 
 ## Technical Design Decisions
 
