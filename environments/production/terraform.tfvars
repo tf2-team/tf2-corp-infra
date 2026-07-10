@@ -1,5 +1,5 @@
 aws_region   = "us-east-1"
-project_name = "techx"
+project_name = "techx-prod-tf2"
 
 tags = {
   Environment = "production"
@@ -9,7 +9,7 @@ tags = {
 
 # Image format: REGISTRY/techx-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
-ecr_project_name       = "techx-corp"
+ecr_project_name       = "techx-prod-corp"
 ecr_naming_mode        = "nested"
 ecr_keep_last_n_images = 20
 ecr_scan_on_push       = true
@@ -53,8 +53,8 @@ nat_gateways = {
 # ──────────────────────────────────────────────
 # EKS Configuration
 # ──────────────────────────────────────────────
-cluster_name       = "techx-tf2"
-kubernetes_version = "1.32"
+cluster_name       = "techx-tf2-prod"
+kubernetes_version = "1.36"
 
 # Critical floor (workload placement): On-Demand MNG for system + stateful data.
 # Spot elastic apps use Karpenter when install flags are enabled.
@@ -64,7 +64,7 @@ node_groups = {
     instance_types = ["t3.large"]
     capacity_type  = "ON_DEMAND"
     # Prefer AL2023 (AL2 only supported through k8s 1.32)
-    ami_type     = "AL2023_x86_64"
+    ami_type     = "AL2023_x86_64_STANDARD"
     disk_size    = 30
     desired_size = 1
     min_size     = 1
@@ -83,7 +83,7 @@ node_groups = {
   "general-1b" = {
     instance_types = ["t3.large"]
     capacity_type  = "ON_DEMAND"
-    ami_type       = "AL2023_x86_64"
+    ami_type       = "AL2023_x86_64_STANDARD"
     disk_size      = 30
     desired_size   = 1
     min_size       = 1
@@ -115,7 +115,7 @@ github_repository            = "tmcmanhcuong/tf2-corp-platform"
 github_actions_ecr_role_name = "techx-gha-platform-prod"
 github_actions_environments  = ["production"]
 github_actions_allowed_refs  = ["refs/heads/main", "refs/tags/v*"]
-create_github_oidc_provider  = true
+create_github_oidc_provider  = false
 
 # ──────────────────────────────────────────────
 # Argo CD (REL-09) — keep false until dev cutover is proven

@@ -1,0 +1,150 @@
+name: Terraform Apply
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      terraform_dir:
+        required: true
+        type: string
+      plan_only:
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_VERSION: "1.10.5"
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+jobs:
+  plan:
+    name: Plan ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: terraform-plan-${{ inputs.environment }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials for dev plan
+        if: inputs.environment == 'dev'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.DEV_AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ secrets.DEV_AWS_REGION }}
+
+      - name: Configure AWS credentials for production plan
+        if: inputs.environment == 'production'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.PROD_AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ secrets.PROD_AWS_REGION }}
+
+      - name: Terraform init dev
+        if: inputs.environment == 'dev'
+        env:
+          TF_BACKEND_BUCKET: ${{ secrets.DEV_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ secrets.DEV_TF_BACKEND_REGION }}
+        run: |
+          terraform -chdir=${{ inputs.terraform_dir }} init \
+            -backend-config="bucket=${TF_BACKEND_BUCKET}" \
+            -backend-config="region=${TF_BACKEND_REGION}"
+
+      - name: Terraform init production
+        if: inputs.environment == 'production'
+        env:
+          TF_BACKEND_BUCKET: ${{ secrets.PROD_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ secrets.PROD_TF_BACKEND_REGION }}
+        run: |
+          terraform -chdir=${{ inputs.terraform_dir }} init \
+            -backend-config="bucket=${TF_BACKEND_BUCKET}" \
+            -backend-config="region=${TF_BACKEND_REGION}"
+
+      - name: Terraform plan
+        run: terraform -chdir=${{ inputs.terraform_dir }} plan -out=tfplan
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-apply-plan-${{ inputs.environment }}
+          path: ${{ inputs.terraform_dir }}/tfplan
+          retention-days: 30
+
+  apply:
+    name: Apply ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    needs: plan
+    if: ${{ inputs.plan_only == false }}
+    environment: ${{ inputs.environment }}
+    concurrency:
+      group: terraform-apply-${{ inputs.environment }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials for dev apply
+        if: inputs.environment == 'dev'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.DEV_AWS_APPLY_ROLE_ARN }}
+          aws-region: ${{ secrets.DEV_AWS_REGION }}
+
+      - name: Configure AWS credentials for production apply
+        if: inputs.environment == 'production'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.PROD_AWS_APPLY_ROLE_ARN }}
+          aws-region: ${{ secrets.PROD_AWS_REGION }}
+
+      - name: Terraform init dev
+        if: inputs.environment == 'dev'
+        env:
+          TF_BACKEND_BUCKET: ${{ secrets.DEV_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ secrets.DEV_TF_BACKEND_REGION }}
+        run: |
+          terraform -chdir=${{ inputs.terraform_dir }} init \
+            -backend-config="bucket=${TF_BACKEND_BUCKET}" \
+            -backend-config="region=${TF_BACKEND_REGION}"
+
+      - name: Terraform init production
+        if: inputs.environment == 'production'
+        env:
+          TF_BACKEND_BUCKET: ${{ secrets.PROD_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ secrets.PROD_TF_BACKEND_REGION }}
+        run: |
+          terraform -chdir=${{ inputs.terraform_dir }} init \
+            -backend-config="bucket=${TF_BACKEND_BUCKET}" \
+            -backend-config="region=${TF_BACKEND_REGION}"
+
+      - name: Download approved plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-apply-plan-${{ inputs.environment }}
+          path: ${{ inputs.terraform_dir }}
+
+      - name: Terraform apply
+        run: terraform -chdir=${{ inputs.terraform_dir }} apply -auto-approve tfplan
+
+      - name: Terraform output
+        run: terraform -chdir=${{ inputs.terraform_dir }} output
