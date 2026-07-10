@@ -27,8 +27,8 @@ variable "ecr_naming_mode" {
 
 variable "ecr_keep_last_n_images" {
   type        = number
-  description = "Lifecycle: keep N most recent images per service repo"
-  default     = 10
+  description = "Lifecycle: keep N most recent images per service repo (development: 5)"
+  default     = 5
 }
 
 variable "ecr_scan_on_push" {

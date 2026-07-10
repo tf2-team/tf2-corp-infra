@@ -11,7 +11,7 @@ tags = {
 # Module creates one nested ECR repo per platform service (default catalog).
 ecr_project_name       = "techx-dev-corp"
 ecr_naming_mode        = "nested"
-ecr_keep_last_n_images = 10
+ecr_keep_last_n_images = 5
 ecr_scan_on_push       = true
 ecr_force_delete       = true
 
