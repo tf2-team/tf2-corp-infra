@@ -63,7 +63,7 @@ node_groups = {
     instance_types = ["t3.large"]
     capacity_type  = "ON_DEMAND"
     # Prefer AL2023 (AL2 only supported through k8s 1.32)
-    ami_type     = "AL2023_x86_64"
+    ami_type     = "AL2023_x86_64_STANDARD"
     disk_size    = 30
     desired_size = 1
     min_size     = 1
@@ -77,7 +77,7 @@ node_groups = {
   "general-1b" = {
     instance_types = ["t3.large"]
     capacity_type  = "ON_DEMAND"
-    ami_type       = "AL2023_x86_64"
+    ami_type       = "AL2023_x86_64_STANDARD"
     disk_size      = 30
     desired_size   = 1
     min_size       = 1
