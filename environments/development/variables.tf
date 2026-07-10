@@ -298,3 +298,59 @@ variable "external_secrets_chart_version" {
   default     = "0.14.4"
   description = "Pinned external-secrets Helm chart version"
 }
+
+# ──────────────────────────────────────────────
+# Karpenter (node autoscaling)
+# ──────────────────────────────────────────────
+
+variable "karpenter_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "Create Karpenter IAM, node role, access entry, and interruption SQS"
+}
+
+variable "karpenter_install_helm" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Install Karpenter Helm chart (requires cluster API at apply)"
+}
+
+variable "karpenter_create_node_resources" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Apply EC2NodeClass + NodePool CRs (requires Helm CRDs)"
+}
+
+variable "karpenter_chart_version" {
+  type        = string
+  default     = "1.3.3"
+  description = "Pinned Karpenter Helm chart version"
+}
+
+variable "karpenter_spot_preferred" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "Prefer Spot NodePool with On-Demand fallback (recommended for development)"
+}
+
+variable "karpenter_nodepool_cpu_limit" {
+  type        = string
+  default     = "32"
+  description = "NodePool CPU limit to cap spend"
+}
+
+variable "karpenter_nodepool_memory_limit" {
+  type        = string
+  default     = "64Gi"
+  description = "NodePool memory limit to cap spend"
+}
+
+variable "karpenter_availability_zones" {
+  type        = list(string)
+  default     = ["us-east-1a", "us-east-1b"]
+  description = "Zones allowed for Karpenter NodePools"
+}

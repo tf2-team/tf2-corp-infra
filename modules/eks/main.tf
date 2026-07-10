@@ -83,6 +83,16 @@ resource "aws_eks_cluster" "this" {
   depends_on = [aws_iam_role_policy_attachment.cluster_policy]
 }
 
+# Karpenter security-group discovery (EC2NodeClass securityGroupSelectorTerms).
+# Cluster SG is created by EKS; tag it so nodes join the same cluster SG fabric.
+resource "aws_ec2_tag" "cluster_sg_karpenter_discovery" {
+  count = var.enable_karpenter_discovery_tags ? 1 : 0
+
+  resource_id = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
+  key         = "karpenter.sh/discovery"
+  value       = var.cluster_name
+}
+
 # ──────────────────────────────────────────────
 # Managed Node Groups
 # ──────────────────────────────────────────────

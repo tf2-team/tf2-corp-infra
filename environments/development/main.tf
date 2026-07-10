@@ -111,3 +111,27 @@ module "external_secrets" {
   chart_version               = var.external_secrets_chart_version
   tags                        = var.tags
 }
+
+# ──────────────────────────────────────────────
+# Karpenter — node autoscaling (Spot-preferred in development)
+# ──────────────────────────────────────────────
+
+module "karpenter" {
+  source = "../../modules/karpenter"
+
+  enabled               = var.karpenter_enabled
+  cluster_name          = module.eks.cluster_name
+  cluster_endpoint      = module.eks.cluster_endpoint
+  oidc_provider_arn     = module.eks.oidc_provider_arn
+  oidc_issuer_url       = module.eks.oidc_issuer
+  aws_region            = var.aws_region
+  discovery_tag_value   = module.eks.cluster_name
+  install_helm          = var.karpenter_install_helm
+  create_node_resources = var.karpenter_create_node_resources
+  chart_version         = var.karpenter_chart_version
+  spot_preferred        = var.karpenter_spot_preferred
+  nodepool_cpu_limit    = var.karpenter_nodepool_cpu_limit
+  nodepool_memory_limit = var.karpenter_nodepool_memory_limit
+  availability_zones    = var.karpenter_availability_zones
+  tags                  = var.tags
+}

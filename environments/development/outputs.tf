@@ -274,3 +274,27 @@ output "external_secrets_bootstrap_note" {
   EOT
   description = "Operator bootstrap order for ESO cutover"
 }
+
+# ──────────────────────────────────────────────
+# Karpenter
+# ──────────────────────────────────────────────
+
+output "karpenter_controller_role_arn" {
+  value       = module.karpenter.controller_role_arn
+  description = "IRSA role ARN for Karpenter controller"
+}
+
+output "karpenter_node_role_arn" {
+  value       = module.karpenter.node_role_arn
+  description = "IAM role ARN for Karpenter-provisioned EC2 nodes"
+}
+
+output "karpenter_interruption_queue_name" {
+  value       = module.karpenter.interruption_queue_name
+  description = "SQS queue for Spot/instance interruption events"
+}
+
+output "karpenter_bootstrap_note" {
+  value       = module.karpenter.bootstrap_note
+  description = "Operator notes for Karpenter verification"
+}

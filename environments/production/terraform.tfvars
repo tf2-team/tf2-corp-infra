@@ -118,3 +118,16 @@ argocd_chart_version = "7.8.28"
 # false = allow all paths through to frontend-proxy
 # ──────────────────────────────────────────────
 storefront_alb_block_sensitive_paths = true
+
+# ──────────────────────────────────────────────
+# Karpenter (node autoscaling) — On-Demand preferred
+# IAM/SQS enabled; set install_helm + create_node_resources true when cluster API is ready
+# ──────────────────────────────────────────────
+karpenter_enabled               = true
+karpenter_install_helm          = false
+karpenter_create_node_resources = false
+karpenter_chart_version         = "1.3.3"
+karpenter_spot_preferred        = false
+karpenter_nodepool_cpu_limit    = "64"
+karpenter_nodepool_memory_limit = "128Gi"
+karpenter_availability_zones    = ["us-east-1a", "us-east-1b"]

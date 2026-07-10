@@ -111,6 +111,16 @@ variable "addons" {
   EOT
 }
 
+variable "enable_karpenter_discovery_tags" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = <<-EOT
+    Tag the EKS cluster security group with karpenter.sh/discovery = cluster_name
+    so Karpenter EC2NodeClass can select it for provisioned nodes.
+  EOT
+}
+
 variable "create_oidc_provider" {
   type        = bool
   default     = true

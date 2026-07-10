@@ -108,11 +108,12 @@ Both **development** and **production** currently use the same compute shape:
 | NAT Gateways | **1** (`nat-1a`, shared) | **1** (`nat-1a`, shared) |
 | EKS cluster | `techx-dev` | `techx-tf2` |
 | Kubernetes version | `1.36` (tfvars) | `1.32` (tfvars) |
-| Node groups | `general-1a`, `general-1b` | `general-1a`, `general-1b` |
-| Instance type | `t3.large` on-demand | `t3.large` on-demand |
-| Desired / min / max per AZ | **1 / 1 / 2** | **1 / 1 / 2** |
-| Cluster desired nodes | **2** | **2** |
-| Cluster max nodes | **4** | **4** |
+| Node groups (system MNG) | `general-1a`, `general-1b` | `general-1a`, `general-1b` |
+| Instance type (MNG) | `t3.large` **Spot** (tfvars) | `t3.large` on-demand |
+| Desired / min / max per AZ (MNG) | **1 / 1 / 3** | **1 / 1 / 2** |
+| Cluster desired nodes (MNG floor) | **2** | **2** |
+| Cluster max nodes (MNG only) | **6** | **4** |
+| Karpenter | **Spot preferred** + OD fallback; CPU limit 32 | On-Demand NodePool when install enabled; CPU limit 64 |
 | Node disk | 30 GB | 30 GB |
 | ECR project | `techx-dev-corp/*` (keep last **5**) | `techx-corp/*` (keep last **20**) |
 | Argo CD (`argocd_enabled`) | **true** | **false** |
@@ -174,7 +175,7 @@ This is **application + chart observability only**. It does **not** include:
 - Argo CD (dev)
 - EmptyDir / JVM / page cache beyond requests
 
-**Implication:** Desired **2× t3.large** is intentionally tight for a full demo. Memory-heavy pods (OpenSearch **1100Mi**, Kafka **700Mi**, load-generator **500Mi**) can cause Pending pods and ASG scale-out toward **3–4 nodes**, which increases monthly cost.
+**Implication:** Desired **2× t3.large** system MNG is intentionally tight for a full demo. Memory-heavy pods (OpenSearch **1100Mi**, Kafka **700Mi**, load-generator **500Mi**) can cause Pending pods; **Karpenter** then adds workload nodes (Spot-first in dev) within NodePool limits — see `docs/karpenter.md`.
 
 ---
 
@@ -252,7 +253,8 @@ These items move month-to-month more than the EKS control-plane fee.
 
 | Driver | Effect | Config / behavior |
 |---|---|---|
-| **Node count** | Dominant variable | ASG `desired_size` / HPA / Pending pods |
+| **Node count** | Dominant variable | MNG `desired_size` + **Karpenter** NodePools (Pending pods / HPA) |
+| **Karpenter Spot vs OD** | Dev often cheaper; interruptions | `karpenter_spot_preferred`; see `docs/karpenter.md` |
 | **Load-generator** | CPU, ALB LCU, NAT, cross-AZ | `components.load-generator.enabled` |
 | **NAT data processing** | $0.045/GB | Image pulls, package updates, external APIs |
 | **ALB LCU** | Connections, bytes, rules | Storefront + load-gen |

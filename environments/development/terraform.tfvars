@@ -63,13 +63,13 @@ kubernetes_version = "1.36"
 node_groups = {
   "general-1a" = {
     instance_types = ["t3.large"]
-    capacity_type  = "ON_DEMAND"
+    capacity_type  = "SPOT"
     # EKS 1.33+ rejects AL2_x86_64; use Amazon Linux 2023
     ami_type     = "AL2023_x86_64_STANDARD"
     disk_size    = 30
     desired_size = 1
     min_size     = 1
-    max_size     = 2
+    max_size     = 3
     subnet_keys  = ["priv-1a"]
     labels = {
       role = "general"
@@ -79,12 +79,12 @@ node_groups = {
   }
   "general-1b" = {
     instance_types = ["t3.large"]
-    capacity_type  = "ON_DEMAND"
+    capacity_type  = "SPOT"
     ami_type       = "AL2023_x86_64_STANDARD"
     disk_size      = 30
     desired_size   = 1
     min_size       = 1
-    max_size       = 2
+    max_size       = 3
     subnet_keys    = ["priv-1b"]
     labels = {
       role = "general"
@@ -132,3 +132,16 @@ argocd_chart_repo_url = "https://github.com/tmcmanhcuong/techx-corp-chart.git"
 storefront_alb_block_sensitive_paths = false
 
 secrets_manager_recovery_window_in_days = 0
+
+# ──────────────────────────────────────────────
+# Karpenter (node autoscaling) — Spot preferred
+# Requires: cluster API reachable when install_helm / create_node_resources are true
+# ──────────────────────────────────────────────
+karpenter_enabled               = true
+karpenter_install_helm          = true
+karpenter_create_node_resources = true
+karpenter_chart_version         = "1.3.3"
+karpenter_spot_preferred        = true
+karpenter_nodepool_cpu_limit    = "32"
+karpenter_nodepool_memory_limit = "64Gi"
+karpenter_availability_zones    = ["us-east-1a", "us-east-1b"]

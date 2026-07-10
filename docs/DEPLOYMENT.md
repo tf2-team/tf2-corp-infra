@@ -219,6 +219,35 @@ kubectl get nodes -L topology.kubernetes.io/zone
 # expect at least one Ready node in us-east-1a and one in us-east-1b
 ```
 
+Managed node groups remain the **system/bootstrap** pool. **Workload node autoscaling** is handled by **Karpenter** (see next phase and `docs/karpenter.md`).
+
+---
+
+## Phase 1b: Karpenter (node autoscaling)
+
+Karpenter provisions EC2 nodes from Pending pods. Discovery tags (`karpenter.sh/discovery = <cluster>`) are applied to private subnets and the cluster security group by the VPC/EKS modules.
+
+| Env | Spot preferred | Default install (tfvars) |
+|-----|----------------|--------------------------|
+| development | **yes** (Spot NodePool + On-Demand fallback) | `install_helm` + `create_node_resources` **true** |
+| production | **no** (On-Demand NodePool) | IAM/SQS only until you flip install flags |
+
+```bash
+# Development (full install when cluster API is reachable during apply)
+terraform -chdir=environments/development plan
+terraform -chdir=environments/development apply
+
+kubectl -n kube-system get pods -l app.kubernetes.io/name=karpenter
+kubectl get ec2nodeclass,nodepool
+kubectl get nodes -L karpenter.sh/nodepool -L karpenter.sh/capacity-type
+
+terraform -chdir=environments/development output karpenter_bootstrap_note
+```
+
+Production: set `karpenter_install_helm = true` and `karpenter_create_node_resources = true` in `environments/production/terraform.tfvars` when ready, then apply.
+
+Full comparison (CA vs Karpenter vs EKS Auto Mode), verification scale-test, and rollback: **`docs/karpenter.md`**.
+
 ---
 
 ## Phase 2: Kubeconfig & Load Balancer Controller
@@ -482,8 +511,9 @@ Smoke test + `helm rollback` — xem `techx-corp-chart/docs/DEPLOYMENT.md`.
 |---|---|
 | `modules/ecr` | Nested (hoặc flat) ECR + lifecycle + catalog services |
 | `modules/github-actions-ecr` | GitHub OIDC provider (optional) + IAM role ECR push |
-| `modules/vpc` | VPC, subnets, NAT, EKS subnet tags |
-| `modules/eks` | EKS, node groups, EKS OIDC (IRSA), ALB controller role |
+| `modules/vpc` | VPC, subnets, NAT, EKS + Karpenter discovery subnet tags |
+| `modules/eks` | EKS, node groups, EKS OIDC (IRSA), ALB controller role, cluster SG discovery tag |
+| `modules/karpenter` | Karpenter IRSA, node role, SQS interruption, Helm, NodePool/EC2NodeClass |
 | `modules/secrets-manager` | ASM secret shells (metadata only; no secret values) |
 | `modules/external-secrets` | ESO IRSA + optional Helm/ClusterSecretStore |
 
