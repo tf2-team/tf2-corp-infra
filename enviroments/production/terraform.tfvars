@@ -1,10 +1,9 @@
 aws_region   = "us-east-1"
-project_name = "techx"
+project_name = "techx-production-tf2"
 
 tags = {
   Environment = "production"
   Owner       = "CDO-03"
-  Project     = "techx-platform"
 }
 
 repositories = {

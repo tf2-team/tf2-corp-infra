@@ -1,0 +1,49 @@
+name: Terraform Destroy Dev
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_VERSION: "1.10.5"
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+jobs:
+  destroy-dev:
+    name: Destroy Dev
+    runs-on: ubuntu-latest
+    concurrency:
+      group: terraform-apply-dev
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials for dev
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DEV_AWS_APPLY_ROLE_ARN }}
+          aws-region: ${{ vars.DEV_AWS_REGION }}
+
+      - name: Terraform init dev
+        env:
+          TF_BACKEND_BUCKET: ${{ vars.DEV_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ vars.DEV_TF_BACKEND_REGION }}
+        run: |
+          terraform -chdir=enviroments/dev init \
+            -backend-config="bucket=${TF_BACKEND_BUCKET}" \
+            -backend-config="region=${TF_BACKEND_REGION}"
+
+      - name: Terraform destroy dev
+        run: |
+          terraform -chdir=enviroments/dev destroy -auto-approve

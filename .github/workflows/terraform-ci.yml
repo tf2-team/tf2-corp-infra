@@ -1,0 +1,190 @@
+name: Terraform CI
+
+on:
+  pull_request:
+    paths:
+      - "bootstrap/**"
+      - "enviroments/**"
+      - "modules/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+  security-events: write
+
+concurrency:
+  group: terraform-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  TF_VERSION: "1.10.5"
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+jobs:
+  static-checks:
+    name: Static checks
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        terraform_dir:
+          - bootstrap
+          - enviroments/dev
+          - enviroments/production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform fmt
+        run: terraform -chdir=${{ matrix.terraform_dir }} fmt -check -diff
+
+      - name: Terraform init without backend
+        run: terraform -chdir=${{ matrix.terraform_dir }} init -backend=false
+
+      - name: Terraform validate
+        run: terraform -chdir=${{ matrix.terraform_dir }} validate
+
+  tflint:
+    name: TFLint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: Run TFLint
+        run: tflint --recursive --minimum-failure-severity=warning
+
+  checkov:
+    name: Checkov IaC scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: terraform
+          quiet: true
+          soft_fail: false
+
+  plan:
+    name: Plan ${{ matrix.environment }}
+    runs-on: ubuntu-latest
+    needs:
+      - static-checks
+      - tflint
+      - checkov
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - environment: dev
+            terraform_dir: enviroments/dev
+          - environment: production
+            terraform_dir: enviroments/production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials for dev
+        if: matrix.environment == 'dev'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DEV_AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ vars.DEV_AWS_REGION }}
+
+      - name: Configure AWS credentials for production
+        if: matrix.environment == 'production'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.PROD_AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ vars.PROD_AWS_REGION }}
+
+      - name: Terraform init dev
+        if: matrix.environment == 'dev'
+        env:
+          TF_BACKEND_BUCKET: ${{ vars.DEV_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ vars.DEV_TF_BACKEND_REGION }}
+        run: |
+          terraform -chdir=${{ matrix.terraform_dir }} init \
+            -backend-config="bucket=${TF_BACKEND_BUCKET}" \
+            -backend-config="region=${TF_BACKEND_REGION}"
+
+      - name: Terraform init production
+        if: matrix.environment == 'production'
+        env:
+          TF_BACKEND_BUCKET: ${{ vars.PROD_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ vars.PROD_TF_BACKEND_REGION }}
+        run: |
+          terraform -chdir=${{ matrix.terraform_dir }} init \
+            -backend-config="bucket=${TF_BACKEND_BUCKET}" \
+            -backend-config="region=${TF_BACKEND_REGION}"
+
+      - name: Terraform plan
+        id: plan
+        shell: bash
+        run: |
+          set +e
+          terraform -chdir=${{ matrix.terraform_dir }} plan -out=tfplan -detailed-exitcode
+          status=$?
+          echo "exitcode=${status}" >> "$GITHUB_OUTPUT"
+          if [ "${status}" -eq 1 ]; then
+            exit 1
+          fi
+          exit 0
+
+      - name: Render plan summary
+        if: steps.plan.outputs.exitcode != '0'
+        run: terraform -chdir=${{ matrix.terraform_dir }} show -no-color tfplan > plan-${{ matrix.environment }}.txt
+
+      - name: Upload plan artifact
+        if: steps.plan.outputs.exitcode != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ matrix.environment }}
+          path: |
+            ${{ matrix.terraform_dir }}/tfplan
+            plan-${{ matrix.environment }}.txt
+          retention-days: 14
+
+      - name: Comment plan on PR
+        if: github.event_name == 'pull_request' && steps.plan.outputs.exitcode != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const plan = fs.readFileSync("plan-${{ matrix.environment }}.txt", "utf8");
+            const body = [
+              "### Terraform plan: `${{ matrix.environment }}`",
+              "",
+              "```terraform",
+              plan.slice(0, 60000),
+              "```"
+            ].join("\n");
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
