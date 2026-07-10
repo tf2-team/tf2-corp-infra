@@ -54,7 +54,7 @@ nat_gateways = {
 # EKS Configuration
 # ──────────────────────────────────────────────
 cluster_name       = "techx-tf2-prod"
-kubernetes_version = "1.32"
+kubernetes_version = "1.36"
 
 # One managed node group per AZ (EBS / StatefulSet scheduling across zones).
 # Apply destroys techx-tf2-general and creates techx-tf2-general-1a + techx-tf2-general-1b.
