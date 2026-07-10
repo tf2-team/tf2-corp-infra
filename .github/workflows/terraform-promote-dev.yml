@@ -20,3 +20,4 @@ jobs:
     with:
       environment: dev
       terraform_dir: environments/development
+    secrets: inherit
