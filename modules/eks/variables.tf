@@ -121,6 +121,18 @@ variable "enable_karpenter_discovery_tags" {
   EOT
 }
 
+variable "enable_cluster_autoscaler_asg_tags" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = <<-EOT
+    Tag each managed node group ASG for Cluster Autoscaler auto-discovery:
+      k8s.io/cluster-autoscaler/enabled = true
+      k8s.io/cluster-autoscaler/<cluster_name> = owned
+    Enable when cluster_autoscaler_enabled is true. Harmless if CA Helm is not installed.
+  EOT
+}
+
 variable "create_oidc_provider" {
   type        = bool
   default     = true

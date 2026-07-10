@@ -298,3 +298,22 @@ output "karpenter_bootstrap_note" {
   value       = module.karpenter.bootstrap_note
   description = "Operator notes for Karpenter verification"
 }
+
+# ──────────────────────────────────────────────
+# Cluster Autoscaler
+# ──────────────────────────────────────────────
+
+output "cluster_autoscaler_role_arn" {
+  value       = module.cluster_autoscaler.role_arn
+  description = "IRSA role ARN for Cluster Autoscaler (null when disabled)"
+}
+
+output "cluster_autoscaler_helm_installed" {
+  value       = module.cluster_autoscaler.helm_installed
+  description = "Whether Terraform installed the Cluster Autoscaler Helm release"
+}
+
+output "cluster_autoscaler_bootstrap_note" {
+  value       = module.cluster_autoscaler.bootstrap_note
+  description = "Operator notes for Cluster Autoscaler"
+}

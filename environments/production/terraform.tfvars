@@ -122,6 +122,7 @@ storefront_alb_block_sensitive_paths = true
 # ──────────────────────────────────────────────
 # Karpenter (node autoscaling) — On-Demand preferred
 # IAM/SQS enabled; set install_helm + create_node_resources true when cluster API is ready
+# Default capacity model: small MNG floor + Karpenter elastic (do not enable CA Helm with this).
 # ──────────────────────────────────────────────
 karpenter_enabled               = true
 karpenter_install_helm          = false
@@ -131,3 +132,13 @@ karpenter_spot_preferred        = false
 karpenter_nodepool_cpu_limit    = "64"
 karpenter_nodepool_memory_limit = "128Gi"
 karpenter_availability_zones    = ["us-east-1a", "us-east-1b"]
+
+# ──────────────────────────────────────────────
+# Cluster Autoscaler — OFF by default
+# Scales managed node group ASGs only (within min_size/max_size).
+# For CA-only experiments: disable Karpenter install/NodePools first, then enable CA.
+# See docs/cluster-autoscaler.md
+# ──────────────────────────────────────────────
+cluster_autoscaler_enabled       = false
+cluster_autoscaler_install_helm  = false
+cluster_autoscaler_chart_version = "9.46.6"

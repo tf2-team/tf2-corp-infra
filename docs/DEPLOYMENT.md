@@ -250,6 +250,22 @@ Full comparison (CA vs Karpenter vs EKS Auto Mode), verification scale-test, and
 
 ---
 
+## Phase 1c: Cluster Autoscaler (optional, off by default)
+
+Default capacity remains **small managed node groups + Karpenter**. Cluster Autoscaler is wired in Terraform but **disabled** in both environments (`cluster_autoscaler_enabled = false`, `cluster_autoscaler_install_helm = false`).
+
+* CA scales **MNG ASGs only** within `min_size`/`max_size` — not Karpenter nodes.
+* **Do not** enable CA Helm while Karpenter install/NodePools are active (Terraform `check` enforces mutual exclusion).
+* For CA-only mode: disable Karpenter first, then flip CA flags. Full runbook: **`docs/cluster-autoscaler.md`**.
+
+```bash
+# Defaults create no CA resources
+terraform -chdir=environments/development plan | findstr /i "cluster-autoscaler" || true
+terraform -chdir=environments/development output cluster_autoscaler_bootstrap_note
+```
+
+---
+
 ## Phase 2: Kubeconfig & Load Balancer Controller
 
 Output `aws_load_balancer_controller_helm_command` includes **IRSA role ARN**, **`region`**, and **`vpcId`**.  

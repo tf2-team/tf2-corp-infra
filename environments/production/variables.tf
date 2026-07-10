@@ -360,3 +360,27 @@ variable "karpenter_availability_zones" {
   description = "Zones allowed for Karpenter NodePools"
 }
 
+# ──────────────────────────────────────────────
+# Cluster Autoscaler (optional MNG/ASG scaler — OFF by default)
+# ──────────────────────────────────────────────
+
+variable "cluster_autoscaler_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Create Cluster Autoscaler IRSA role/policy and tag MNG ASGs for auto-discovery"
+}
+
+variable "cluster_autoscaler_install_helm" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Install Cluster Autoscaler Helm chart (requires cluster API; mutually exclusive with Karpenter install)"
+}
+
+variable "cluster_autoscaler_chart_version" {
+  type        = string
+  default     = "9.46.6"
+  description = "Pinned cluster-autoscaler Helm chart version"
+}
+

@@ -74,6 +74,9 @@ module "eks" {
 
   create_oidc_provider       = var.create_oidc_provider
   existing_oidc_provider_arn = var.existing_oidc_provider_arn
+
+  # Tag MNG ASGs for CA auto-discovery when Cluster Autoscaler is enabled (IAM-only is enough).
+  enable_cluster_autoscaler_asg_tags = var.cluster_autoscaler_enabled
 }
 
 # GitOps control plane (REL-09). Default off until cluster + kubectl path is ready.
@@ -134,4 +137,40 @@ module "karpenter" {
   nodepool_memory_limit = var.karpenter_nodepool_memory_limit
   availability_zones    = var.karpenter_availability_zones
   tags                  = var.tags
+}
+
+# ──────────────────────────────────────────────
+# Cluster Autoscaler — optional MNG/ASG scaler (OFF by default)
+# Default capacity model: small MNG floor + Karpenter elastic.
+# Do not set install_helm=true while Karpenter Helm/NodePools are active.
+# ──────────────────────────────────────────────
+
+check "no_dual_node_autoscalers" {
+  assert {
+    condition = !(
+      var.cluster_autoscaler_install_helm && (
+        var.karpenter_install_helm || var.karpenter_create_node_resources
+      )
+    )
+    error_message = <<-EOT
+      Unsupported: Cluster Autoscaler Helm and Karpenter must not run together.
+      Default path is MNG floor + Karpenter. For CA-only mode: set
+      karpenter_install_helm=false, karpenter_create_node_resources=false,
+      drain Karpenter nodes, then enable cluster_autoscaler_install_helm.
+      See docs/cluster-autoscaler.md.
+    EOT
+  }
+}
+
+module "cluster_autoscaler" {
+  source = "../../modules/cluster-autoscaler"
+
+  enabled           = var.cluster_autoscaler_enabled
+  cluster_name      = module.eks.cluster_name
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_issuer_url   = module.eks.oidc_issuer
+  aws_region        = var.aws_region
+  install_helm      = var.cluster_autoscaler_install_helm
+  chart_version     = var.cluster_autoscaler_chart_version
+  tags              = var.tags
 }

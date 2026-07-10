@@ -136,6 +136,7 @@ secrets_manager_recovery_window_in_days = 0
 # ──────────────────────────────────────────────
 # Karpenter (node autoscaling) — Spot preferred
 # Requires: cluster API reachable when install_helm / create_node_resources are true
+# Default capacity model: small MNG floor + Karpenter elastic (do not enable CA Helm with this).
 # ──────────────────────────────────────────────
 karpenter_enabled               = true
 karpenter_install_helm          = true
@@ -145,3 +146,13 @@ karpenter_spot_preferred        = true
 karpenter_nodepool_cpu_limit    = "32"
 karpenter_nodepool_memory_limit = "64Gi"
 karpenter_availability_zones    = ["us-east-1a", "us-east-1b"]
+
+# ──────────────────────────────────────────────
+# Cluster Autoscaler — OFF by default
+# Scales managed node group ASGs only (within min_size/max_size).
+# For CA-only experiments: disable Karpenter install/NodePools first, then enable CA.
+# See docs/cluster-autoscaler.md
+# ──────────────────────────────────────────────
+cluster_autoscaler_enabled       = false
+cluster_autoscaler_install_helm  = false
+cluster_autoscaler_chart_version = "9.46.6"

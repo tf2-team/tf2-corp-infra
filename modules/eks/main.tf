@@ -181,6 +181,32 @@ resource "aws_eks_node_group" "this" {
   ]
 }
 
+# Cluster Autoscaler auto-discovery tags on managed node group ASGs.
+# Applied only when enable_cluster_autoscaler_asg_tags is true (typically when CA is enabled).
+resource "aws_autoscaling_group_tag" "cluster_autoscaler_enabled" {
+  for_each = var.enable_cluster_autoscaler_asg_tags ? aws_eks_node_group.this : {}
+
+  autoscaling_group_name = each.value.resources[0].autoscaling_groups[0].name
+
+  tag {
+    key                 = "k8s.io/cluster-autoscaler/enabled"
+    value               = "true"
+    propagate_at_launch = false
+  }
+}
+
+resource "aws_autoscaling_group_tag" "cluster_autoscaler_cluster" {
+  for_each = var.enable_cluster_autoscaler_asg_tags ? aws_eks_node_group.this : {}
+
+  autoscaling_group_name = each.value.resources[0].autoscaling_groups[0].name
+
+  tag {
+    key                 = "k8s.io/cluster-autoscaler/${var.cluster_name}"
+    value               = "owned"
+    propagate_at_launch = false
+  }
+}
+
 resource "aws_eks_addon" "this" {
   for_each = local.post_node_addons
 

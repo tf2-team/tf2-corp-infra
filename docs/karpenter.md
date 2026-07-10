@@ -36,7 +36,9 @@ Three common ways to scale EKS worker capacity:
 | Ops model | Install CA Deployment + ASG tags / IAM |
 | Best for | Simple “more of the same node type” growth |
 
-**Not chosen for this repo.** CA only grows pre-defined node groups. We want flexible instance selection (especially multi-type Spot in development) without maintaining a matrix of managed node groups and ASG tags. CA also scales more slowly and consolidates less intelligently than Karpenter for mixed workloads.
+**Not chosen as the default path.** CA only grows pre-defined node groups. We want flexible instance selection (especially multi-type Spot in development) without maintaining a matrix of managed node groups and ASG tags. CA also scales more slowly and consolidates less intelligently than Karpenter for mixed workloads.
+
+An **optional** Cluster Autoscaler module exists (`modules/cluster-autoscaler`, flags **off by default**) for CA-only experiments. **Do not run CA Helm while Karpenter is active.** See `docs/cluster-autoscaler.md`.
 
 ### 2.2 Karpenter
 
@@ -296,7 +298,7 @@ Drain Karpenter nodes first; then apply. AWS roles/SQS remain for quick re-enabl
 * Spot-first production
 * Karpenter managed via Argo CD (Terraform-owned install path, like ESO)
 * EKS Auto Mode migration
-* Cluster Autoscaler (do not install alongside Karpenter)
+* Running Cluster Autoscaler **alongside** Karpenter (unsupported; Terraform check blocks dual Helm). Optional CA-only module: `docs/cluster-autoscaler.md`
 
 ---
 
@@ -304,5 +306,6 @@ Drain Karpenter nodes first; then apply. AWS roles/SQS remain for quick re-enabl
 
 * `docs/DEPLOYMENT.md` — end-to-end environment bring-up
 * `docs/COST.md` — cost model and drivers
+* `docs/cluster-autoscaler.md` — optional CA-only alternative (off by default)
 * [Karpenter docs](https://karpenter.sh/docs/)
 * [Karpenter CloudFormation / IAM reference](https://karpenter.sh/docs/reference/cloudformation/)
