@@ -175,3 +175,9 @@ variable "existing_oidc_provider_arn" {
   }
 }
 
+variable "plan_role_arn" {
+  type        = string
+  default     = null
+  description = "IAM Role ARN of the GitHub Actions Plan Role to authorize in EKS"
+}
+

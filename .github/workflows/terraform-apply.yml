@@ -27,6 +27,8 @@ jobs:
   plan:
     name: Plan ${{ inputs.environment }}
     runs-on: ubuntu-latest
+    env:
+      TF_VAR_plan_role_arn: ${{ inputs.environment == 'dev' && secrets.DEV_AWS_PLAN_ROLE_ARN || secrets.PROD_AWS_PLAN_ROLE_ARN }}
     concurrency:
       group: terraform-plan-${{ inputs.environment }}
       cancel-in-progress: false
@@ -87,6 +89,8 @@ jobs:
   apply:
     name: Apply ${{ inputs.environment }}
     runs-on: ubuntu-latest
+    env:
+      TF_VAR_plan_role_arn: ${{ inputs.environment == 'dev' && secrets.DEV_AWS_PLAN_ROLE_ARN || secrets.PROD_AWS_PLAN_ROLE_ARN }}
     needs: plan
     if: ${{ inputs.plan_only == false }}
     environment: ${{ inputs.environment }}

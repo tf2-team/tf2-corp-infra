@@ -307,3 +307,11 @@ resource "aws_eks_addon" "this" {
     aws_iam_role_policy_attachment.ebs_csi_controller,
   ]
 }
+
+resource "aws_eks_access_entry" "plan_role" {
+  count             = var.plan_role_arn != null ? 1 : 0
+  cluster_name      = aws_eks_cluster.this.name
+  principal_arn     = var.plan_role_arn
+  kubernetes_groups = ["system:masters"] # Cho phép Plan Role được phép tương tác với API Server để lập kế hoạch
+}
+

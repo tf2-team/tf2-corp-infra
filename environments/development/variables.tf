@@ -401,3 +401,10 @@ variable "cluster_autoscaler_chart_version" {
   default     = "9.46.6"
   description = "Pinned cluster-autoscaler Helm chart version"
 }
+
+variable "plan_role_arn" {
+  type        = string
+  default     = null
+  description = "IAM Role ARN of the GitHub Actions Plan Role to authorize in EKS"
+}
+

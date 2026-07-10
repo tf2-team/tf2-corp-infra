@@ -85,6 +85,8 @@ jobs:
   plan:
     name: Plan ${{ matrix.environment }}
     runs-on: ubuntu-latest
+    env:
+      TF_VAR_plan_role_arn: ${{ matrix.environment == 'dev' && secrets.DEV_AWS_PLAN_ROLE_ARN || secrets.PROD_AWS_PLAN_ROLE_ARN }}
     needs:
       - static-checks
       - tflint

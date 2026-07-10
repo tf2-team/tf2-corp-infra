@@ -76,6 +76,7 @@ module "eks" {
 
   create_oidc_provider       = var.create_oidc_provider
   existing_oidc_provider_arn = var.existing_oidc_provider_arn
+  plan_role_arn              = var.plan_role_arn
 
   # Tag MNG ASGs for CA auto-discovery when Cluster Autoscaler is enabled (IAM-only is enough).
   enable_cluster_autoscaler_asg_tags = var.cluster_autoscaler_enabled
