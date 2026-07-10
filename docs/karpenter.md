@@ -108,9 +108,9 @@ Three common ways to scale EKS worker capacity:
 | Controller IAM role (IRSA) | Scoped EC2/IAM/SQS/EKS permissions for the Karpenter controller |
 | Node IAM role + EKS access entry | EC2 instance profile role; nodes join cluster via access entry (`EC2_LINUX`) |
 | SQS + EventBridge | Spot interruption, rebalance, instance state-change, health events |
-| Helm release (optional) | `oci://public.ecr.aws/karpenter/karpenter` |
-| `EC2NodeClass` (optional) | AL2023 AMI alias, discovery selectors, node role |
-| `NodePool`(s) (optional) | Capacity type, instance category, zone, limits, consolidation |
+| Helm `karpenter-crd` (optional) | Official CRDs (`oci://public.ecr.aws/karpenter/karpenter-crd`) — required before NodePool/EC2NodeClass |
+| Helm `karpenter` (optional) | Controller (`oci://public.ecr.aws/karpenter/karpenter`) |
+| Helm `karpenter-node-resources` (optional) | Local chart: EC2NodeClass + NodePool(s) (avoids `kubernetes_manifest` CRD race at plan time) |
 
 ### 3.2 Discovery tags
 
@@ -248,7 +248,7 @@ terraform -chdir=environments/development output karpenter_controller_role_arn
 | Helm apply needs live API | Same as Argo CD; set `install_helm=false` until kube path works |
 | IAM too broad | Tag-scoped controller policy; PassRole only to Karpenter node role |
 | EBS AZ affinity | Multi-AZ private subnets tagged; Karpenter places in PVC zone |
-| CRD race | `create_node_resources` depends on Helm; first apply needs successful chart install |
+| CRD race | Official `karpenter-crd` chart installs first; NodePool/EC2NodeClass use local Helm chart (not `kubernetes_manifest`) so plan does not require GVK upfront |
 
 ### Rollback
 

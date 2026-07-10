@@ -1,0 +1,30 @@
+{{- if .Values.spotPreferred }}
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: on-demand-fallback
+spec:
+  weight: 10
+  template:
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: {{ .Values.ec2nodeclassName }}
+      expireAfter: {{ .Values.expireAfter | quote }}
+      requirements:
+        {{- range .Values.fallbackRequirements }}
+        - key: {{ .key | quote }}
+          operator: {{ .operator | quote }}
+          values:
+            {{- range .values }}
+            - {{ . | quote }}
+            {{- end }}
+        {{- end }}
+  limits:
+    cpu: {{ .Values.cpuLimit | quote }}
+    memory: {{ .Values.memoryLimit | quote }}
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: {{ .Values.consolidateAfter | quote }}
+{{- end }}

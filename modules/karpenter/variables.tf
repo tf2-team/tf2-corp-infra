@@ -54,7 +54,7 @@ variable "create_node_resources" {
   type        = bool
   default     = false
   nullable    = false
-  description = "Apply EC2NodeClass + NodePool(s) via kubernetes_manifest (requires CRDs from Helm)"
+  description = "Apply EC2NodeClass + NodePool(s) via local Helm chart (installs/uses karpenter-crd first)"
 }
 
 variable "chart_version" {

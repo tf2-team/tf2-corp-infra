@@ -124,7 +124,7 @@ create_github_oidc_provider  = false
 argocd_enabled       = true
 argocd_chart_version = "7.8.28"
 # Override if chart lives under a different GitHub path:
-argocd_chart_repo_url = "https://github.com/tmcmanhcuong/techx-corp-chart.git"
+argocd_chart_repo_url = "https://github.com/tmcmanhcuong/tf2-corp-chart/tree/techx-dev-corp"
 
 # ──────────────────────────────────────────────
 # Storefront public ALB path blocking (Helm)

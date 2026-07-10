@@ -650,7 +650,32 @@ resource "aws_iam_role_policy_attachment" "controller" {
   policy_arn = aws_iam_policy.controller[0].arn
 }
 
-# ── Helm: Karpenter controller ────────────────
+# ── Helm: CRDs → controller → NodePool/EC2NodeClass ─
+#
+# kubernetes_manifest cannot plan against CRDs that do not exist yet
+# (GVK lookup fails). Install CRDs via the official karpenter-crd
+# chart, then apply Node resources with a local Helm chart so a
+# single terraform apply works.
+
+resource "helm_release" "karpenter_crd" {
+  count = var.enabled && (var.install_helm || var.create_node_resources) ? 1 : 0
+
+  name       = "karpenter-crd"
+  repository = "oci://public.ecr.aws/karpenter"
+  chart      = "karpenter-crd"
+  version    = var.chart_version
+  namespace  = var.namespace
+
+  create_namespace = false
+  wait             = true
+  atomic           = true
+  timeout          = var.timeout_seconds
+
+  # CRDs are cluster-scoped; chart still expects a namespace for the release.
+  depends_on = [
+    aws_iam_role_policy_attachment.controller,
+  ]
+}
 
 resource "helm_release" "karpenter" {
   count = var.enabled && var.install_helm ? 1 : 0
@@ -684,123 +709,44 @@ resource "helm_release" "karpenter" {
   ]
 
   depends_on = [
+    helm_release.karpenter_crd,
     aws_iam_role_policy_attachment.controller,
     aws_eks_access_entry.node,
     aws_sqs_queue_policy.interruption,
   ]
 }
 
-# ── EC2NodeClass + NodePools ──────────────────
-
-resource "kubernetes_manifest" "ec2nodeclass" {
+# EC2NodeClass + NodePool(s) via local chart (avoids kubernetes_manifest CRD race).
+resource "helm_release" "node_resources" {
   count = var.enabled && var.create_node_resources ? 1 : 0
 
-  manifest = {
-    apiVersion = "karpenter.k8s.aws/v1"
-    kind       = "EC2NodeClass"
-    metadata = {
-      name = var.ec2nodeclass_name
-    }
-    spec = {
-      role = aws_iam_role.node[0].name
-      amiSelectorTerms = [
-        { alias = var.ami_alias }
-      ]
-      subnetSelectorTerms = [
-        {
-          tags = {
-            "karpenter.sh/discovery" = local.discovery
-          }
-        }
-      ]
-      securityGroupSelectorTerms = [
-        {
-          tags = {
-            "karpenter.sh/discovery" = local.discovery
-          }
-        }
-      ]
-      metadataOptions = {
-        httpEndpoint            = "enabled"
-        httpProtocolIPv6        = "disabled"
-        httpPutResponseHopLimit = 2
-        httpTokens              = "required"
-      }
-    }
-  }
+  name      = "karpenter-node-resources"
+  chart     = "${path.module}/charts/node-resources"
+  namespace = var.namespace
 
-  depends_on = [helm_release.karpenter]
-}
+  create_namespace = false
+  wait             = true
+  atomic           = true
+  timeout          = var.timeout_seconds
 
-resource "kubernetes_manifest" "nodepool_primary" {
-  count = var.enabled && var.create_node_resources ? 1 : 0
+  values = [
+    yamlencode({
+      ec2nodeclassName     = var.ec2nodeclass_name
+      nodeRoleName         = aws_iam_role.node[0].name
+      discoveryTagValue    = local.discovery
+      amiAlias             = var.ami_alias
+      spotPreferred        = var.spot_preferred
+      expireAfter          = var.expire_after
+      consolidateAfter     = var.consolidate_after
+      cpuLimit             = var.nodepool_cpu_limit
+      memoryLimit          = var.nodepool_memory_limit
+      primaryRequirements  = var.spot_preferred ? local.spot_requirements : local.on_demand_requirements
+      fallbackRequirements = local.on_demand_requirements
+    })
+  ]
 
-  manifest = {
-    apiVersion = "karpenter.sh/v1"
-    kind       = "NodePool"
-    metadata = {
-      name = var.spot_preferred ? "spot" : "on-demand"
-    }
-    spec = {
-      weight = 100
-      template = {
-        spec = {
-          nodeClassRef = {
-            group = "karpenter.k8s.aws"
-            kind  = "EC2NodeClass"
-            name  = var.ec2nodeclass_name
-          }
-          expireAfter  = var.expire_after
-          requirements = var.spot_preferred ? local.spot_requirements : local.on_demand_requirements
-        }
-      }
-      limits = {
-        cpu    = var.nodepool_cpu_limit
-        memory = var.nodepool_memory_limit
-      }
-      disruption = {
-        consolidationPolicy = "WhenEmptyOrUnderutilized"
-        consolidateAfter    = var.consolidate_after
-      }
-    }
-  }
-
-  depends_on = [kubernetes_manifest.ec2nodeclass]
-}
-
-# Lower-weight On-Demand fallback when Spot capacity is unavailable (dev only).
-resource "kubernetes_manifest" "nodepool_on_demand_fallback" {
-  count = var.enabled && var.create_node_resources && var.spot_preferred ? 1 : 0
-
-  manifest = {
-    apiVersion = "karpenter.sh/v1"
-    kind       = "NodePool"
-    metadata = {
-      name = "on-demand-fallback"
-    }
-    spec = {
-      weight = 10
-      template = {
-        spec = {
-          nodeClassRef = {
-            group = "karpenter.k8s.aws"
-            kind  = "EC2NodeClass"
-            name  = var.ec2nodeclass_name
-          }
-          expireAfter  = var.expire_after
-          requirements = local.on_demand_requirements
-        }
-      }
-      limits = {
-        cpu    = var.nodepool_cpu_limit
-        memory = var.nodepool_memory_limit
-      }
-      disruption = {
-        consolidationPolicy = "WhenEmptyOrUnderutilized"
-        consolidateAfter    = var.consolidate_after
-      }
-    }
-  }
-
-  depends_on = [kubernetes_manifest.ec2nodeclass]
+  depends_on = [
+    helm_release.karpenter_crd,
+    helm_release.karpenter,
+  ]
 }
