@@ -44,21 +44,21 @@ jobs:
         if: inputs.environment == 'dev'
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.DEV_AWS_PLAN_ROLE_ARN }}
-          aws-region: ${{ vars.DEV_AWS_REGION }}
+          role-to-assume: ${{ secrets.DEV_AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ secrets.DEV_AWS_REGION }}
 
       - name: Configure AWS credentials for production plan
         if: inputs.environment == 'production'
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.PROD_AWS_PLAN_ROLE_ARN }}
-          aws-region: ${{ vars.PROD_AWS_REGION }}
+          role-to-assume: ${{ secrets.PROD_AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ secrets.PROD_AWS_REGION }}
 
       - name: Terraform init dev
         if: inputs.environment == 'dev'
         env:
-          TF_BACKEND_BUCKET: ${{ vars.DEV_TF_BACKEND_BUCKET }}
-          TF_BACKEND_REGION: ${{ vars.DEV_TF_BACKEND_REGION }}
+          TF_BACKEND_BUCKET: ${{ secrets.DEV_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ secrets.DEV_TF_BACKEND_REGION }}
         run: |
           terraform -chdir=${{ inputs.terraform_dir }} init \
             -backend-config="bucket=${TF_BACKEND_BUCKET}" \
@@ -67,8 +67,8 @@ jobs:
       - name: Terraform init production
         if: inputs.environment == 'production'
         env:
-          TF_BACKEND_BUCKET: ${{ vars.PROD_TF_BACKEND_BUCKET }}
-          TF_BACKEND_REGION: ${{ vars.PROD_TF_BACKEND_REGION }}
+          TF_BACKEND_BUCKET: ${{ secrets.PROD_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ secrets.PROD_TF_BACKEND_REGION }}
         run: |
           terraform -chdir=${{ inputs.terraform_dir }} init \
             -backend-config="bucket=${TF_BACKEND_BUCKET}" \
@@ -107,21 +107,21 @@ jobs:
         if: inputs.environment == 'dev'
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.DEV_AWS_APPLY_ROLE_ARN }}
-          aws-region: ${{ vars.DEV_AWS_REGION }}
+          role-to-assume: ${{ secrets.DEV_AWS_APPLY_ROLE_ARN }}
+          aws-region: ${{ secrets.DEV_AWS_REGION }}
 
       - name: Configure AWS credentials for production apply
         if: inputs.environment == 'production'
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.PROD_AWS_APPLY_ROLE_ARN }}
-          aws-region: ${{ vars.PROD_AWS_REGION }}
+          role-to-assume: ${{ secrets.PROD_AWS_APPLY_ROLE_ARN }}
+          aws-region: ${{ secrets.PROD_AWS_REGION }}
 
       - name: Terraform init dev
         if: inputs.environment == 'dev'
         env:
-          TF_BACKEND_BUCKET: ${{ vars.DEV_TF_BACKEND_BUCKET }}
-          TF_BACKEND_REGION: ${{ vars.DEV_TF_BACKEND_REGION }}
+          TF_BACKEND_BUCKET: ${{ secrets.DEV_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ secrets.DEV_TF_BACKEND_REGION }}
         run: |
           terraform -chdir=${{ inputs.terraform_dir }} init \
             -backend-config="bucket=${TF_BACKEND_BUCKET}" \
@@ -130,8 +130,8 @@ jobs:
       - name: Terraform init production
         if: inputs.environment == 'production'
         env:
-          TF_BACKEND_BUCKET: ${{ vars.PROD_TF_BACKEND_BUCKET }}
-          TF_BACKEND_REGION: ${{ vars.PROD_TF_BACKEND_REGION }}
+          TF_BACKEND_BUCKET: ${{ secrets.PROD_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ secrets.PROD_TF_BACKEND_REGION }}
         run: |
           terraform -chdir=${{ inputs.terraform_dir }} init \
             -backend-config="bucket=${TF_BACKEND_BUCKET}" \
