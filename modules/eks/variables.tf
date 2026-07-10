@@ -61,6 +61,13 @@ variable "node_groups" {
     # Pin to specific subnets (one AZ) for multi-AZ balance; null = all var.subnet_ids
     subnet_ids = optional(list(string))
     labels     = optional(map(string), {}) # Kubernetes node labels
+    # Optional taints for hard isolation (Phase 2 workload placement).
+    # Example: [{ key = "workload-class", value = "critical", effect = "NO_SCHEDULE" }]
+    taints = optional(list(object({
+      key    = string
+      value  = optional(string)
+      effect = string # NO_SCHEDULE | NO_EXECUTE | PREFER_NO_SCHEDULE
+    })), [])
     # When set, creates a launch template with AL2023 NodeConfig kubelet.maxPods.
     # Use with VPC CNI prefix delegation (e.g. 110 for t3.large). Requires node recycle.
     max_pods = optional(number)
@@ -71,6 +78,9 @@ variable "node_groups" {
     For multi-AZ balance, create one group per AZ and set subnet_ids to a single
     private subnet (env main.tf resolves subnet_keys from the VPC module).
 
+    Labels: use workload-class=critical for the system/data floor (see docs/workload-placement.md).
+    Taints: optional hard isolation; only enable after critical pods and DaemonSets have matching tolerations.
+
     max_pods: optional kubelet maxPods via launch template (AL2023 NodeConfig).
     Pair with vpc-cni ENABLE_PREFIX_DELEGATION for higher density than default ENI mode
     (t3.large default maxPods=35 → ~110 with prefix mode).
@@ -79,21 +89,17 @@ variable "node_groups" {
       node_groups = {
         "general-1a" = {
           instance_types = ["t3.large"]
+          capacity_type  = "ON_DEMAND"
           desired_size   = 1
           min_size       = 1
           max_size       = 2
           max_pods       = 110
           subnet_keys    = ["priv-1a"]
-          labels         = { az = "us-east-1a" }
-        }
-        "general-1b" = {
-          instance_types = ["t3.large"]
-          desired_size   = 1
-          min_size       = 1
-          max_size       = 2
-          max_pods       = 110
-          subnet_keys    = ["priv-1b"]
-          labels         = { az = "us-east-1b" }
+          labels = {
+            role           = "critical"
+            workload-class = "critical"
+            az             = "us-east-1a"
+          }
         }
       }
   EOT

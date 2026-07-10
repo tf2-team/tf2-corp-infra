@@ -265,7 +265,7 @@ terraform -chdir=environments/development apply
 
 kubectl -n kube-system get pods -l app.kubernetes.io/name=karpenter
 kubectl get ec2nodeclass,nodepool
-kubectl get nodes -L karpenter.sh/nodepool -L karpenter.sh/capacity-type
+kubectl get nodes -L karpenter.sh/nodepool -L karpenter.sh/capacity-type -L workload-class
 
 terraform -chdir=environments/development output karpenter_bootstrap_note
 ```
@@ -273,6 +273,28 @@ terraform -chdir=environments/development output karpenter_bootstrap_note
 Production: set `karpenter_install_helm = true` and `karpenter_create_node_resources = true` in `environments/production/terraform.tfvars` when ready, then apply.
 
 Full comparison (CA vs Karpenter vs EKS Auto Mode), verification scale-test, and rollback: **`docs/karpenter.md`**.
+
+---
+
+## Phase 1b-extra: Workload placement (critical MNG vs Spot apps)
+
+Managed node groups are the **critical floor** (`workload-class=critical`, On-Demand). Karpenter nodes are labeled `workload-class=spot-tolerant` for elastic apps.
+
+| Workload | Placement |
+|----------|-----------|
+| System (Karpenter controller, ESO, Argo CD, metrics-server, ALB controller) | `nodeSelector: workload-class=critical` |
+| Stateful app data (`postgresql`, `kafka`, `valkey-cart`, `opensearch`) | Chart required critical selector |
+| Stateless app Deployments | Preferred Spot / spot-tolerant affinity |
+| Prod edge (`frontend-proxy`, `flagd`) | Critical (values-prod) |
+
+**Apply order:** Terraform (labels + capacity) **before** chart sync so critical pods do not Pending waiting for labels.
+
+```bash
+kubectl get nodes -L workload-class,role,karpenter.sh/capacity-type
+kubectl get pod -A -o wide | findstr /i "postgresql kafka valkey checkout"
+```
+
+Hard isolation (MNG taints) is optional Phase 2 — see **`docs/workload-placement.md`**.
 
 ---
 

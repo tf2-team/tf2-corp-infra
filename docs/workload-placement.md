@@ -19,17 +19,24 @@ It is the scheduling counterpart to [`karpenter.md`](./karpenter.md) (capacity p
 
 ---
 
-## 2. Current state (before this strategy)
+## 2. Implementation status
 
-| Layer | Behavior today |
-|-------|----------------|
-| **Dev MNG** | `general-1a` / `general-1b`, `capacity_type = SPOT`, labels `role=general` |
-| **Prod MNG** | Same shape, `capacity_type = ON_DEMAND`, labels `role=general` |
-| **Karpenter** | Dev: Spot preferred + OD fallback; Prod: OD-only when installed |
-| **App chart** | Supports `schedulingRules` (`nodeSelector` / `affinity` / `tolerations`) but **no tier defaults** |
-| **Result** | Any pod can land on any Ready node; critical and stateless compete for the same MNG floor |
+| Layer | Status |
+|-------|--------|
+| **Strategy doc** | This file |
+| **Phase 1 soft placement** | **Implemented** (MNG labels + On-Demand floor, Karpenter labels, chart rules, system pins) |
+| **Phase 2 hard taints** | Module supports optional `taints`; **disabled** in tfvars until DaemonSets/system pods get tolerations |
+| **Phase 3 tuning** | Not started |
 
-So: capacity *can* grow via Karpenter, but there is **no intentional split** between critical and Spot-tolerant work.
+### 2.1 Current configured behavior
+
+| Layer | Behavior |
+|-------|----------|
+| **Dev MNG** | `general-1a` / `general-1b`, `capacity_type = ON_DEMAND`, labels `workload-class=critical`, `role=critical` |
+| **Prod MNG** | Same critical labels, `capacity_type = ON_DEMAND` |
+| **Karpenter** | NodePool template labels `workload-class=spot-tolerant`; controller `nodeSelector` → critical; Dev Spot preferred + OD fallback; Prod OD-only when installed |
+| **App chart** | Default preferred Spot affinity; STS data (`postgresql`, `kafka`, `valkey-cart`, `opensearch`) required critical; prod pins `frontend-proxy` + `flagd` |
+| **System** | Argo CD `global.nodeSelector`, ESO + webhook/certController, metrics-server, ALB controller helm note |
 
 ---
 
@@ -241,19 +248,14 @@ Karpenter controller **must** run on MNG (or another non-Karpenter node) so it c
 
 | Environment | MNG capacity | Karpenter | Critical pin | Stateless Spot |
 |-------------|--------------|-----------|--------------|----------------|
-| **development** | **Target: ON_DEMAND** (today is SPOT — see §6.1) | Spot preferred + OD fallback | Yes | Soft prefer Spot |
-| **production** | ON_DEMAND (already) | App Spot pool **optional** (cost vs risk) | Yes (required) | Soft prefer Spot **or** OD-only if policy forbids Spot |
+| **development** | **ON_DEMAND** (critical floor) | Spot preferred + OD fallback | Yes | Soft prefer Spot |
+| **production** | ON_DEMAND | App Spot pool **optional** (cost vs risk) | Yes (required) | Soft prefer Spot **or** OD-only if policy forbids Spot |
 
-### 6.1 Development MNG is Spot today
+### 6.1 Development MNG capacity type
 
-Dev managed groups currently use `capacity_type = "SPOT"`. That **undermines** “critical on MNG” because:
+Development managed groups use `capacity_type = "ON_DEMAND"` so the critical floor is not Spot-interruptible. Elastic / Spot-tolerant pods run on **Karpenter Spot** (with On-Demand fallback).
 
-1. Spot interruption can take the critical floor itself  
-2. Stateful PVCs + Spot reclaim is a poor combination  
-
-**Strategy decision:** when implementing this placement model, **switch development MNG to ON_DEMAND** (small floor, e.g. 1×`t3.large` per AZ) and keep **Spot only on Karpenter** for elastic app pods. Accept a modest fixed cost increase for stability of Postgres/Kafka/Valkey.
-
-If cost pressure is extreme in a throwaway sandbox, soft mode on Spot MNG is allowed, but **do not** call that “critical isolation.”
+> **Apply note:** Changing MNG `capacity_type` from SPOT to ON_DEMAND replaces the managed node groups. Plan and apply during a maintenance window; ensure critical pods can reschedule (PDBs, multi-AZ PVCs).
 
 ### 6.2 Production Spot for apps
 
@@ -267,33 +269,28 @@ If cost pressure is extreme in a throwaway sandbox, soft mode on Spot MNG is all
 
 ## 7. Implementation plan
 
-### Phase 0 — Document (this file)
+### Phase 0 — Document (this file) — **done**
 
-- Agree classification table (§4) with operators.  
-- No cluster behavior change yet.
-
-### Phase 1 — Soft placement (infra + chart)
+### Phase 1 — Soft placement (infra + chart) — **done in repo**
 
 **Infra (`techx-corp-infra`)**
 
-1. Relabel MNG: `workload-class=critical`, `role=critical` (keep `az`).  
-2. Optionally label Karpenter NodePool templates: `workload-class=spot-tolerant`.  
-3. Dev: change MNG `capacity_type` from `SPOT` → `ON_DEMAND` when adopting critical floor.  
-4. Ensure Karpenter Spot NodePool remains the elastic path (dev already Spot-preferred).
+1. Relabeled MNG: `workload-class=critical`, `role=critical` (keep `az` / `env`).  
+2. Karpenter NodePool templates: `workload-class=spot-tolerant`, `role=spot-tolerant`.  
+3. Dev MNG `capacity_type` **SPOT → ON_DEMAND** (node group replacement on apply).  
+4. Karpenter controller, Argo CD, ESO pinned with `nodeSelector.workload-class=critical`.  
+5. ALB controller install output includes critical `nodeSelector`.  
+6. Optional `taints` on MNG (module + env variables); not enabled in tfvars.
 
 **Chart (`techx-corp-chart`)**
 
-1. Add documented presets under `default.schedulingRules` **or** per-component blocks:
-   - Stateful: `postgresql`, `kafka`, `valkey-cart`, `opensearch` → critical selector.  
-   - Deployments listed in §4.3 → preferred Spot affinity.  
-2. Optional: `values-dev.yaml` / `values-prod.yaml` overrides (prod may pin `frontend-proxy` critical).  
-3. DaemonSet otel-collector: document tolerations for Phase 2 taints (via subchart values).
+1. `default.schedulingRules` = preferred Spot / spot-tolerant affinity.  
+2. Critical STS: `postgresql`, `kafka`, `valkey-cart`, `opensearch`.  
+3. `values-prod.yaml`: `frontend-proxy` + `flagd` critical.  
+4. `metrics-server.nodeSelector.workload-class=critical`.  
+5. Template merge: component `schedulingRules` keys fully replace defaults (empty affinity clears Spot prefer).
 
-**System modules**
-
-1. Argo CD / ESO / metrics-server Helm values: critical `nodeSelector` (+ future tolerations).
-
-**Validation**
+**Validation (post-apply)**
 
 ```bash
 kubectl get nodes -L workload-class,karpenter.sh/capacity-type,role
@@ -304,11 +301,11 @@ kubectl get pod -n <ns> postgresql-0 -o wide
 kubectl get pods -n <ns> -l app.kubernetes.io/name=checkout -o wide
 ```
 
-### Phase 2 — Hard isolation
+### Phase 2 — Hard isolation — **module ready, taints off**
 
-1. Add `taints` support to `modules/eks` node groups.  
-2. Taint MNG: `workload-class=critical:NoSchedule`.  
-3. Add matching tolerations on all critical pods + DaemonSets + system charts.  
+1. ~~Add `taints` support to `modules/eks` node groups.~~ **done**  
+2. Enable in tfvars: `taints = [{ key = "workload-class", value = "critical", effect = "NO_SCHEDULE" }]`  
+3. Add matching tolerations on all critical pods + DaemonSets (otel-collector) + system charts **before** applying taints.  
 4. Confirm Spot-tolerant pods **never** show MNG node names under load.  
 5. Size MNG for critical + DaemonSets only; watch `Too many pods` / CPU on system nodes.
 

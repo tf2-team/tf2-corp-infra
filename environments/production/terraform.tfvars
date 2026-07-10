@@ -56,8 +56,9 @@ nat_gateways = {
 cluster_name       = "techx-tf2"
 kubernetes_version = "1.32"
 
+# Critical floor (workload placement): On-Demand MNG for system + stateful data.
+# Spot elastic apps use Karpenter when install flags are enabled.
 # One managed node group per AZ (EBS / StatefulSet scheduling across zones).
-# Apply destroys techx-tf2-general and creates techx-tf2-general-1a + techx-tf2-general-1b.
 node_groups = {
   "general-1a" = {
     instance_types = ["t3.large"]
@@ -72,9 +73,12 @@ node_groups = {
     max_pods    = 110
     subnet_keys = ["priv-1a"]
     labels = {
-      role = "general"
-      az   = "us-east-1a"
+      role           = "critical"
+      workload-class = "critical"
+      az             = "us-east-1a"
     }
+    # Phase 2 hard isolation (disabled): only enable after DaemonSets/system pods tolerate.
+    # taints = [{ key = "workload-class", value = "critical", effect = "NO_SCHEDULE" }]
   }
   "general-1b" = {
     instance_types = ["t3.large"]
@@ -87,8 +91,9 @@ node_groups = {
     max_pods       = 110
     subnet_keys    = ["priv-1b"]
     labels = {
-      role = "general"
-      az   = "us-east-1b"
+      role           = "critical"
+      workload-class = "critical"
+      az             = "us-east-1b"
     }
   }
 }

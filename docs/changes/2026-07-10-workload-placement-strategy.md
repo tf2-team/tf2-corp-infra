@@ -19,12 +19,9 @@ This strategy is needed so operators and future chart/infra changes share one pl
 
 ## After
 
-* New strategy guide: `docs/workload-placement.md`.
-* Defines tiers: **critical** (MNG), **spot-tolerant** (Karpenter Spot), **universal** (DaemonSets).
-* Maps concrete components (e.g. postgresql/kafka/valkey/opensearch vs checkout/frontend/load-generator).
-* Phased plan: soft affinity (Phase 1) → MNG taints (Phase 2) → tuning (Phase 3).
+* Strategy guide: `docs/workload-placement.md` (classification, phases, risks).
 * Cross-link from `docs/karpenter.md` §10.1.
-* Explicit note: implementing critical isolation implies **On-Demand MNG** in development (today MNG is Spot).
+* **Phase 1 implementation landed in a follow-up change** — see `docs/changes/2026-07-10-implement-workload-placement-phase1.md` (and chart counterpart). This file remains the strategy-only record from the initial docs commit.
 
 ## Technical Design Decisions
 
@@ -32,7 +29,6 @@ This strategy is needed so operators and future chart/infra changes share one pl
 * **Soft then hard enforcement** — reduces risk of mass Pending pods when taints land before tolerations.
 * **Labels `workload-class=critical|spot-tolerant`** — stable selector independent of NodePool names.
 * **Prefer Spot affinity (not hard nodeSelector) for apps** — preserves On-Demand fallback when Spot is scarce.
-* **Documentation-only first** — classification should be agreed before Terraform/chart PR churn.
 
 Alternatives rejected for v1: EKS Auto Mode (larger ops shift); Cluster Autoscaler-only Spot matrix (less flexible); pure preferred affinity forever without taints (MNG still filled by stateless pods).
 
@@ -40,7 +36,7 @@ Alternatives rejected for v1: EKS Auto Mode (larger ops shift); Cluster Autoscal
 
 1. Authored `docs/workload-placement.md` with architecture diagram (ASCII), classification tables, YAML examples for chart `schedulingRules`, env policy, risks, and cross-repo impact.
 2. Linked strategy from `docs/karpenter.md` so capacity and scheduling docs stay connected.
-3. No Terraform, Helm values, or node label changes in this change set.
+3. Concrete Terraform/chart wiring is recorded in the Phase 1 implementation change document.
 
 ## Files Changed
 

@@ -715,6 +715,18 @@ resource "helm_release" "karpenter" {
           "eks.amazonaws.com/role-arn" = aws_iam_role.controller[0].arn
         }
       }
+      # Pin controller to critical MNG so it can recover when Spot/elastic nodes are empty.
+      # Requires managed node groups labeled workload-class=critical (see docs/workload-placement.md).
+      nodeSelector = {
+        "workload-class" = "critical"
+      }
+      # Phase 2: add matching toleration when MNG is tainted workload-class=critical:NoSchedule.
+      # tolerations = [{
+      #   key      = "workload-class"
+      #   operator = "Equal"
+      #   value    = "critical"
+      #   effect   = "NoSchedule"
+      # }]
     })
   ]
 

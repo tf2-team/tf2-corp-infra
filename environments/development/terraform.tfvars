@@ -57,13 +57,14 @@ nat_gateways = {
 cluster_name       = "techx-dev"
 kubernetes_version = "1.36"
 
+# Critical floor (workload placement): On-Demand MNG for system + stateful data.
+# Spot elastic capacity is provided by Karpenter, not the managed floor.
+# Changing capacity_type SPOT→ON_DEMAND replaces the node groups (plan carefully).
 # One managed node group per AZ so EBS volumes / pods can schedule in both zones.
-# Replaces single multi-subnet NG (ASG could put all capacity in one AZ).
-# Apply destroys techx-dev-general and creates techx-dev-general-1a + techx-dev-general-1b.
 node_groups = {
   "general-1a" = {
     instance_types = ["t3.large"]
-    capacity_type  = "SPOT"
+    capacity_type  = "ON_DEMAND"
     # EKS 1.33+ rejects AL2_x86_64; use Amazon Linux 2023
     ami_type     = "AL2023_x86_64_STANDARD"
     disk_size    = 30
@@ -74,14 +75,17 @@ node_groups = {
     max_pods    = 110
     subnet_keys = ["priv-1a"]
     labels = {
-      role = "general"
-      env  = "development"
-      az   = "us-east-1a"
+      role           = "critical"
+      workload-class = "critical"
+      env            = "development"
+      az             = "us-east-1a"
     }
+    # Phase 2 hard isolation (disabled): only enable after DaemonSets/system pods tolerate.
+    # taints = [{ key = "workload-class", value = "critical", effect = "NO_SCHEDULE" }]
   }
   "general-1b" = {
     instance_types = ["t3.large"]
-    capacity_type  = "SPOT"
+    capacity_type  = "ON_DEMAND"
     ami_type       = "AL2023_x86_64_STANDARD"
     disk_size      = 30
     desired_size   = 1
@@ -90,9 +94,10 @@ node_groups = {
     max_pods       = 110
     subnet_keys    = ["priv-1b"]
     labels = {
-      role = "general"
-      env  = "development"
-      az   = "us-east-1b"
+      role           = "critical"
+      workload-class = "critical"
+      env            = "development"
+      az             = "us-east-1b"
     }
   }
 }

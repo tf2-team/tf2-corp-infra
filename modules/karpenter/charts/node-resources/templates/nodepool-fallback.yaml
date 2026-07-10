@@ -6,6 +6,11 @@ metadata:
 spec:
   weight: 10
   template:
+    metadata:
+      labels:
+        # Elastic app capacity (not the critical MNG floor), even when On-Demand.
+        workload-class: spot-tolerant
+        role: spot-tolerant
     spec:
       nodeClassRef:
         group: karpenter.k8s.aws

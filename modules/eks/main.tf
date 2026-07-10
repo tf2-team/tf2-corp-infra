@@ -224,6 +224,15 @@ resource "aws_eks_node_group" "this" {
   disk_size = each.value.max_pods != null ? null : each.value.disk_size
   labels    = each.value.labels
 
+  dynamic "taint" {
+    for_each = each.value.taints
+    content {
+      key    = taint.value.key
+      value  = taint.value.value
+      effect = taint.value.effect
+    }
+  }
+
   dynamic "launch_template" {
     for_each = each.value.max_pods != null ? [1] : []
     content {

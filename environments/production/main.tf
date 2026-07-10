@@ -49,6 +49,7 @@ locals {
       min_size       = ng.min_size
       max_size       = ng.max_size
       labels         = ng.labels
+      taints         = ng.taints
       max_pods       = ng.max_pods
       subnet_ids = (
         ng.subnet_ids != null

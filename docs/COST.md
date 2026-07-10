@@ -55,7 +55,7 @@ Platform fixed costs (EKS + NAT + ALB) are large relative to this demo-sized wor
 
 - GitHub Actions **runner minutes** (GitHub billing, not AWS)
 - Human / SaaS tools (PagerDuty, Datadog, etc.)
-- Savings Plans, Reserved Instances, or Spot discounts (estimate is **on-demand**)
+- Savings Plans, Reserved Instances, or **live** Spot discounts on Karpenter elastic nodes (MNG floor is On-Demand; estimate treats worker list price as on-demand)
 - Multi-region disaster recovery
 - Production traffic growth beyond load-generator + light demo use
 - LLM **external** model APIs (if any are added later); in-cluster `llm` service compute is covered only as a pod on the nodes
@@ -109,11 +109,11 @@ Both **development** and **production** currently use the same compute shape:
 | EKS cluster | `techx-dev` | `techx-tf2` |
 | Kubernetes version | `1.36` (tfvars) | `1.32` (tfvars) |
 | Node groups (system MNG) | `general-1a`, `general-1b` | `general-1a`, `general-1b` |
-| Instance type (MNG) | `t3.large` **Spot** (tfvars) | `t3.large` on-demand |
+| Instance type (MNG) | `t3.large` **on-demand** (critical floor) | `t3.large` on-demand |
 | Desired / min / max per AZ (MNG) | **1 / 1 / 3** | **1 / 1 / 2** |
 | Cluster desired nodes (MNG floor) | **2** | **2** |
 | Cluster max nodes (MNG only) | **6** | **4** |
-| Karpenter | **Spot preferred** + OD fallback; CPU limit 32 | On-Demand NodePool when install enabled; CPU limit 64 |
+| Karpenter | **Spot preferred** + OD fallback (spot-tolerant apps); CPU limit 32 | On-Demand NodePool when install enabled; CPU limit 64 |
 | Node disk | 30 GB | 30 GB |
 | ECR project | `techx-dev-corp/*` (keep last **5**) | `techx-corp/*` (keep last **20**) |
 | Argo CD (`argocd_enabled`) | **true** | **false** |

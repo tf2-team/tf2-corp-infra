@@ -117,7 +117,20 @@ resource "helm_release" "eso" {
           "eks.amazonaws.com/role-arn" = aws_iam_role.eso[0].arn
         }
       }
-      # Single-tenant cluster; webhook + cert controller defaults are fine
+      # Pin operator to critical MNG (docs/workload-placement.md).
+      nodeSelector = {
+        "workload-class" = "critical"
+      }
+      webhook = {
+        nodeSelector = {
+          "workload-class" = "critical"
+        }
+      }
+      certController = {
+        nodeSelector = {
+          "workload-class" = "critical"
+        }
+      }
     })
   ]
 

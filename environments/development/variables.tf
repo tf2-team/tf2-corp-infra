@@ -119,10 +119,16 @@ variable "node_groups" {
     # Optional raw IDs (overrides subnet_keys when set)
     subnet_ids = optional(list(string))
     labels     = optional(map(string), {})
+    # Optional hard isolation taints (Phase 2). Prefer soft labels first.
+    taints = optional(list(object({
+      key    = string
+      value  = optional(string)
+      effect = string
+    })), [])
     # kubelet maxPods via launch template (pair with vpc-cni prefix delegation)
     max_pods = optional(number)
   }))
-  description = "Managed Node Groups. Pin one group per AZ via subnet_keys for multi-AZ balance."
+  description = "Managed Node Groups. Pin one group per AZ via subnet_keys for multi-AZ balance. Use workload-class=critical labels for the system/data floor."
 }
 
 variable "addons" {

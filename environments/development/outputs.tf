@@ -104,7 +104,8 @@ output "aws_load_balancer_controller_helm_command" {
       --set vpcId=${module.vpc.vpc_id} \
       --set serviceAccount.create=true \
       --set serviceAccount.name=aws-load-balancer-controller \
-      --set serviceAccount.annotations.eks\.amazonaws\.com/role-arn=${module.eks.aws_load_balancer_controller_role_arn}
+      --set serviceAccount.annotations.eks\.amazonaws\.com/role-arn=${module.eks.aws_load_balancer_controller_role_arn} \
+      --set nodeSelector.workload-class=critical
   EOT
 }
 

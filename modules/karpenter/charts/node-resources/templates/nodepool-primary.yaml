@@ -5,6 +5,10 @@ metadata:
 spec:
   weight: 100
   template:
+    metadata:
+      labels:
+        workload-class: spot-tolerant
+        role: spot-tolerant
     spec:
       nodeClassRef:
         group: karpenter.k8s.aws
