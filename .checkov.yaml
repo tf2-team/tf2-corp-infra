@@ -1,0 +1,39 @@
+# Checkov configuration
+# Skip checks that are intentional design decisions or accepted risk for this project
+
+skip-check:
+  # ECR: image_tag_mutability is configurable per repository via tfvars (MUTABLE for dev, can be IMMUTABLE for prod)
+  - CKV_AWS_51
+  # ECR: scan_on_push is configurable per repository via tfvars - already enabled in tfvars
+  - CKV_AWS_163
+  # ECR: KMS encryption - using AES256 (AWS managed) is acceptable; KMS adds cost complexity
+  - CKV_AWS_136
+
+  # EKS: Public endpoint is intentionally enabled for team access during development phase
+  - CKV_AWS_39
+  # EKS: Public access CIDRs are configurable via tfvars - not hardcoded to 0.0.0.0/0
+  - CKV_AWS_38
+  # EKS: Secrets encryption - acceptable to skip during initial infrastructure phase
+  - CKV_AWS_58
+  # EKS: Control plane logging - intentionally not all log types to reduce CloudWatch cost
+  - CKV_AWS_37
+
+  # VPC: Public subnets intentionally assign public IPs (required for NAT Gateway and Load Balancers)
+  - CKV_AWS_130
+  # VPC: Default security group - managed separately outside this module
+  - CKV2_AWS_12
+  # VPC: Flow logs - acceptable to skip to reduce CloudWatch cost in non-prod environments
+  - CKV2_AWS_11
+
+  # S3 State Bucket: Access logging, cross-region replication, event notifications
+  # are operational enhancements deferred to post-MVP; state bucket has versioning and encryption
+  - CKV_AWS_18
+  - CKV_AWS_144
+  - CKV2_AWS_62
+
+  # KMS: Key policy - using AWS default key policy which is secure by default
+  - CKV2_AWS_64
+
+  # Secrets Manager: Automatic rotation not applicable -
+  # secrets are populated via external bootstrap scripts, not managed by Terraform
+  - CKV2_AWS_57

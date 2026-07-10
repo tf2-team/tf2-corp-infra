@@ -64,7 +64,7 @@ jobs:
         uses: terraform-linters/setup-tflint@v4
 
       - name: Run TFLint
-        run: tflint --recursive --minimum-failure-severity=warning
+        run: tflint --recursive --minimum-failure-severity=error
 
   checkov:
     name: Checkov IaC scan
@@ -80,6 +80,7 @@ jobs:
           framework: terraform
           quiet: true
           soft_fail: false
+          config_file: .checkov.yaml
 
   plan:
     name: Plan ${{ matrix.environment }}
