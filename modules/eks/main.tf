@@ -52,14 +52,26 @@ resource "aws_iam_role_policy_attachment" "node_ecr_policy" {
   role       = aws_iam_role.node.name
 }
 
+resource "aws_iam_role_policy_attachment" "node_ebs_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  role       = aws_iam_role.node.name
+}
+
 # ──────────────────────────────────────────────
 # EKS Cluster (Control Plane)
 # ──────────────────────────────────────────────
 
 resource "aws_eks_cluster" "this" {
-  name     = var.cluster_name
-  version  = var.kubernetes_version
-  role_arn = aws_iam_role.cluster.arn
+  name                          = var.cluster_name
+  version                       = var.kubernetes_version
+  role_arn                      = aws_iam_role.cluster.arn
+  bootstrap_self_managed_addons = false
+
+  # STANDARD = regular support window (no extended-support billing after end of standard support).
+  # EXTENDED keeps the cluster on an older version past standard EOL (extra cost).
+  upgrade_policy {
+    support_type = var.upgrade_policy_support_type
+  }
 
   vpc_config {
     subnet_ids              = var.subnet_ids
@@ -74,6 +86,58 @@ resource "aws_eks_cluster" "this" {
 # ──────────────────────────────────────────────
 # Managed Node Groups
 # ──────────────────────────────────────────────
+
+# ──────────────────────────────────────────────
+# EKS Managed Add-ons
+#
+# bootstrap_self_managed_addons = false means EKS does NOT install
+# vpc-cni / kube-proxy / coredns automatically. Network addons MUST be
+# created before (or at least without waiting on) node groups; otherwise
+# nodes stay NotReady with "cni plugin not initialized" and node-group
+# create can hang while addons wait on node groups (deadlock).
+# ──────────────────────────────────────────────
+
+locals {
+  # CNI + kube-proxy are required for nodes to become NetworkReady.
+  network_addon_names = toset(["vpc-cni", "kube-proxy"])
+
+  # Auto-wire EBS CSI IRSA when addon is requested without an explicit role ARN.
+  # Prevents controller CrashLoopBackOff when IMDS is unreachable from pods.
+  addons_effective = {
+    for name, cfg in var.addons : name => {
+      addon_version = cfg.addon_version
+      service_account_role_arn = (
+        name == "aws-ebs-csi-driver" && cfg.service_account_role_arn == null
+        ? aws_iam_role.ebs_csi_controller.arn
+        : cfg.service_account_role_arn
+      )
+    }
+  }
+
+  network_addons = {
+    for name, cfg in local.addons_effective : name => cfg
+    if contains(local.network_addon_names, name)
+  }
+
+  # CoreDNS, EBS CSI, etc. need worker nodes present.
+  post_node_addons = {
+    for name, cfg in local.addons_effective : name => cfg
+    if !contains(local.network_addon_names, name)
+  }
+}
+
+resource "aws_eks_addon" "network" {
+  for_each = local.network_addons
+
+  cluster_name                = aws_eks_cluster.this.name
+  addon_name                  = each.key
+  addon_version               = each.value.addon_version
+  service_account_role_arn    = each.value.service_account_role_arn
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+
+  depends_on = [aws_eks_cluster.this]
+}
 
 resource "aws_eks_node_group" "this" {
   for_each = var.node_groups
@@ -101,20 +165,24 @@ resource "aws_eks_node_group" "this" {
     aws_iam_role_policy_attachment.node_worker_policy,
     aws_iam_role_policy_attachment.node_cni_policy,
     aws_iam_role_policy_attachment.node_ecr_policy,
+    aws_iam_role_policy_attachment.node_ebs_policy,
+    # Ensure CNI is present before nodes are expected to become Ready.
+    aws_eks_addon.network,
   ]
 }
 
-# ──────────────────────────────────────────────
-# EKS Managed Add-ons
-# ──────────────────────────────────────────────
-
 resource "aws_eks_addon" "this" {
-  for_each = var.addons
+  for_each = local.post_node_addons
 
-  cluster_name             = aws_eks_cluster.this.name
-  addon_name               = each.key
-  addon_version            = each.value.addon_version
-  service_account_role_arn = each.value.service_account_role_arn
+  cluster_name                = aws_eks_cluster.this.name
+  addon_name                  = each.key
+  addon_version               = each.value.addon_version
+  service_account_role_arn    = each.value.service_account_role_arn
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
 
-  depends_on = [aws_eks_node_group.this]
+  depends_on = [
+    aws_eks_node_group.this,
+    aws_iam_role_policy_attachment.ebs_csi_controller,
+  ]
 }

@@ -9,6 +9,22 @@ variable "kubernetes_version" {
   description = "Phiên bản Kubernetes cho EKS cluster"
 }
 
+variable "upgrade_policy_support_type" {
+  type        = string
+  default     = "STANDARD"
+  nullable    = false
+  description = <<-EOT
+    EKS cluster upgrade policy support type:
+      STANDARD  — standard support only (default; upgrade before standard EOL)
+      EXTENDED  — extended support after standard EOL (additional AWS charges)
+  EOT
+
+  validation {
+    condition     = contains(["STANDARD", "EXTENDED"], var.upgrade_policy_support_type)
+    error_message = "upgrade_policy_support_type must be STANDARD or EXTENDED."
+  }
+}
+
 variable "subnet_ids" {
   type        = list(string)
   description = "Danh sách subnet IDs cho cluster control plane và node groups (mặc định). Nên gồm cả public và private subnets."
@@ -36,33 +52,39 @@ variable "node_groups" {
   type = map(object({
     instance_types = list(string)
     capacity_type  = optional(string, "ON_DEMAND") # ON_DEMAND | SPOT
-    ami_type       = optional(string, "AL2_x86_64")
-    disk_size      = optional(number, 20)
-    desired_size   = optional(number, 2)
-    min_size       = optional(number, 1)
-    max_size       = optional(number, 4)
-    subnet_ids     = optional(list(string))    # override subnet cho node group này, nếu null dùng var.subnet_ids
-    labels         = optional(map(string), {}) # Kubernetes node labels
+    # AL2 only supported through k8s 1.32; AL2023 required for 1.33+
+    ami_type     = optional(string, "AL2023_x86_64")
+    disk_size    = optional(number, 20)
+    desired_size = optional(number, 2)
+    min_size     = optional(number, 1)
+    max_size     = optional(number, 4)
+    # Pin to specific subnets (one AZ) for multi-AZ balance; null = all var.subnet_ids
+    subnet_ids = optional(list(string))
+    labels     = optional(map(string), {}) # Kubernetes node labels
   }))
   description = <<-EOT
-    Bản đồ các Managed Node Groups cần tạo.
-    Key là tên ngắn của node group; tên thật sẽ là: {cluster_name}-{key}.
+    Managed Node Groups. Key is short name; resource name = {cluster_name}-{key}.
 
-    Ví dụ:
+    For multi-AZ balance, create one group per AZ and set subnet_ids to a single
+    private subnet (env main.tf resolves subnet_keys from the VPC module).
+
+    Example (env tfvars uses subnet_keys; main.tf maps to subnet_ids):
       node_groups = {
-        "general" = {
-          instance_types = ["t3.medium"]
-          desired_size   = 3
-          min_size       = 2
-          max_size       = 6
-        }
-        "spot" = {
-          instance_types = ["t3.medium", "t3.large"]
-          capacity_type  = "SPOT"
-          desired_size   = 2
+        "general-1a" = {
+          instance_types = ["t3.large"]
+          desired_size   = 1
           min_size       = 1
-          max_size       = 5
-          labels         = { "workload-type" = "batch" }
+          max_size       = 2
+          subnet_keys    = ["priv-1a"]
+          labels         = { az = "us-east-1a" }
+        }
+        "general-1b" = {
+          instance_types = ["t3.large"]
+          desired_size   = 1
+          min_size       = 1
+          max_size       = 2
+          subnet_keys    = ["priv-1b"]
+          labels         = { az = "us-east-1b" }
         }
       }
   EOT
@@ -83,7 +105,8 @@ variable "addons" {
         "vpc-cni"            = {}
         "coredns"            = {}
         "kube-proxy"         = {}
-        "aws-ebs-csi-driver" = { service_account_role_arn = aws_iam_role.ebs_csi.arn }
+        # service_account_role_arn optional: module auto-wires IRSA for aws-ebs-csi-driver
+        "aws-ebs-csi-driver" = {}
       }
   EOT
 }

@@ -1,0 +1,607 @@
+# Tài liệu Hướng dẫn Triển khai End-to-End (Production Runbook)
+
+> [!NOTE]
+> **Vai trò của Repository này (`techx-corp-infra`):**
+> Repository này chịu trách nhiệm **Terraform**: bootstrap remote state, VPC, EKS, **nested ECR** (`techx-corp/*`, `techx-dev-corp/*`), **GitHub Actions OIDC roles** (push image), và IAM cho AWS Load Balancer Controller.
+
+---
+
+## 1. Mục tiêu (Objectives)
+
+- Bootstrap S3 remote state (encrypted, lockfile).
+- Provision production & development stacks.
+- Tạo **đủ ECR repository** theo format image:
+  ```text
+  [REGISTRY]/[PROJECT]/[SERVICE]:[VERSION]
+  ```
+- Cung cấp IAM role cho GitHub Actions push image (OIDC, không access key dài hạn).
+- Xuất outputs cho platform CI/CD và chart Helm.
+
+## 2. Bản đồ Repository
+
+| Repository | Vai trò |
+|---|---|
+| **`techx-corp-infra`** | Terraform: state, network, EKS, ECR nested, GHA OIDC, ALB IAM |
+| **`techx-corp-platform`** | Build/push images vào ECR |
+| **`techx-corp-chart`** | Helm deploy từ image `REGISTRY/PROJECT/SERVICE:VERSION` |
+
+## 3. Điều kiện tiên quyết
+
+- AWS account `493499579600`, region `us-east-1`
+- Terraform `>= 1.10.0` (khuyến nghị `v1.15.7`), AWS provider `~> 5.0`, TLS provider `~> 4.0`
+- AWS credentials đủ quyền IAM/ECR/EKS/VPC
+- **Không** commit `*.tfstate`, `backend.hcl` thật, `*.tfplan` chứa secret
+
+## 4. Hằng số & cấu hình
+
+### Chung
+
+| Hằng số | Giá trị |
+|---|---|
+| Account / Region | `493499579600` / `us-east-1` |
+| State bucket (sau bootstrap) | `techx-tf-state-493499579600-us-east-1` |
+| Image format | `REGISTRY/PROJECT/SERVICE:VERSION` |
+
+### Production (`environments/production`)
+
+| Hằng số | Giá trị |
+|---|---|
+| `project_name` (infra tags/VPC prefix) | `techx` |
+| `ecr_project_name` | `techx-corp` |
+| Nested repos | `techx-corp/ad`, `techx-corp/checkout`, … |
+| Image base | `493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-corp` |
+| EKS | `techx-tf2` |
+| GHA role | `techx-gha-platform-prod` |
+| GitHub Environment (OIDC sub) | `production` |
+| Allowed refs | `refs/heads/main`, `refs/tags/v*` |
+| Creates GitHub OIDC provider | **yes** (account singleton) |
+| State key | `production/terraform.tfstate` |
+
+### Development (`environments/development`)
+
+| Hằng số | Giá trị |
+|---|---|
+| `project_name` | `techx-dev` |
+| `ecr_project_name` | `techx-dev-corp` |
+| Nested repos | `techx-dev-corp/ad`, … |
+| Image base | `493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-dev-corp` |
+| EKS | `techx-dev` |
+| GHA role | `techx-gha-platform-dev` |
+| GitHub Environment | `development` |
+| Allowed refs | `refs/heads/techx-dev-corp` |
+| Creates GitHub OIDC provider | **no** (lookup provider đã tạo bởi production) |
+| State key | `development/terraform.tfstate` |
+
+### Catalog ECR services (module `modules/ecr`)
+
+Một repo nested cho mỗi service bake (đồng bộ platform compose):
+
+`accounting`, `ad`, `cart`, `checkout`, `currency`, `email`, `fraud-detection`, `frontend`, `frontend-proxy`, `image-provider`, `load-generator`, `payment`, `product-catalog`, `product-reviews`, `quote`, `recommendation`, `shipping`, `flagd-ui`, `kafka`, `llm`, `opensearch`
+
+Ví dụ tên repo AWS:
+
+```text
+techx-corp/ad
+techx-corp/frontend
+techx-dev-corp/checkout
+```
+
+Image đầy đủ (sau khi platform push):
+
+```text
+493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-corp/ad:sha-a1b2c3d
+```
+
+> **Migration note:** Định dạng monorepo cũ (`techx-corp` một repo, tag `1.0-ad`) đã thay bằng nested. Plan có thể **destroy** repo flat cũ và **create** nhiều repo nested — review plan kỹ.
+
+---
+
+## Phase 1: Bootstrap Remote State
+
+> [!CAUTION]
+> 1. Không commit state cục bộ / `backend.hcl` thật.  
+> 2. Production: luôn `plan -out` → review → `apply` artifact.  
+> 3. Apply **production trước development** (OIDC provider GitHub).
+
+### Bước 1: Bootstrap
+
+```bash
+terraform -chdir=bootstrap init
+terraform -chdir=bootstrap plan -out=bootstrap.tfplan
+terraform -chdir=bootstrap apply "bootstrap.tfplan"
+```
+
+Tạo `bootstrap/backend.hcl` (không commit):
+
+```hcl
+bucket       = "techx-tf-state-493499579600-us-east-1"
+key          = "bootstrap/terraform.tfstate"
+region       = "us-east-1"
+encrypt      = true
+use_lockfile = true
+```
+
+Migrate state:
+
+```bash
+terraform -chdir=bootstrap init -migrate-state -force-copy -backend-config=backend.hcl
+terraform -chdir=bootstrap state list
+# Xóa terraform.tfstate local sau khi xác nhận
+```
+
+### Bước 2: Production stack
+
+Tạo `environments/production/backend.hcl`:
+
+```hcl
+bucket       = "techx-tf-state-493499579600-us-east-1"
+key          = "production/terraform.tfstate"
+region       = "us-east-1"
+encrypt      = true
+use_lockfile = true
+```
+
+```bash
+terraform -chdir=environments/production init -backend-config=backend.hcl
+terraform -chdir=environments/production fmt -check
+terraform -chdir=environments/production validate
+terraform -chdir=environments/production plan -out=prod.tfplan
+```
+
+**Review plan** — kỳ vọng tạo (trong số khác):
+
+- `module.ecr.aws_ecr_repository.this["ad"]` → name `techx-corp/ad` (× full catalog)
+- `module.github_actions_ecr.aws_iam_openid_connect_provider.github` (nếu chưa có)
+- `module.github_actions_ecr.aws_iam_role.this` → `techx-gha-platform-prod`
+- VPC / EKS / ALB controller role
+
+```bash
+terraform -chdir=environments/production apply "prod.tfplan"
+```
+
+### Bước 3: Development stack
+
+```bash
+# backend.hcl key = "development/terraform.tfstate"
+terraform -chdir=environments/development init -backend-config=backend.hcl
+terraform -chdir=environments/development plan -out=dev.tfplan
+# Kỳ vọng: techx-dev-corp/<service>, role techx-gha-platform-dev, KHÔNG tạo lại OIDC provider
+terraform -chdir=environments/development apply "dev.tfplan"
+```
+
+### Bước 4: Outputs cho CI/CD & Helm
+
+```bash
+# Production
+terraform -chdir=environments/production output ecr_image_base_url
+# 493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-corp
+
+terraform -chdir=environments/production output ecr_service_names
+terraform -chdir=environments/production output ecr_repository_names
+terraform -chdir=environments/production output github_actions_ecr_role_arn
+terraform -chdir=environments/production output github_actions_allowed_subjects
+terraform -chdir=environments/production output aws_load_balancer_controller_role_arn
+terraform -chdir=environments/production output -raw aws_load_balancer_controller_helm_command
+
+# Development
+terraform -chdir=environments/development output ecr_image_base_url
+# .../techx-dev-corp
+terraform -chdir=environments/development output github_actions_ecr_role_arn
+```
+
+**Gán GitHub Environments** (repo platform):
+
+| GitHub Environment | `AWS_ROLE_ARN` | `IMAGE_NAME` |
+|---|---|---|
+| `production` | output prod `github_actions_ecr_role_arn` | output prod `ecr_image_base_url` |
+| `development` | output dev `github_actions_ecr_role_arn` | output dev `ecr_image_base_url` |
+
+Chi tiết workflow: `techx-corp-platform/docs/CICD.md`.
+
+---
+
+## Node groups (multi-AZ)
+
+EKS managed node groups use **one group per AZ** so capacity cannot pile into a single zone (EBS PVCs need a node in the volume’s AZ).
+
+| Env | Groups | Subnets |
+|-----|--------|---------|
+| development | `techx-dev-general-1a`, `techx-dev-general-1b` | `priv-1a`, `priv-1b` |
+| production | `techx-tf2-general-1a`, `techx-tf2-general-1b` | `priv-1a`, `priv-1b` |
+
+`subnet_keys` in `terraform.tfvars` are resolved to subnet IDs in `main.tf` from the VPC module.  
+Changing from a single multi-subnet group **destroys** the old NG and creates two new ones — pods reschedule; existing EBS volumes stay in their AZ.
+
+```bash
+terraform -chdir=environments/development plan
+terraform -chdir=environments/development apply
+kubectl get nodes -L topology.kubernetes.io/zone
+# expect at least one Ready node in us-east-1a and one in us-east-1b
+```
+
+---
+
+## Phase 2: Kubeconfig & Load Balancer Controller
+
+Output `aws_load_balancer_controller_helm_command` includes **IRSA role ARN**, **`region`**, and **`vpcId`**.  
+Those last two are required so the controller does **not** resolve VPC/region via EC2 IMDS (often blocked for pods when IMDSv2 hop limit is 1 → `context deadline exceeded`).
+
+```bash
+aws eks update-kubeconfig --region us-east-1 --name techx-tf2
+kubectl get nodes
+
+helm repo add eks https://aws.github.io/eks-charts && helm repo update
+
+# Production (or development)
+terraform -chdir=environments/production output -raw aws_load_balancer_controller_helm_command
+# Paste/run the printed helm upgrade --install (includes region + vpcId + IRSA)
+
+# Equivalent shape (values filled by Terraform output):
+# helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+#   -n kube-system \
+#   --set clusterName=<cluster> \
+#   --set region=us-east-1 \
+#   --set vpcId=vpc-xxxxxxxx \
+#   --set serviceAccount.create=true \
+#   --set serviceAccount.name=aws-load-balancer-controller \
+#   --set serviceAccount.annotations.eks\.amazonaws\.com/role-arn=<role-arn>
+
+kubectl get deployment -n kube-system aws-load-balancer-controller
+kubectl -n kube-system rollout status deployment/aws-load-balancer-controller --timeout=120s
+kubectl logs -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller --tail=50
+# Expect version info; must NOT see: failed to get VPC ID / ec2imds GetMetadata deadline exceeded
+```
+
+---
+
+## Phase 2a: Secrets Manager + External Secrets Operator (SEC-05)
+
+Terraform creates **ASM secret shells** (name/ARN/tags only) and **ESO IRSA**. Secret *values* are **not** in Terraform state.
+
+```bash
+terraform -chdir=environments/production apply   # or development
+
+terraform -chdir=environments/production output secrets_manager_secret_names
+terraform -chdir=environments/production output external_secrets_role_arn
+terraform -chdir=environments/production output -raw external_secrets_helm_command
+terraform -chdir=environments/production output -raw external_secrets_cluster_secret_store_manifest
+terraform -chdir=environments/production output -raw external_secrets_bootstrap_note
+```
+
+**Bootstrap values** (currently live credentials — first cutover does not rotate DB passwords).
+
+Always use the full extension (`.ps1` / `.cmd` / `.sh`). Do not run `.\scripts\bootstrap-asm-secrets` bare — that can pick the wrong file or break under PowerShell.
+
+**PowerShell (recommended on Windows):**
+
+```powershell
+cd techx-corp-infra
+.\scripts\bootstrap-asm-secrets.ps1 techx-corp/production us-east-1
+# dev:
+.\scripts\bootstrap-asm-secrets.ps1 techx-corp/development us-east-1
+```
+
+**Windows CMD:**
+
+```cmd
+cd techx-corp-infra
+scripts\bootstrap-asm-secrets.cmd techx-corp/production us-east-1
+REM dev:
+scripts\bootstrap-asm-secrets.cmd techx-corp/development us-east-1
+```
+
+**Bash / Git Bash / WSL:**
+
+```bash
+./scripts/bootstrap-asm-secrets.sh techx-corp/production us-east-1
+# dev: ./scripts/bootstrap-asm-secrets.sh techx-corp/development us-east-1
+```
+
+Optional overrides (same env var names on all shells), e.g. PowerShell:
+
+```powershell
+$env:PG_APP_PASSWORD = "otelp"
+.\scripts\bootstrap-asm-secrets.ps1 techx-corp/development us-east-1
+```
+
+### Install ESO (manual Helm — default)
+
+Prefer Terraform output so chart version + IRSA role ARN stay in sync:
+
+```bash
+helm repo add external-secrets https://charts.external-secrets.io
+helm repo update
+
+# Print + run (do not interrupt --wait; leave the shell open until STATUS=deployed)
+terraform -chdir=environments/development output -raw external_secrets_helm_command
+# Or production:
+# terraform -chdir=environments/production output -raw external_secrets_helm_command
+```
+
+Equivalent shape (values filled by TF output):
+
+```bash
+helm upgrade --install external-secrets external-secrets/external-secrets \
+  -n external-secrets --create-namespace \
+  --version 0.14.4 \
+  --set installCRDs=true \
+  --set serviceAccount.name=external-secrets \
+  --set serviceAccount.annotations.eks\.amazonaws\.com/role-arn=<external_secrets_role_arn> \
+  --wait --timeout 10m
+```
+
+Verify:
+
+```bash
+helm status external-secrets -n external-secrets
+# expect STATUS: deployed  (not pending-install / pending-upgrade)
+
+kubectl -n external-secrets get pods
+# external-secrets, cert-controller, webhook all Ready 1/1
+
+kubectl get sa external-secrets -n external-secrets -o yaml
+# must include: eks.amazonaws.com/role-arn: arn:aws:iam::...:role/...-external-secrets
+```
+
+Then ClusterSecretStore + secrets chart + app (see chart runbook):
+
+```bash
+terraform -chdir=environments/development output -raw external_secrets_cluster_secret_store_manifest | kubectl apply -f -
+kubectl get clustersecretstore aws-secretsmanager
+
+# secrets-chart → wait Ready → app chart
+# techx-corp-chart/docs/operations/external-secrets.md
+```
+
+Full runbook: `techx-corp-chart/docs/operations/external-secrets.md`.
+
+Optional tfvars (when cluster API reachable at apply — installs ESO from Terraform instead of manual helm):
+
+```hcl
+external_secrets_install_helm                = true
+external_secrets_create_cluster_secret_store = true
+```
+
+---
+
+## Phase 2b: Argo CD (GitOps control plane — REL-09)
+
+Opt-in: set `argocd_enabled = true` in `environments/<env>/terraform.tfvars` (dev first).  
+Requires cluster API reachable during `terraform apply` (kubeconfig + network).
+
+```bash
+# tfvars: argocd_enabled = true
+terraform -chdir=environments/development plan -out=dev.tfplan
+terraform -chdir=environments/development apply "dev.tfplan"
+
+kubectl -n argocd get pods
+terraform -chdir=environments/development output -raw argocd_port_forward_command
+terraform -chdir=environments/development output -raw argocd_admin_password_command
+terraform -chdir=environments/development output -raw argocd_bootstrap_apply_commands
+```
+
+- Module: `modules/argocd` (pinned argo-cd chart, ClusterIP, **no** public Ingress).  
+- Applications live in **chart** repo: `techx-corp-chart/gitops/clusters/{dev,prod}/`.  
+- Repo credentials: create Secret in `argocd` NS (not in Git).  
+- Full plan: workspace `docs/gitops-argocd.md`.
+
+---
+
+## Phase 3: Docker Image Build & Push (tham chiếu platform)
+
+*Repo `techx-corp-platform` — không chạy bake trong infra.*
+
+Terraform **chỉ tạo** ECR rỗng. Platform push:
+
+```text
+IMAGE_NAME=<ecr_image_base_url>
+→ ${IMAGE_NAME}/ad:sha-…   =   REGISTRY/techx-corp/ad:sha-…
+```
+
+| Branch / trigger | PROJECT ECR |
+|---|---|
+| `main` / tag `v*` | `techx-corp` |
+| branch `techx-dev-corp` | `techx-dev-corp` |
+
+OIDC: workflow assume role từ `github_actions_ecr_role_arn` (permissions đã scope toàn bộ nested repo ARNs của stack).
+
+---
+
+## Phase 4: Deploy app (GitOps / chart)
+
+**Preferred (REL-09):** commit image tag in `values-prod.yaml` or `values-dev.yaml` → Argo CD sync:
+
+```bash
+argocd app sync techx-corp --dry-run
+argocd app sync techx-corp
+argocd app wait techx-corp --sync --health --timeout 600
+```
+
+See `techx-corp-chart/docs/operations/gitops-argocd.md`.
+
+**Break-glass Helm** (disable Argo auto-sync first):
+
+```bash
+helm upgrade --install techx-corp techx-corp-chart \
+  -n techx-corp --create-namespace \
+  -f techx-corp-chart/values-public-alb.yaml \
+  -f techx-corp-chart/values-prod.yaml \
+  --wait --atomic --timeout 10m --history-max 10
+```
+
+- `repository` / `tag` live in env values files (Git), not only operator `--set`
+- Primary rollback after GitOps: **git revert**, not Helm rollback
+- Chart append `/SERVICE` → full nested image path
+
+### Storefront ALB path blocking (Terraform flag → Helm)
+
+IaC toggle (does not create AWS rules by itself; applied via Helm Ingress):
+
+```hcl
+# environments/production/terraform.tfvars (or development)
+storefront_alb_block_sensitive_paths = true   # or false
+```
+
+```bash
+terraform -chdir=environments/production output storefront_alb_block_sensitive_paths
+terraform -chdir=environments/production output storefront_alb_helm_set_flags
+terraform -chdir=environments/production output storefront_alb_security_posture
+```
+
+If the app Helm release is **already installed**, toggle **only** the block flag (no image change):
+
+```bash
+# ON
+helm upgrade techx-corp techx-corp-chart \
+  -n techx-corp \
+  --reuse-values \
+  --set components.frontend-proxy.publicAlb.blockSensitivePaths=true \
+  --wait --timeout 5m
+
+# OFF
+helm upgrade techx-corp techx-corp-chart \
+  -n techx-corp \
+  --reuse-values \
+  --set components.frontend-proxy.publicAlb.blockSensitivePaths=false \
+  --wait --timeout 5m
+```
+
+Posture when ON: ALLOW `/`, `/api/*`, `/images/*` · BLOCK `/grafana`, `/jaeger`, `/loadgen`, `/feature`, `/flagservice`, `/otlp-http` (HTTP 403).
+
+---
+
+## Phase 5–6: Verify & Rollback (tham chiếu chart)
+
+Smoke test + `helm rollback` — xem `techx-corp-chart/docs/DEPLOYMENT.md`.
+
+---
+
+## Modules liên quan
+
+| Module | Chức năng |
+|---|---|
+| `modules/ecr` | Nested (hoặc flat) ECR + lifecycle + catalog services |
+| `modules/github-actions-ecr` | GitHub OIDC provider (optional) + IAM role ECR push |
+| `modules/vpc` | VPC, subnets, NAT, EKS subnet tags |
+| `modules/eks` | EKS, node groups, EKS OIDC (IRSA), ALB controller role |
+| `modules/secrets-manager` | ASM secret shells (metadata only; no secret values) |
+| `modules/external-secrets` | ESO IRSA + optional Helm/ClusterSecretStore |
+
+---
+
+## Troubleshooting
+
+### 1. State lock
+
+```bash
+terraform -chdir=environments/production force-unlock <LOCK_ID>
+```
+
+### 2. OIDC provider already exists (development)
+
+Development đặt `create_github_oidc_provider = false` và lookup URL `token.actions.githubusercontent.com`.  
+Nếu apply dev **trước** prod: set `create_github_oidc_provider = true` một lần, hoặc import provider hiện có.
+
+### 3. GHA không assume được role
+
+- Trust `sub` phải khớp:  
+  `repo:tmcmanhcuong/tf2-corp-platform:environment:production`  
+  (hoặc `development`, hoặc `ref:refs/heads/main`, …)
+- Output: `github_actions_allowed_subjects`
+
+### 4. AWS Load Balancer Controller CrashLoop / IMDS timeout
+
+Symptom in controller logs:
+
+```text
+unable to initialize AWS cloud
+failed to get VPC ID: ... ec2imds: GetMetadata, canceled, context deadline exceeded
+```
+
+**Cause:** controller tried to discover VPC/region via instance metadata; pods often cannot reach IMDS (hop limit 1).
+
+**Fix:** reinstall using Terraform output (sets `region` + `vpcId` + IRSA):
+
+```bash
+helm repo add eks https://aws.github.io/eks-charts && helm repo update
+terraform -chdir=environments/production output -raw aws_load_balancer_controller_helm_command
+# run printed command, then:
+kubectl -n kube-system rollout restart deployment/aws-load-balancer-controller
+kubectl logs -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller --tail=50
+```
+
+Also verify IRSA on the service account:
+
+```bash
+kubectl get sa aws-load-balancer-controller -n kube-system -o yaml
+# must include: eks.amazonaws.com/role-arn: arn:aws:iam::...:role/...-alb-controller-role
+```
+
+### 5. Helm: another operation is in progress (ESO / any release)
+
+Symptom:
+
+```text
+Error: UPGRADE FAILED: another operation (install/upgrade/rollback) is in progress
+```
+
+Diagnose:
+
+```bash
+helm status external-secrets -n external-secrets
+helm history external-secrets -n external-secrets --max 5
+# Common: STATUS pending-install or pending-upgrade while pods may already be Running
+```
+
+**Cause:** previous `helm upgrade --install ... --wait` was interrupted (client disconnect, Ctrl+C, timeout, network blip). Helm left the release locked mid-operation.
+
+**Fix** (when only revision is stuck pending-install, or no healthy deployed revision):
+
+```bash
+helm uninstall external-secrets -n external-secrets --wait --timeout 5m
+
+# Re-run install from Terraform output (do not interrupt --wait)
+terraform -chdir=environments/development output -raw external_secrets_helm_command
+# paste/run the printed command
+
+helm status external-secrets -n external-secrets
+# expect STATUS: deployed
+kubectl -n external-secrets get pods
+kubectl get sa external-secrets -n external-secrets -o yaml | findstr /i role-arn
+# Linux/mac:  ... | grep role-arn
+```
+
+Notes:
+
+- Do **not** run a second `helm upgrade` while STATUS is still `pending-*`.
+- CRDs usually remain after uninstall; reinstall with `installCRDs=true` is still fine.
+- If you have a **prior successful** revision and are stuck on pending-upgrade, try `helm rollback external-secrets <last-deployed-rev> -n external-secrets` before uninstall.
+
+### 6. ImagePullBackOff sau deploy
+
+- Repo nested đã tạo?  
+  `aws ecr describe-repositories --repository-names techx-corp/ad --region us-east-1`
+- Image format: `.../techx-corp/ad:sha-…` không phải `.../techx-corp:sha-…-ad`
+- Node role ECR pull policy
+
+### 7. Plan destroy monorepo ECR cũ
+
+Nếu state còn `techx-corp` (flat), plan sẽ destroy và tạo `techx-corp/*`.  
+Backup images cần thiết trước apply; lifecycle `force_delete` cho phép xóa repo không rỗng.
+
+### 8. State corruption
+
+```bash
+aws s3api list-object-versions \
+  --bucket techx-tf-state-493499579600-us-east-1 \
+  --prefix production/terraform.tfstate
+```
+
+---
+
+## Tài liệu liên quan
+
+- [USAGE_GUIDE.md](./USAGE_GUIDE.md) — thao tác Terraform hàng ngày  
+- `techx-corp-platform/docs/CICD.md` — GitHub Actions  
+- `techx-corp-platform/docs/DEPLOYMENT.md` — E2E operator runbook  
+- `techx-corp-chart/docs/DEPLOYMENT.md` — Helm / smoke / rollback  
