@@ -12,6 +12,7 @@ locals {
 }
 
 # ── IAM policy (AWS CA recommendations + tag-scoped mutate) ─
+# checkov:skip=CKV_AWS_356: Describe* APIs are not resource-level; mutate uses ASG resource-tag condition (AWS CA IRSA pattern)
 
 data "aws_iam_policy_document" "cluster_autoscaler" {
   count = var.enabled ? 1 : 0
