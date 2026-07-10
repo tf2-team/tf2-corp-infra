@@ -16,6 +16,7 @@ jobs:
   destroy-production:
     name: Destroy Production
     runs-on: ubuntu-latest
+    environment: production
     concurrency:
       group: terraform-apply-production
       cancel-in-progress: false

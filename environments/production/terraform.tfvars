@@ -1,5 +1,5 @@
 aws_region   = "us-east-1"
-project_name = "techx"
+project_name = "techx-prod-tf2"
 
 tags = {
   Environment = "production"
@@ -9,7 +9,7 @@ tags = {
 
 # Image format: REGISTRY/techx-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
-ecr_project_name       = "techx-corp"
+ecr_project_name       = "techx-prod-corp"
 ecr_naming_mode        = "nested"
 ecr_keep_last_n_images = 20
 ecr_scan_on_push       = true

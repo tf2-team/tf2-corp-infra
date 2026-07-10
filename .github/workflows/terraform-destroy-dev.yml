@@ -16,6 +16,7 @@ jobs:
   destroy-dev:
     name: Destroy Dev
     runs-on: ubuntu-latest
+    environment: dev
     concurrency:
       group: terraform-apply-dev
       cancel-in-progress: false
