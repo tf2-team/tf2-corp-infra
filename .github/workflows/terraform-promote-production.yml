@@ -27,3 +27,4 @@ jobs:
       environment: production
       terraform_dir: environments/production
       plan_only: ${{ inputs.plan_only || false }}
+    secrets: inherit
