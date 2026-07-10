@@ -1,0 +1,29 @@
+name: Promote Production
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "environments/production/**"
+      - "modules/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
+    inputs:
+      plan_only:
+        description: "Create and upload a production plan without applying it"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  apply-production:
+    uses: ./.github/workflows/terraform-apply.yml
+    with:
+      environment: production
+      terraform_dir: environments/production
+      plan_only: ${{ inputs.plan_only || false }}

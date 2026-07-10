@@ -1,0 +1,22 @@
+name: Promote Dev
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "environments/development/**"
+      - "modules/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  apply-dev:
+    uses: ./.github/workflows/terraform-apply.yml
+    with:
+      environment: dev
+      terraform_dir: environments/development

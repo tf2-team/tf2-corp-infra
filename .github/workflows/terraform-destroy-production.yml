@@ -1,0 +1,50 @@
+name: Terraform Destroy Production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_VERSION: "1.10.5"
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+jobs:
+  destroy-production:
+    name: Destroy Production
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: terraform-apply-production
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials for production
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.PROD_AWS_APPLY_ROLE_ARN }}
+          aws-region: ${{ secrets.PROD_AWS_REGION }}
+
+      - name: Terraform init production
+        env:
+          TF_BACKEND_BUCKET: ${{ secrets.PROD_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ secrets.PROD_TF_BACKEND_REGION }}
+        run: |
+          terraform -chdir=environments/production init \
+            -backend-config="bucket=${TF_BACKEND_BUCKET}" \
+            -backend-config="region=${TF_BACKEND_REGION}"
+
+      - name: Terraform destroy production
+        run: |
+          terraform -chdir=environments/production destroy -auto-approve

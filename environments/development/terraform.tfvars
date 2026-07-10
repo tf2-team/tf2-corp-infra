@@ -1,5 +1,5 @@
 aws_region   = "us-east-1"
-project_name = "techx-dev"
+project_name = "techx-dev-tf2"
 
 tags = {
   Environment = "development"

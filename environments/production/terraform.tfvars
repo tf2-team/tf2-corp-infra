@@ -1,5 +1,5 @@
 aws_region   = "us-east-1"
-project_name = "techx"
+project_name = "techx-prod-tf2"
 
 tags = {
   Environment = "production"
@@ -9,7 +9,7 @@ tags = {
 
 # Image format: REGISTRY/techx-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
-ecr_project_name       = "techx-corp"
+ecr_project_name       = "techx-prod-corp"
 ecr_naming_mode        = "nested"
 ecr_keep_last_n_images = 20
 ecr_scan_on_push       = true
@@ -63,7 +63,7 @@ node_groups = {
     instance_types = ["t3.large"]
     capacity_type  = "ON_DEMAND"
     # Prefer AL2023 (AL2 only supported through k8s 1.32)
-    ami_type     = "AL2023_x86_64"
+    ami_type     = "AL2023_x86_64_STANDARD"
     disk_size    = 30
     desired_size = 1
     min_size     = 1
@@ -77,7 +77,7 @@ node_groups = {
   "general-1b" = {
     instance_types = ["t3.large"]
     capacity_type  = "ON_DEMAND"
-    ami_type       = "AL2023_x86_64"
+    ami_type       = "AL2023_x86_64_STANDARD"
     disk_size      = 30
     desired_size   = 1
     min_size       = 1

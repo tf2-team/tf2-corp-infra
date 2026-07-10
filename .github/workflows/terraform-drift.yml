@@ -1,0 +1,116 @@
+name: Terraform Drift Detection
+
+on:
+  schedule:
+    - cron: "0 22 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+
+concurrency:
+  group: terraform-drift
+  cancel-in-progress: false
+
+env:
+  TF_VERSION: "1.10.5"
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+jobs:
+  drift:
+    name: Drift ${{ matrix.environment }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - environment: dev
+            terraform_dir: environments/development
+          - environment: production
+            terraform_dir: environments/production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials for dev
+        if: matrix.environment == 'dev'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.DEV_AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ secrets.DEV_AWS_REGION }}
+
+      - name: Configure AWS credentials for production
+        if: matrix.environment == 'production'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.PROD_AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ secrets.PROD_AWS_REGION }}
+
+      - name: Terraform init dev
+        if: matrix.environment == 'dev'
+        env:
+          TF_BACKEND_BUCKET: ${{ secrets.DEV_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ secrets.DEV_TF_BACKEND_REGION }}
+        run: |
+          terraform -chdir=${{ matrix.terraform_dir }} init \
+            -backend-config="bucket=${TF_BACKEND_BUCKET}" \
+            -backend-config="region=${TF_BACKEND_REGION}"
+
+      - name: Terraform init production
+        if: matrix.environment == 'production'
+        env:
+          TF_BACKEND_BUCKET: ${{ secrets.PROD_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ secrets.PROD_TF_BACKEND_REGION }}
+        run: |
+          terraform -chdir=${{ matrix.terraform_dir }} init \
+            -backend-config="bucket=${TF_BACKEND_BUCKET}" \
+            -backend-config="region=${TF_BACKEND_REGION}"
+
+      - name: Drift plan
+        id: drift
+        shell: bash
+        run: |
+          set +e
+          terraform -chdir=${{ matrix.terraform_dir }} plan -detailed-exitcode -out=tfplan
+          status=$?
+          echo "exitcode=${status}" >> "$GITHUB_OUTPUT"
+          if [ "${status}" -eq 1 ]; then
+            exit 1
+          fi
+          exit 0
+
+      - name: Render drift report
+        if: steps.drift.outputs.exitcode == '2'
+        run: terraform -chdir=${{ matrix.terraform_dir }} show -no-color tfplan > drift-${{ matrix.environment }}.txt
+
+      - name: Open drift issue
+        if: steps.drift.outputs.exitcode == '2'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const plan = fs.readFileSync("drift-${{ matrix.environment }}.txt", "utf8");
+            const title = "Terraform drift detected: ${{ matrix.environment }}";
+            const body = [
+              "Scheduled drift detection found infrastructure changes outside Terraform.",
+              "",
+              "```terraform",
+              plan.slice(0, 60000),
+              "```"
+            ].join("\n");
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ["terraform", "drift", "${{ matrix.environment }}"]
+            });

@@ -109,7 +109,7 @@ variable "node_groups" {
     instance_types = list(string)
     capacity_type  = optional(string, "ON_DEMAND")
     # AL2 only supported through k8s 1.32; AL2023 required for 1.33+
-    ami_type     = optional(string, "AL2023_x86_64")
+    ami_type     = optional(string, "AL2023_x86_64_STANDARD")
     disk_size    = optional(number, 20)
     desired_size = optional(number, 2)
     min_size     = optional(number, 1)
