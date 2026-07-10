@@ -33,33 +33,43 @@ locals {
 
   discovery = var.discovery_tag_value
 
-  node_requirements_base = [
-    {
-      key      = "kubernetes.io/arch"
-      operator = "In"
-      values   = ["amd64"]
-    },
-    {
-      key      = "kubernetes.io/os"
-      operator = "In"
-      values   = ["linux"]
-    },
-    {
-      key      = "karpenter.k8s.aws/instance-category"
-      operator = "In"
-      values   = var.instance_categories
-    },
-    {
-      key      = "karpenter.k8s.aws/instance-generation"
-      operator = "Gt"
-      values   = ["2"]
-    },
-    {
-      key      = "topology.kubernetes.io/zone"
-      operator = "In"
-      values   = var.availability_zones
-    },
-  ]
+  # Optional min vCPU: Gt (min-1) so min_instance_cpu=2 → instance-cpu > 1.
+  min_cpu_requirement = var.min_instance_cpu > 0 ? [{
+    key      = "karpenter.k8s.aws/instance-cpu"
+    operator = "Gt"
+    values   = [tostring(var.min_instance_cpu - 1)]
+  }] : []
+
+  node_requirements_base = concat(
+    [
+      {
+        key      = "kubernetes.io/arch"
+        operator = "In"
+        values   = ["amd64"]
+      },
+      {
+        key      = "kubernetes.io/os"
+        operator = "In"
+        values   = ["linux"]
+      },
+      {
+        key      = "karpenter.k8s.aws/instance-category"
+        operator = "In"
+        values   = var.instance_categories
+      },
+      {
+        key      = "karpenter.k8s.aws/instance-generation"
+        operator = "Gt"
+        values   = ["2"]
+      },
+      {
+        key      = "topology.kubernetes.io/zone"
+        operator = "In"
+        values   = var.availability_zones
+      },
+    ],
+    local.min_cpu_requirement,
+  )
 
   spot_requirements = concat(local.node_requirements_base, [{
     key      = "karpenter.sh/capacity-type"
@@ -740,6 +750,7 @@ resource "helm_release" "node_resources" {
       consolidateAfter     = var.consolidate_after
       cpuLimit             = var.nodepool_cpu_limit
       memoryLimit          = var.nodepool_memory_limit
+      maxPods              = var.node_max_pods
       primaryRequirements  = var.spot_preferred ? local.spot_requirements : local.on_demand_requirements
       fallbackRequirements = local.on_demand_requirements
     })

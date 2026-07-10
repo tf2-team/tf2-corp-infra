@@ -137,6 +137,8 @@ EC2NodeClass selects both by tag so nodes land in private subnets and use the cl
 | `karpenter_nodepool_cpu_limit` | `32` | `64` | CPU spend cap |
 | `karpenter_nodepool_memory_limit` | `64Gi` | `128Gi` | Memory spend cap |
 | `karpenter_availability_zones` | `us-east-1a/b` | same | Zone allow-list |
+| `karpenter_node_max_pods` | `110` | `110` | EC2NodeClass `kubelet.maxPods` (needs VPC CNI prefix delegation) |
+| `karpenter_min_instance_cpu` | `2` | `2` | Min vCPU (`instance-cpu Gt 1`); blocks 1-vCPU / ~8-pod nodes |
 
 ### 4.2 Module inputs of note
 
@@ -145,6 +147,20 @@ See `modules/karpenter/variables.tf`. Important knobs:
 * `instance_categories` — default `["c","m","r"]`
 * `ami_alias` — default `al2023@latest` (matches AL2023 managed NGs)
 * `expire_after` / `consolidate_after` — disruption tuning
+* `node_max_pods` — kubelet maxPods on provisioned nodes (default `110`; set `null` for AMI default)
+* `min_instance_cpu` — minimum vCPU (default `2`; `0` disables the requirement)
+
+### 4.2.1 Pod density and DaemonSets
+
+Karpenter **cannot** schedule a DaemonSet pod onto an already-full existing node (DaemonSets are affinity-pinned per node). If you see `Too many pods` on a DaemonSet (e.g. `otel-collector-agent`), fix **maxPods / CNI density** on that node — not NodePool CPU limits.
+
+Cluster-wide durable settings (MNG + Karpenter):
+
+1. VPC CNI `ENABLE_PREFIX_DELEGATION=true` (`addons.vpc-cni.configuration_values` in env tfvars).
+2. MNG `max_pods = 110` (launch template AL2023 NodeConfig).
+3. Karpenter `node_max_pods = 110` on EC2NodeClass + `min_instance_cpu = 2`.
+
+After apply, **recycle** existing Karpenter nodes so new maxPods takes effect. See `docs/DEPLOYMENT.md` → *Pod density*.
 
 ### 4.3 Outputs
 
@@ -295,10 +311,25 @@ Drain Karpenter nodes first; then apply. AWS roles/SQS remain for quick re-enabl
 ## 10. Out of scope (v1)
 
 * Removing managed node groups entirely
-* Spot-first production
+* Spot-first production **for critical / stateful workloads** (see workload placement below)
 * Karpenter managed via Argo CD (Terraform-owned install path, like ESO)
 * EKS Auto Mode migration
 * Running Cluster Autoscaler **alongside** Karpenter (unsupported; Terraform check blocks dual Helm). Optional CA-only module: `docs/cluster-autoscaler.md`
+
+---
+
+## 10.1 Workload placement (critical MNG vs Spot apps)
+
+Karpenter decides **how nodes are created**. It does **not** by itself pin critical pods to managed node groups.
+
+For the strategy that places:
+
+* **critical** pods (system + stateful data) on **managed node groups**, and
+* **stateless / Spot-tolerant** pods on **Karpenter Spot workers**,
+
+see **[`docs/workload-placement.md`](./workload-placement.md)**.
+
+That document covers workload classification, node labels/taints, chart `schedulingRules`, phased rollout (soft affinity → hard taints), and the recommendation to run the MNG floor as On-Demand even in development.
 
 ---
 

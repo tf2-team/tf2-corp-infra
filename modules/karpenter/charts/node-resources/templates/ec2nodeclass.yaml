@@ -17,3 +17,8 @@ spec:
     httpProtocolIPv6: disabled
     httpPutResponseHopLimit: 2
     httpTokens: required
+  {{- /* maxPods requires VPC CNI prefix delegation for values above ENI secondary-IP defaults */}}
+  {{- if .Values.maxPods }}
+  kubelet:
+    maxPods: {{ .Values.maxPods }}
+  {{- end }}

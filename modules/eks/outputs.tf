@@ -57,3 +57,16 @@ output "ebs_csi_controller_role_arn" {
   value       = aws_iam_role.ebs_csi_controller.arn
   description = "ARN of IRSA role for EKS managed addon aws-ebs-csi-driver (ebs-csi-controller-sa)"
 }
+
+output "node_group_max_pods" {
+  value = {
+    for name, ng in var.node_groups : name => ng.max_pods
+    if ng.max_pods != null
+  }
+  description = "Managed node groups with custom kubelet maxPods (via launch template). Empty if none set."
+}
+
+output "node_launch_template_ids" {
+  value       = { for k, v in aws_launch_template.node : k => v.id }
+  description = "Launch template IDs created for node groups that set max_pods"
+}

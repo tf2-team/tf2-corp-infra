@@ -119,6 +119,8 @@ variable "node_groups" {
     # Optional raw IDs (overrides subnet_keys when set)
     subnet_ids = optional(list(string))
     labels     = optional(map(string), {})
+    # kubelet maxPods via launch template (pair with vpc-cni prefix delegation)
+    max_pods = optional(number)
   }))
   description = "Managed Node Groups. Pin one group per AZ via subnet_keys for multi-AZ balance."
 }
@@ -127,9 +129,10 @@ variable "addons" {
   type = map(object({
     addon_version            = optional(string)
     service_account_role_arn = optional(string)
+    configuration_values     = optional(string)
   }))
   default     = {}
-  description = "Bản đồ các EKS Managed Add-on"
+  description = "Bản đồ các EKS Managed Add-on (optional configuration_values JSON for e.g. vpc-cni)"
 }
 
 variable "create_oidc_provider" {
@@ -353,6 +356,20 @@ variable "karpenter_availability_zones" {
   type        = list(string)
   default     = ["us-east-1a", "us-east-1b"]
   description = "Zones allowed for Karpenter NodePools"
+}
+
+variable "karpenter_node_max_pods" {
+  type        = number
+  default     = 110
+  nullable    = true
+  description = "EC2NodeClass kubelet maxPods (pair with vpc-cni prefix delegation). null = AMI default."
+}
+
+variable "karpenter_min_instance_cpu" {
+  type        = number
+  default     = 2
+  nullable    = false
+  description = "Minimum vCPU for Karpenter nodes (0 disables). Avoids 1-vCPU instances with ~8 max pods."
 }
 
 # ──────────────────────────────────────────────

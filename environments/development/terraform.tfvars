@@ -70,7 +70,9 @@ node_groups = {
     desired_size = 1
     min_size     = 1
     max_size     = 3
-    subnet_keys  = ["priv-1a"]
+    # Prefix-delegation density (default ENI mode maxPods=35 fills with system+app+DS)
+    max_pods    = 110
+    subnet_keys = ["priv-1a"]
     labels = {
       role = "general"
       env  = "development"
@@ -85,6 +87,7 @@ node_groups = {
     desired_size   = 1
     min_size       = 1
     max_size       = 3
+    max_pods       = 110
     subnet_keys    = ["priv-1b"]
     labels = {
       role = "general"
@@ -97,6 +100,9 @@ node_groups = {
 addons = {
   "vpc-cni" = {
     addon_version = "v1.22.3-eksbuild.1"
+    # ENABLE_PREFIX_DELEGATION raises IP density; pair with node max_pods / Karpenter node_max_pods
+    # Raw JSON string (jsonencode is not allowed in .tfvars)
+    configuration_values = "{\"env\":{\"ENABLE_PREFIX_DELEGATION\":\"true\",\"WARM_PREFIX_TARGET\":\"1\"}}"
   }
   "coredns" = {
     addon_version = "v1.14.3-eksbuild.3"
@@ -146,6 +152,9 @@ karpenter_spot_preferred        = true
 karpenter_nodepool_cpu_limit    = "32"
 karpenter_nodepool_memory_limit = "64Gi"
 karpenter_availability_zones    = ["us-east-1a", "us-east-1b"]
+# Match MNG density + avoid 1-vCPU nodes (~8 max pods, no room for DaemonSets)
+karpenter_node_max_pods    = 110
+karpenter_min_instance_cpu = 2
 
 # ──────────────────────────────────────────────
 # Cluster Autoscaler — OFF by default

@@ -103,6 +103,28 @@ variable "instance_categories" {
   description = "karpenter.k8s.aws/instance-category allow-list"
 }
 
+variable "min_instance_cpu" {
+  type        = number
+  default     = 2
+  nullable    = false
+  description = <<-EOT
+    Minimum vCPU for Karpenter-provisioned nodes (karpenter.k8s.aws/instance-cpu Gt min-1).
+    Default 2 avoids 1-vCPU instances (e.g. c7a.medium) that only allow ~8 pods and leave
+    almost no room after DaemonSets (aws-node, kube-proxy, ebs-csi-node, otel-agent).
+    Set to 0 to disable the requirement.
+  EOT
+}
+
+variable "node_max_pods" {
+  type        = number
+  default     = 110
+  nullable    = true
+  description = <<-EOT
+    kubelet maxPods on Karpenter nodes (EC2NodeClass spec.kubelet.maxPods).
+    Pair with cluster-wide VPC CNI prefix delegation. Set null to omit (AMI default).
+  EOT
+}
+
 variable "ami_alias" {
   type        = string
   default     = "al2023@latest"

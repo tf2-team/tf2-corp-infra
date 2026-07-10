@@ -68,7 +68,9 @@ node_groups = {
     desired_size = 1
     min_size     = 1
     max_size     = 2
-    subnet_keys  = ["priv-1a"]
+    # Prefix-delegation density (default ENI mode maxPods=35 fills with system+app+DS)
+    max_pods    = 110
+    subnet_keys = ["priv-1a"]
     labels = {
       role = "general"
       az   = "us-east-1a"
@@ -82,6 +84,7 @@ node_groups = {
     desired_size   = 1
     min_size       = 1
     max_size       = 2
+    max_pods       = 110
     subnet_keys    = ["priv-1b"]
     labels = {
       role = "general"
@@ -91,7 +94,10 @@ node_groups = {
 }
 
 addons = {
-  "vpc-cni"            = {}
+  "vpc-cni" = {
+    # Raw JSON string (jsonencode is not allowed in .tfvars)
+    configuration_values = "{\"env\":{\"ENABLE_PREFIX_DELEGATION\":\"true\",\"WARM_PREFIX_TARGET\":\"1\"}}"
+  }
   "coredns"            = {}
   "kube-proxy"         = {}
   "aws-ebs-csi-driver" = {}
@@ -132,6 +138,9 @@ karpenter_spot_preferred        = false
 karpenter_nodepool_cpu_limit    = "64"
 karpenter_nodepool_memory_limit = "128Gi"
 karpenter_availability_zones    = ["us-east-1a", "us-east-1b"]
+# Applied when karpenter_create_node_resources=true; matches MNG density
+karpenter_node_max_pods    = 110
+karpenter_min_instance_cpu = 2
 
 # ──────────────────────────────────────────────
 # Cluster Autoscaler — OFF by default

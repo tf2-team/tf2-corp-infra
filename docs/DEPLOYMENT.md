@@ -221,6 +221,32 @@ kubectl get nodes -L topology.kubernetes.io/zone
 
 Managed node groups remain the **system/bootstrap** pool. **Workload node autoscaling** is handled by **Karpenter** (see next phase and `docs/karpenter.md`).
 
+### Pod density (VPC CNI prefix delegation + maxPods)
+
+Default ENI secondary-IP mode gives **t3.large maxPods ≈ 35**. A full demo (system add-ons + Argo CD/ESO + app stack + DaemonSets such as `otel-collector-agent`) can hit that ceiling. DaemonSets are **node-pinned** — Karpenter adding a *new* node does not free a slot on an already-full node.
+
+Both environments enable:
+
+| Knob | Where | Value |
+|------|--------|-------|
+| `ENABLE_PREFIX_DELEGATION` / `WARM_PREFIX_TARGET` | `addons.vpc-cni.configuration_values` | `true` / `1` |
+| `max_pods` | each managed node group | `110` (AL2023 NodeConfig via launch template) |
+| `karpenter_node_max_pods` | Karpenter EC2NodeClass | `110` |
+| `karpenter_min_instance_cpu` | NodePool requirement | `2` (avoids 1-vCPU / ~8-pod instances) |
+
+**Apply order / operator steps:**
+
+1. `terraform apply` (updates vpc-cni, creates launch templates, rolls MNG + Karpenter CRs).
+2. Confirm CNI: `kubectl -n kube-system set env daemonset/aws-node --list | findstr PREFIX` → `ENABLE_PREFIX_DELEGATION=true`.
+3. Confirm maxPods after node recycle:  
+   `kubectl get nodes -o custom-columns=NAME:.metadata.name,TYPE:.metadata.labels."node\.kubernetes\.io/instance-type",PODS:.status.allocatable.pods`  
+   Replaced nodes should show **110** (not 35 / 8).
+4. If an old node still shows 35: cordon/drain that node (or wait for MNG rolling update) so a new instance boots with the launch template.
+5. Recycle existing Karpenter nodes the same way (maxPods is set at node join).
+6. Confirm DaemonSets: `kubectl -n techx-corp-dev get ds otel-collector-agent` → Desired = Ready.
+
+Private subnets are `/24`; prefix mode uses `/28` blocks. With a small node count and `WARM_PREFIX_TARGET=1`, IP pressure is low — monitor `AvailableIpAddressCount` if node count grows large.
+
 ---
 
 ## Phase 1b: Karpenter (node autoscaling)

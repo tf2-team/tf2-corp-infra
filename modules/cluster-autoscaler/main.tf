@@ -145,11 +145,11 @@ resource "helm_release" "cluster_autoscaler" {
         }
       }
       extraArgs = {
-        balance-similar-node-groups   = var.balance_similar_node_groups
-        skip-nodes-with-system-pods   = var.skip_nodes_with_system_pods
-        scale-down-delay-after-add    = var.scale_down_delay_after_add
-        scale-down-unneeded-time      = var.scale_down_unneeded_time
-        expander                      = "least-waste"
+        balance-similar-node-groups = var.balance_similar_node_groups
+        skip-nodes-with-system-pods = var.skip_nodes_with_system_pods
+        scale-down-delay-after-add  = var.scale_down_delay_after_add
+        scale-down-unneeded-time    = var.scale_down_unneeded_time
+        expander                    = "least-waste"
       }
     })
   ]

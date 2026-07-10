@@ -40,7 +40,7 @@ resource "helm_release" "argocd" {
           "server.insecure" = false
         }
         cm = {
-          "timeout.reconciliation" = "180s"
+          "timeout.reconciliation"       = "180s"
           "application.instanceLabelKey" = "argocd.argoproj.io/instance"
         }
         rbac = {

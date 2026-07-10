@@ -121,6 +121,7 @@ locals {
         ? aws_iam_role.ebs_csi_controller.arn
         : cfg.service_account_role_arn
       )
+      configuration_values = cfg.configuration_values
     }
   }
 
@@ -134,6 +135,12 @@ locals {
     for name, cfg in local.addons_effective : name => cfg
     if !contains(local.network_addon_names, name)
   }
+
+  # Launch templates only when max_pods is set (AL2023 NodeConfig kubelet.maxPods).
+  node_groups_with_max_pods = {
+    for name, ng in var.node_groups : name => ng
+    if ng.max_pods != null
+  }
 }
 
 resource "aws_eks_addon" "network" {
@@ -143,10 +150,61 @@ resource "aws_eks_addon" "network" {
   addon_name                  = each.key
   addon_version               = each.value.addon_version
   service_account_role_arn    = each.value.service_account_role_arn
+  configuration_values        = each.value.configuration_values
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
 
   depends_on = [aws_eks_cluster.this]
+}
+
+# AL2023 NodeConfig via launch template: raise kubelet maxPods for prefix-delegation density.
+# disk_size must live on the LT (not the node group) when launch_template is set.
+resource "aws_launch_template" "node" {
+  for_each = local.node_groups_with_max_pods
+
+  name_prefix = "${var.cluster_name}-${each.key}-"
+  description = "EKS MNG ${var.cluster_name}-${each.key}: maxPods=${each.value.max_pods}"
+
+  block_device_mappings {
+    device_name = "/dev/xvda"
+
+    ebs {
+      volume_size           = each.value.disk_size
+      volume_type           = "gp3"
+      delete_on_termination = true
+    }
+  }
+
+  # MIME multipart NodeConfig; EKS merges cluster bootstrap for managed node groups.
+  user_data = base64encode(<<-EOT
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="BOUNDARY"
+
+--BOUNDARY
+Content-Type: application/node.eks.aws
+
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+  kubelet:
+    config:
+      maxPods: ${each.value.max_pods}
+
+--BOUNDARY--
+EOT
+  )
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name = "${var.cluster_name}-${each.key}"
+    }
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_eks_node_group" "this" {
@@ -162,8 +220,17 @@ resource "aws_eks_node_group" "this" {
   instance_types = each.value.instance_types
   capacity_type  = each.value.capacity_type
   ami_type       = each.value.ami_type
-  disk_size      = each.value.disk_size
-  labels         = each.value.labels
+  # disk_size is set on the launch template when max_pods is configured.
+  disk_size = each.value.max_pods != null ? null : each.value.disk_size
+  labels    = each.value.labels
+
+  dynamic "launch_template" {
+    for_each = each.value.max_pods != null ? [1] : []
+    content {
+      id      = aws_launch_template.node[each.key].id
+      version = aws_launch_template.node[each.key].latest_version
+    }
+  }
 
   scaling_config {
     desired_size = each.value.desired_size
@@ -214,6 +281,7 @@ resource "aws_eks_addon" "this" {
   addon_name                  = each.key
   addon_version               = each.value.addon_version
   service_account_role_arn    = each.value.service_account_role_arn
+  configuration_values        = each.value.configuration_values
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
 

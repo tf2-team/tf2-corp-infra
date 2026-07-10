@@ -123,6 +123,8 @@ Both **development** and **production** currently use the same compute shape:
 
 **Node capacity (desired):** 2 × `t3.large` = **4 vCPU / 16 GiB** raw (before kubelet / system reservation).
 
+**Pod density (not extra instances):** VPC CNI **prefix delegation** + kubelet **maxPods=110** on MNG and Karpenter nodes (default ENI mode is maxPods≈35 on `t3.large`). This raises how many pods fit **per node** so DaemonSets (e.g. OTEL agent) and system controllers do not fail with `Too many pods`. It does **not** increase the MNG desired count or NodePool CPU/memory limits. Prefix mode uses `/28` IP blocks on private `/24` subnets — fine at demo scale; watch available IPs if node count grows.
+
 ### 3.2 Application components (Helm)
 
 All of the following are **`enabled: true`** in chart `values.yaml` under `components:`:
@@ -147,7 +149,7 @@ Subcharts / platform add-ons (also enabled by default):
 | jaeger | In-memory traces |
 | prometheus | Server only; many subcomponents disabled |
 | grafana | Admin via ESO secret |
-| opensearch | Single node; **~1100Mi** memory request; persistence off |
+| opensearch | Single node; **500m** CPU / **~1100Mi** memory request (Guaranteed); persistence off |
 | metrics-server | Required for HPA |
 
 **Autoscaling (HPA):**
@@ -175,7 +177,7 @@ This is **application + chart observability only**. It does **not** include:
 - Argo CD (dev)
 - EmptyDir / JVM / page cache beyond requests
 
-**Implication:** Desired **2× t3.large** system MNG is intentionally tight for a full demo. Memory-heavy pods (OpenSearch **1100Mi**, Kafka **700Mi**, load-generator **500Mi**) can cause Pending pods; **Karpenter** then adds workload nodes (Spot-first in dev) within NodePool limits — see `docs/karpenter.md`.
+**Implication:** Desired **2× t3.large** system MNG is intentionally tight for a full demo. Memory-heavy pods (OpenSearch **1100Mi**, Kafka **700Mi**, load-generator **500Mi**) can cause Pending pods; **Karpenter** then adds workload nodes (Spot-first in dev) within NodePool limits — see `docs/karpenter.md`. **Pod-count** pressure (not CPU/memory) is mitigated by prefix delegation + maxPods; Karpenter min instance CPU ≥ 2 avoids 1-vCPU nodes that only allow ~8 pods.
 
 ---
 

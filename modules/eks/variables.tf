@@ -61,12 +61,19 @@ variable "node_groups" {
     # Pin to specific subnets (one AZ) for multi-AZ balance; null = all var.subnet_ids
     subnet_ids = optional(list(string))
     labels     = optional(map(string), {}) # Kubernetes node labels
+    # When set, creates a launch template with AL2023 NodeConfig kubelet.maxPods.
+    # Use with VPC CNI prefix delegation (e.g. 110 for t3.large). Requires node recycle.
+    max_pods = optional(number)
   }))
   description = <<-EOT
     Managed Node Groups. Key is short name; resource name = {cluster_name}-{key}.
 
     For multi-AZ balance, create one group per AZ and set subnet_ids to a single
     private subnet (env main.tf resolves subnet_keys from the VPC module).
+
+    max_pods: optional kubelet maxPods via launch template (AL2023 NodeConfig).
+    Pair with vpc-cni ENABLE_PREFIX_DELEGATION for higher density than default ENI mode
+    (t3.large default maxPods=35 → ~110 with prefix mode).
 
     Example (env tfvars uses subnet_keys; main.tf maps to subnet_ids):
       node_groups = {
@@ -75,6 +82,7 @@ variable "node_groups" {
           desired_size   = 1
           min_size       = 1
           max_size       = 2
+          max_pods       = 110
           subnet_keys    = ["priv-1a"]
           labels         = { az = "us-east-1a" }
         }
@@ -83,6 +91,7 @@ variable "node_groups" {
           desired_size   = 1
           min_size       = 1
           max_size       = 2
+          max_pods       = 110
           subnet_keys    = ["priv-1b"]
           labels         = { az = "us-east-1b" }
         }
@@ -94,15 +103,24 @@ variable "addons" {
   type = map(object({
     addon_version            = optional(string) # null = dùng default version của EKS
     service_account_role_arn = optional(string) # IRSA ARN cho addon cần quyền IAM (vd: aws-ebs-csi-driver, vpc-cni)
+    # JSON string for EKS addon configurationValues (e.g. vpc-cni prefix delegation).
+    configuration_values = optional(string)
   }))
   default     = {}
   description = <<-EOT
     Bản đồ các EKS Managed Add-on cần cài.
     Key là tên addon chính xác theo AWS (vd: vpc-cni, coredns, kube-proxy, aws-ebs-csi-driver).
 
-    Ví dụ:
+    Ví dụ (prefix delegation for higher pod density).
+    In .tfvars use a raw JSON string (functions are not allowed in tfvars):
+      configuration_values = "{\"env\":{\"ENABLE_PREFIX_DELEGATION\":\"true\",\"WARM_PREFIX_TARGET\":\"1\"}}"
+    In .tf files you may use jsonencode({ env = { ... } }).
+
+    Example:
       addons = {
-        "vpc-cni"            = {}
+        "vpc-cni" = {
+          configuration_values = "{\"env\":{\"ENABLE_PREFIX_DELEGATION\":\"true\",\"WARM_PREFIX_TARGET\":\"1\"}}"
+        }
         "coredns"            = {}
         "kube-proxy"         = {}
         # service_account_role_arn optional: module auto-wires IRSA for aws-ebs-csi-driver

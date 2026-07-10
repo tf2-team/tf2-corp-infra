@@ -49,6 +49,7 @@ locals {
       min_size       = ng.min_size
       max_size       = ng.max_size
       labels         = ng.labels
+      max_pods       = ng.max_pods
       subnet_ids = (
         ng.subnet_ids != null
         ? ng.subnet_ids
@@ -136,6 +137,8 @@ module "karpenter" {
   nodepool_cpu_limit    = var.karpenter_nodepool_cpu_limit
   nodepool_memory_limit = var.karpenter_nodepool_memory_limit
   availability_zones    = var.karpenter_availability_zones
+  node_max_pods         = var.karpenter_node_max_pods
+  min_instance_cpu      = var.karpenter_min_instance_cpu
   tags                  = var.tags
 }
 

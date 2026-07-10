@@ -7,6 +7,8 @@ expireAfter: 720h
 consolidateAfter: 1m
 cpuLimit: "32"
 memoryLimit: "64Gi"
+# kubelet maxPods (null/omit = AMI default). Pair with VPC CNI prefix delegation.
+maxPods: 110
 
 # List of requirement objects: { key, operator, values }
 primaryRequirements: []
