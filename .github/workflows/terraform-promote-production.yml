@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "enviroments/production/**"
+      - "environments/production/**"
       - "modules/**"
       - ".github/workflows/**"
   workflow_dispatch:
@@ -25,5 +25,5 @@ jobs:
     uses: ./.github/workflows/terraform-apply.yml
     with:
       environment: production
-      terraform_dir: enviroments/production
+      terraform_dir: environments/production
       plan_only: ${{ inputs.plan_only || false }}

@@ -28,9 +28,9 @@ jobs:
       matrix:
         include:
           - environment: dev
-            terraform_dir: enviroments/dev
+            terraform_dir: environments/development
           - environment: production
-            terraform_dir: enviroments/production
+            terraform_dir: environments/production
     steps:
       - name: Checkout
         uses: actions/checkout@v4

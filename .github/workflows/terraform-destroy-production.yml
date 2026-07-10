@@ -40,10 +40,10 @@ jobs:
           TF_BACKEND_BUCKET: ${{ vars.PROD_TF_BACKEND_BUCKET }}
           TF_BACKEND_REGION: ${{ vars.PROD_TF_BACKEND_REGION }}
         run: |
-          terraform -chdir=enviroments/production init \
+          terraform -chdir=environments/production init \
             -backend-config="bucket=${TF_BACKEND_BUCKET}" \
             -backend-config="region=${TF_BACKEND_REGION}"
 
       - name: Terraform destroy production
         run: |
-          terraform -chdir=enviroments/production destroy -auto-approve
+          terraform -chdir=environments/production destroy -auto-approve
