@@ -53,7 +53,7 @@ nat_gateways = {
 # ──────────────────────────────────────────────
 # EKS Configuration
 # ──────────────────────────────────────────────
-cluster_name       = "techx-tf2"
+cluster_name       = "techx-tf2-prod"
 kubernetes_version = "1.32"
 
 # One managed node group per AZ (EBS / StatefulSet scheduling across zones).
@@ -104,7 +104,7 @@ github_repository            = "tmcmanhcuong/tf2-corp-platform"
 github_actions_ecr_role_name = "techx-gha-platform-prod"
 github_actions_environments  = ["production"]
 github_actions_allowed_refs  = ["refs/heads/main", "refs/tags/v*"]
-create_github_oidc_provider  = true
+create_github_oidc_provider  = false
 
 # ──────────────────────────────────────────────
 # Argo CD (REL-09) — keep false until dev cutover is proven
