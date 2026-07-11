@@ -340,15 +340,49 @@ variable "karpenter_create_node_resources" {
 
 variable "karpenter_chart_version" {
   type        = string
-  default     = "1.3.3"
-  description = "Pinned Karpenter Helm chart version"
+  default     = "1.13.1"
+  description = "Pinned Karpenter Helm chart version (karpenter-crd and karpenter must match)"
 }
 
 variable "karpenter_spot_preferred" {
   type        = bool
   default     = false
   nullable    = false
-  description = "Prefer Spot NodePool (false = On-Demand only; recommended for production)"
+  description = "Prefer Spot NodePool (false = On-Demand only; recommended for production initial placement)"
+}
+
+variable "karpenter_node_taints" {
+  type = list(object({
+    key    = string
+    value  = string
+    effect = string
+  }))
+  default     = []
+  description = "Taints applied to Karpenter NodePools (hard placement for spot-tolerant workloads)"
+}
+
+variable "karpenter_nodepool_weights" {
+  type = object({
+    spot      = number
+    on_demand = number
+  })
+  default = {
+    spot      = 100
+    on_demand = 10
+  }
+  description = "Scheduling preference weights for Karpenter NodePools"
+}
+
+variable "karpenter_disruption_budget_nodes" {
+  type = object({
+    spot      = string
+    on_demand = string
+  })
+  default = {
+    spot      = "0"
+    on_demand = "0"
+  }
+  description = "Per-NodePool voluntary disruption limits during/after migration (not a global cluster budget)"
 }
 
 variable "karpenter_nodepool_cpu_limit" {

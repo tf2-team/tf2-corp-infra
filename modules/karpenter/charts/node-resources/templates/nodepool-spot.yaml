@@ -1,9 +1,12 @@
+{{- if .Values.spotPreferred }}
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
-  name: {{ if .Values.spotPreferred }}spot{{ else }}on-demand{{ end }}
+  name: stateless-spot
+  labels:
+    workload-class: spot-tolerant
 spec:
-  weight: 100
+  weight: {{ .Values.nodepoolWeights.spot }}
   template:
     metadata:
       labels:
@@ -15,8 +18,16 @@ spec:
         kind: EC2NodeClass
         name: {{ .Values.ec2nodeclassName }}
       expireAfter: {{ .Values.expireAfter | quote }}
+      {{- with .Values.nodeTaints }}
+      taints:
+        {{- range . }}
+        - key: {{ .key | quote }}
+          value: {{ .value | quote }}
+          effect: {{ .effect }}
+        {{- end }}
+      {{- end }}
       requirements:
-        {{- range .Values.primaryRequirements }}
+        {{- range .Values.spotRequirements }}
         - key: {{ .key | quote }}
           operator: {{ .operator | quote }}
           values:
@@ -30,3 +41,6 @@ spec:
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: {{ .Values.consolidateAfter | quote }}
+    budgets:
+      - nodes: {{ .Values.disruptionBudgetNodes.spot | quote }}
+{{- end }}

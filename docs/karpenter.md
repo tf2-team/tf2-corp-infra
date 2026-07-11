@@ -132,8 +132,11 @@ EC2NodeClass selects both by tag so nodes land in private subnets and use the cl
 | `karpenter_enabled` | `true` | `true` | Create AWS prerequisites |
 | `karpenter_install_helm` | `true` | `false` | Install controller via Helm (needs API at apply) |
 | `karpenter_create_node_resources` | `true` | `false` | Apply EC2NodeClass + NodePool |
-| `karpenter_chart_version` | `1.3.3` | `1.3.3` | Pinned chart |
-| `karpenter_spot_preferred` | **`true`** | **`false`** | Spot primary + OD fallback vs OD only |
+| `karpenter_chart_version` | **`1.13.1`** | **`1.13.1`** | Pin **both** karpenter-crd and karpenter (Kubernetes 1.36 needs ≥ 1.13) |
+| `karpenter_spot_preferred` | **`true`** | **`false`** | Spot + OD pools vs OD-only (`stateless-on-demand`) |
+| `karpenter_node_taints` | spot-tolerant NoSchedule | same | Taints on both NodePools for hard placement |
+| `karpenter_nodepool_weights` | spot=100, on_demand=10 | same | Scheduling preference (Spot first when both exist) |
+| `karpenter_disruption_budget_nodes` | `"0"`/`"0"` (migration) | same | **Per-NodePool** voluntary disruption limits |
 | `karpenter_nodepool_cpu_limit` | `32` | `64` | CPU spend cap |
 | `karpenter_nodepool_memory_limit` | `64Gi` | `128Gi` | Memory spend cap |
 | `karpenter_availability_zones` | `us-east-1a/b` | same | Zone allow-list |
@@ -147,8 +150,11 @@ See `modules/karpenter/variables.tf`. Important knobs:
 * `instance_categories` — default `["c","m","r"]`
 * `ami_alias` — default `al2023@latest` (matches AL2023 managed NGs)
 * `expire_after` / `consolidate_after` — disruption tuning
+* `node_taints` / `nodepool_weights` / `disruption_budget_nodes` — hard placement + per-pool budgets
 * `node_max_pods` — kubelet maxPods on provisioned nodes (default `110`; set `null` for AMI default)
 * `min_instance_cpu` — minimum vCPU (default `2`; `0` disables the requirement)
+
+**NodePool names:** `stateless-spot` (when `spot_preferred`) and always `stateless-on-demand`. Both use label+taint `workload-class=spot-tolerant`.
 
 ### 4.2.1 Pod density and DaemonSets
 
@@ -207,7 +213,11 @@ terraform -chdir=environments/production apply
 
 ### 5.4 Chart upgrades
 
-Bump `karpenter_chart_version` in tfvars, plan/apply. Review [Karpenter upgrade docs](https://karpenter.sh/docs/upgrading/) for CRD/API changes before large version jumps.
+1. Pin the **same** version for `karpenter-crd` and `karpenter` (module uses `chart_version` for both).
+2. **Upgrade CRD release first**, confirm CRDs Established, then controller.
+3. Review [Karpenter upgrade docs](https://karpenter.sh/docs/upgrading/) and release notes for **every minor** between current and target (not only the destination minor).
+4. During multi-minor upgrades set `karpenter_disruption_budget_nodes` to `"0"` / `"0"` until NodePools are healthy.
+5. **Do not roll back to 1.3.x** while the cluster remains on Kubernetes **1.36**.
 
 ---
 

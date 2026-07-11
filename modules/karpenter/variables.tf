@@ -59,8 +59,8 @@ variable "create_node_resources" {
 
 variable "chart_version" {
   type        = string
-  description = "Pinned Karpenter Helm chart version (oci://public.ecr.aws/karpenter/karpenter)"
-  default     = "1.3.3"
+  description = "Pinned Karpenter Helm chart version (oci://public.ecr.aws/karpenter/karpenter). Pin karpenter-crd and karpenter to the same version."
+  default     = "1.13.1"
 }
 
 variable "timeout_seconds" {
@@ -91,10 +91,81 @@ variable "spot_preferred" {
   default     = false
   nullable    = false
   description = <<-EOT
-    When true (development): primary NodePool uses Spot (high weight) plus a lower-weight
-    On-Demand fallback NodePool.
-    When false (production): single On-Demand NodePool.
+    When true (development): create stateless-spot (high weight) and stateless-on-demand (low weight).
+    When false (production initial): only stateless-on-demand NodePool.
   EOT
+}
+
+variable "node_taints" {
+  type = list(object({
+    key    = string
+    value  = string
+    effect = string
+  }))
+  default     = []
+  description = "Taints applied to Karpenter NodePools (both Spot and On-Demand when present)."
+
+  validation {
+    condition = alltrue([
+      for t in var.node_taints : length(trimspace(t.key)) > 0
+    ])
+    error_message = "Each karpenter node taint key must be non-empty."
+  }
+
+  validation {
+    condition = alltrue([
+      for t in var.node_taints : contains(["NoSchedule", "PreferNoSchedule", "NoExecute"], t.effect)
+    ])
+    error_message = "Each karpenter node taint effect must be NoSchedule, PreferNoSchedule, or NoExecute."
+  }
+
+  validation {
+    condition = length(var.node_taints) == length(distinct([
+      for t in var.node_taints : "${t.key}|${t.value}|${t.effect}"
+    ]))
+    error_message = "Duplicate karpenter node taint key/value/effect triples are not allowed."
+  }
+}
+
+variable "nodepool_weights" {
+  type = object({
+    spot      = number
+    on_demand = number
+  })
+  default = {
+    spot      = 100
+    on_demand = 10
+  }
+  description = "Scheduling preference weights for Karpenter NodePools (higher preferred first)."
+
+  validation {
+    condition     = var.nodepool_weights.spot >= 0 && var.nodepool_weights.on_demand >= 0
+    error_message = "Both NodePool weights must be greater than or equal to 0."
+  }
+}
+
+variable "disruption_budget_nodes" {
+  type = object({
+    spot      = string
+    on_demand = string
+  })
+  default = {
+    spot      = "1"
+    on_demand = "1"
+  }
+  description = <<-EOT
+    Per-NodePool voluntary disruption limits (Karpenter budget nodes string).
+    Accepts absolute counts (e.g. "0", "1") or percentages (e.g. "10%", "100%").
+    Budgets are per NodePool, not a single global cluster limit.
+  EOT
+
+  validation {
+    condition = alltrue([
+      for v in [var.disruption_budget_nodes.spot, var.disruption_budget_nodes.on_demand] :
+      can(regex("^(0|[1-9][0-9]*|([1-9]|[1-9][0-9]|100)%)$", v))
+    ])
+    error_message = "disruption_budget_nodes values must be a non-negative integer (e.g. \"0\", \"1\") or a percentage from 1% to 100% (e.g. \"10%\", \"100%\")."
+  }
 }
 
 variable "instance_categories" {

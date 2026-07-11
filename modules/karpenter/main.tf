@@ -84,6 +84,17 @@ locals {
   }])
 }
 
+# When both NodePools are enabled, Spot weight must be strictly preferred.
+check "nodepool_weight_preference" {
+  assert {
+    condition = (
+      !var.spot_preferred ||
+      var.nodepool_weights.spot > var.nodepool_weights.on_demand
+    )
+    error_message = "When spot_preferred is true, nodepool_weights.spot must be greater than nodepool_weights.on_demand."
+  }
+}
+
 # ── Node IAM role (passed to EC2 by Karpenter) ─
 
 data "aws_iam_policy_document" "node_assume" {
@@ -753,18 +764,27 @@ resource "helm_release" "node_resources" {
 
   values = [
     yamlencode({
-      ec2nodeclassName     = var.ec2nodeclass_name
-      nodeRoleName         = aws_iam_role.node[0].name
-      discoveryTagValue    = local.discovery
-      amiAlias             = var.ami_alias
-      spotPreferred        = var.spot_preferred
-      expireAfter          = var.expire_after
-      consolidateAfter     = var.consolidate_after
-      cpuLimit             = var.nodepool_cpu_limit
-      memoryLimit          = var.nodepool_memory_limit
-      maxPods              = var.node_max_pods
-      primaryRequirements  = var.spot_preferred ? local.spot_requirements : local.on_demand_requirements
-      fallbackRequirements = local.on_demand_requirements
+      ec2nodeclassName  = var.ec2nodeclass_name
+      nodeRoleName      = aws_iam_role.node[0].name
+      discoveryTagValue = local.discovery
+      amiAlias          = var.ami_alias
+      spotPreferred     = var.spot_preferred
+      expireAfter       = var.expire_after
+      consolidateAfter  = var.consolidate_after
+      cpuLimit          = var.nodepool_cpu_limit
+      memoryLimit       = var.nodepool_memory_limit
+      maxPods           = var.node_max_pods
+      nodepoolWeights = {
+        spot     = var.nodepool_weights.spot
+        onDemand = var.nodepool_weights.on_demand
+      }
+      disruptionBudgetNodes = {
+        spot     = var.disruption_budget_nodes.spot
+        onDemand = var.disruption_budget_nodes.on_demand
+      }
+      nodeTaints           = var.node_taints
+      spotRequirements     = local.spot_requirements
+      onDemandRequirements = local.on_demand_requirements
     })
   ]
 

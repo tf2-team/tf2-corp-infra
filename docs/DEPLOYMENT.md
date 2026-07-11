@@ -253,10 +253,14 @@ Private subnets are `/24`; prefix mode uses `/28` blocks. With a small node coun
 
 Karpenter provisions EC2 nodes from Pending pods. Discovery tags (`karpenter.sh/discovery = <cluster>`) are applied to private subnets and the cluster security group by the VPC/EKS modules.
 
+Pinned version: **`1.13.1`** for both `karpenter-crd` and `karpenter` (required for Kubernetes 1.36). Upgrade **CRD before controller**. Do not roll back to 1.3.x while the cluster stays on 1.36.
+
 | Env | Spot preferred | Default install (tfvars) |
 |-----|----------------|--------------------------|
-| development | **yes** (Spot NodePool + On-Demand fallback) | `install_helm` + `create_node_resources` **true** |
-| production | **no** (On-Demand NodePool) | IAM/SQS only until you flip install flags |
+| development | **yes** (`stateless-spot` weight 100 + `stateless-on-demand` weight 10) | `install_helm` + `create_node_resources` **true** |
+| production | **no** (`stateless-on-demand` only for initial placement) | IAM/SQS only until you flip install flags |
+
+Both NodePools use label + taint `workload-class=spot-tolerant:NoSchedule`. Migration disruption budgets default to `"0"` per pool.
 
 ```bash
 # Development (full install when cluster API is reachable during apply)
@@ -270,31 +274,34 @@ kubectl get nodes -L karpenter.sh/nodepool -L karpenter.sh/capacity-type -L work
 terraform -chdir=environments/development output karpenter_bootstrap_note
 ```
 
-Production: set `karpenter_install_helm = true` and `karpenter_create_node_resources = true` in `environments/production/terraform.tfvars` when ready, then apply.
+Production: set `karpenter_install_helm = true` and `karpenter_create_node_resources = true` in `environments/production/terraform.tfvars` when ready, then apply. Enable Spot only after production placement acceptance.
 
 Full comparison (CA vs Karpenter vs EKS Auto Mode), verification scale-test, and rollback: **`docs/karpenter.md`**.
 
 ---
 
-## Phase 1b-extra: Workload placement (critical MNG vs Spot apps)
+## Phase 1b-extra: Workload placement (critical MNG vs Karpenter hard placement)
 
-Managed node groups are the **critical floor** (`workload-class=critical`, On-Demand). Karpenter nodes are labeled `workload-class=spot-tolerant` for elastic apps.
+**Critical floor:** `system-1a` / `system-1b` (`workload-class=critical`, On-Demand, `max_size=2` ceiling only — **no** Cluster Autoscaler auto scale-out). Legacy `general-*` remains during dual-run migration.
+
+**Karpenter:** labeled + tainted `workload-class=spot-tolerant:NoSchedule` for classified stateless apps.
 
 | Workload | Placement |
 |----------|-----------|
-| System (Karpenter controller, ESO, Argo CD, metrics-server, ALB controller) | `nodeSelector: workload-class=critical` |
-| Stateful app data (`postgresql`, `kafka`, `valkey-cart`, `opensearch`) | Chart required critical selector |
-| Stateless app Deployments | Preferred Spot / spot-tolerant affinity |
-| Prod edge (`frontend-proxy`, `flagd`) | Critical (values-prod) |
+| System (Karpenter controller, CoreDNS, ESO, Argo CD, metrics-server, ALB controller, EBS CSI controller) | `nodeSelector: workload-class=critical` |
+| Stateful data + observability + `frontend-proxy` / `flagd` | Chart required critical selector (no Karpenter toleration) |
+| Classified stateless apps (`frontend`, catalog, recommendation, load-generator, …) | Hard `spot-tolerant` selector + Karpenter toleration |
+| Universal DaemonSets (CNI, kube-proxy, ebs-csi-node, OTel agent) | No workload-class selector; tolerate Karpenter taint |
+| Unclassified pods | May still land on MNG (one-way isolation) |
 
-**Apply order:** Terraform (labels + capacity) **before** chart sync so critical pods do not Pending waiting for labels.
+**Apply order:** inventory → Karpenter upgrade → create system MNG (create-only plan) → capacity gate → controller pins / NodePool taints → **then** chart sync → migrate AZ-by-AZ → open disruption budgets → remove legacy.
 
 ```bash
-kubectl get nodes -L workload-class,role,karpenter.sh/capacity-type
-kubectl get pod -A -o wide | findstr /i "postgresql kafka valkey checkout"
+kubectl get nodes -L workload-class,role,karpenter.sh/nodepool,karpenter.sh/capacity-type
+kubectl get pod -A -o wide
 ```
 
-Hard isolation (MNG taints) is optional Phase 2 — see **`docs/workload-placement.md`**.
+Details, capacity gates, canaries, rollback: **`docs/workload-placement.md`**.
 
 ---
 

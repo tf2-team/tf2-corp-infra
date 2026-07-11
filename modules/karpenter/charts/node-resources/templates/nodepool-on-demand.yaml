@@ -1,10 +1,11 @@
-{{- if .Values.spotPreferred }}
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
-  name: on-demand-fallback
+  name: stateless-on-demand
+  labels:
+    workload-class: spot-tolerant
 spec:
-  weight: 10
+  weight: {{ .Values.nodepoolWeights.onDemand }}
   template:
     metadata:
       labels:
@@ -17,8 +18,16 @@ spec:
         kind: EC2NodeClass
         name: {{ .Values.ec2nodeclassName }}
       expireAfter: {{ .Values.expireAfter | quote }}
+      {{- with .Values.nodeTaints }}
+      taints:
+        {{- range . }}
+        - key: {{ .key | quote }}
+          value: {{ .value | quote }}
+          effect: {{ .effect }}
+        {{- end }}
+      {{- end }}
       requirements:
-        {{- range .Values.fallbackRequirements }}
+        {{- range .Values.onDemandRequirements }}
         - key: {{ .key | quote }}
           operator: {{ .operator | quote }}
           values:
@@ -32,4 +41,5 @@ spec:
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: {{ .Values.consolidateAfter | quote }}
-{{- end }}
+    budgets:
+      - nodes: {{ .Values.disruptionBudgetNodes.onDemand | quote }}
