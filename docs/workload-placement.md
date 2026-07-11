@@ -41,7 +41,7 @@ CPU architecture (**amd64** vs **arm64**) is orthogonal to `workload-class` plac
 | **Karpenter version** | `1.13.1` for both `karpenter-crd` and `karpenter` |
 | **NodePools** | `stateless-spot` (weight 100) + `stateless-on-demand` (weight 10) when Spot preferred; prod initial On-Demand only |
 | **NodePool contract** | Labels + taint `workload-class=spot-tolerant:NoSchedule` |
-| **Disruption budgets** | Per NodePool; migration freeze `"0"` / `"0"` |
+| **Disruption budgets** | Per NodePool; **development steady state `"1"` / `"1"`** (consolidation enabled); production remains `"0"` / `"0"` until placement acceptance |
 | **App chart** | Hard selectors + Karpenter toleration for stateless; critical list without Karpenter toleration; soft topology spreads on default (spot-tolerant) contract only |
 | **System pins** | CoreDNS + EBS CSI controller add-on config; Karpenter controller; Argo CD; ESO; ALB controller helm note |
 
@@ -105,10 +105,10 @@ VPC CNI (`aws-node`), kube-proxy, EBS CSI **node**, OTel Collector agent — no 
 
 ## 5. Karpenter NodePool contract
 
-| Pool | Name | Capacity | Weight | Budget (migration) |
-|------|------|----------|--------|--------------------|
-| Spot | `stateless-spot` | `spot` | 100 | `"0"` |
-| On-Demand | `stateless-on-demand` | `on-demand` | 10 | `"0"` |
+| Pool | Name | Capacity | Weight | Budget (dev steady state) |
+|------|------|----------|--------|---------------------------|
+| Spot | `stateless-spot` | `spot` | 100 | `"1"` |
+| On-Demand | `stateless-on-demand` | `on-demand` | 10 | `"1"` |
 
 Both pools share:
 
@@ -123,13 +123,14 @@ taints:
 
 **Weight** encodes Spot-first preference. Do not infer primary/fallback from shared labels alone.
 
-**Disruption budgets are per NodePool**, not a global “one node in the whole cluster” limit. Steady state `"1"` + `"1"` allows up to one voluntary disruption **per pool** (two cluster-wide if both fire).
+**Disruption budgets are per NodePool**, not a global “one node in the whole cluster” limit. Steady state `"1"` + `"1"` allows up to one voluntary disruption **per pool** (two cluster-wide if both fire). That budget is required for `consolidationPolicy: WhenEmptyOrUnderutilized` to reclaim idle/underutilized Karpenter nodes after `consolidateAfter` (development: `1m`).
 
 Variables:
 
 * `karpenter_node_taints`
 * `karpenter_nodepool_weights`
 * `karpenter_disruption_budget_nodes`
+* `karpenter_consolidate_after` (development; module default elsewhere)
 * `karpenter_chart_version` (pin **1.13.1**; Kubernetes 1.36 needs ≥ 1.13)
 
 ---

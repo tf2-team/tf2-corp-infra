@@ -138,7 +138,8 @@ EC2NodeClass selects both by tag so nodes land in private subnets and use the cl
 | `karpenter_spot_preferred` | **`true`** | **`false`** | Spot + OD pools vs OD-only (`stateless-on-demand`) |
 | `karpenter_node_taints` | spot-tolerant NoSchedule | same | Taints on both NodePools for hard placement |
 | `karpenter_nodepool_weights` | spot=100, on_demand=10 | same | Scheduling preference (Spot first when both exist) |
-| `karpenter_disruption_budget_nodes` | `"0"`/`"0"` (migration) | same | **Per-NodePool** voluntary disruption limits |
+| `karpenter_disruption_budget_nodes` | **`"1"`/`"1"`** (steady state) | `"0"`/`"0"` (migration freeze until install) | **Per-NodePool** voluntary disruption limits; `"0"` blocks consolidation |
+| `karpenter_consolidate_after` | **`1m`** | module default `1m` (not wired in prod tfvars yet) | Delay before consolidating empty/underutilized nodes |
 | `karpenter_nodepool_cpu_limit` | `32` | `64` | CPU spend cap |
 | `karpenter_nodepool_memory_limit` | `64Gi` | `128Gi` | Memory spend cap |
 | `karpenter_availability_zones` | `us-east-1a/b` | same | Zone allow-list |
@@ -244,7 +245,7 @@ kubectl scale deployment scale-test --replicas=6
 # Expect: brief Pending → new nodes (prefer capacity-type=spot in dev) → Running
 kubectl get nodes -L karpenter.sh/capacity-type
 kubectl delete deployment scale-test
-# Idle Karpenter nodes should consolidate after consolidateAfter
+# Idle Karpenter nodes should consolidate after consolidateAfter (dev: 1m) when budgets are non-zero
 
 # Interruption queue
 aws sqs get-queue-url --queue-name <cluster-name>
@@ -306,8 +307,16 @@ terraform -chdir=environments/development output karpenter_controller_role_arn
 
 ### Unwanted consolidation
 
-* Increase `consolidate_after`, or set disruption budgets on NodePool (extend module if needed).
+* Increase `karpenter_consolidate_after` (dev) or module `consolidate_after` (e.g. `5m`–`15m`).
+* Temporarily freeze voluntary disruption with `karpenter_disruption_budget_nodes = { spot = "0", on_demand = "0" }`.
 * Critical StatefulSets: PDBs + topology spread.
+
+### Underutilized Karpenter nodes not reclaiming
+
+1. Confirm NodePool budgets are not `"0"` (`kubectl get nodepool -o yaml` → `spec.disruption.budgets`).
+2. Confirm `consolidationPolicy: WhenEmptyOrUnderutilized` and `consolidateAfter` (dev: `1m`).
+3. Check PDBs / do-not-disrupt annotations blocking drain.
+4. Controller logs for consolidation decisions.
 
 ### Disable temporarily without destroying IAM
 

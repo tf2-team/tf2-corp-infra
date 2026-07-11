@@ -140,6 +140,7 @@ module "karpenter" {
   node_taints             = var.karpenter_node_taints
   nodepool_weights        = var.karpenter_nodepool_weights
   disruption_budget_nodes = var.karpenter_disruption_budget_nodes
+  consolidate_after       = var.karpenter_consolidate_after
   nodepool_cpu_limit      = var.karpenter_nodepool_cpu_limit
   nodepool_memory_limit   = var.karpenter_nodepool_memory_limit
   availability_zones      = var.karpenter_availability_zones

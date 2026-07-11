@@ -381,10 +381,21 @@ variable "karpenter_disruption_budget_nodes" {
     on_demand = string
   })
   default = {
-    spot      = "0"
-    on_demand = "0"
+    spot      = "1"
+    on_demand = "1"
   }
-  description = "Per-NodePool voluntary disruption limits during/after migration (not a global cluster budget)"
+  description = <<-EOT
+    Per-NodePool voluntary disruption limits (not a global cluster budget).
+    Steady state "1"/"1" allows consolidation under WhenEmptyOrUnderutilized.
+    Use "0"/"0" only to freeze voluntary disruption during upgrades/migrations.
+  EOT
+}
+
+variable "karpenter_consolidate_after" {
+  type        = string
+  default     = "1m"
+  nullable    = false
+  description = "NodePool disruption consolidateAfter (how long underutilized/empty nodes wait before reclaim)."
 }
 
 variable "karpenter_nodepool_cpu_limit" {

@@ -179,11 +179,14 @@ karpenter_nodepool_weights = {
   spot      = 100
   on_demand = 10
 }
-# Migration freeze: open per pool after acceptance (spot first, then on-demand, then both "1")
+# Steady state: one voluntary disruption per NodePool so consolidation can reclaim idle capacity.
+# Freeze to "0"/"0" only during multi-minor Karpenter upgrades or placement migrations.
 karpenter_disruption_budget_nodes = {
-  spot      = "0"
-  on_demand = "0"
+  spot      = "1"
+  on_demand = "1"
 }
+# Short reclaim window in development (WhenEmptyOrUnderutilized).
+karpenter_consolidate_after = "1m"
 
 # ──────────────────────────────────────────────
 # Cluster Autoscaler — OFF by default
