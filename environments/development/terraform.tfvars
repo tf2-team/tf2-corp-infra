@@ -13,7 +13,7 @@ ecr_project_name           = "techx-dev-corp"
 ecr_naming_mode            = "nested"
 ecr_keep_last_n_images     = 5
 ecr_keep_last_n_buildcache = 1
-ecr_scan_on_push           = true
+ecr_scan_on_push           = false
 ecr_force_delete           = true
 
 # ──────────────────────────────────────────────
@@ -128,7 +128,7 @@ addons = {
 # GitHub Actions → ECR push (OIDC)
 # OIDC provider is created by production; this env reuses it.
 # ──────────────────────────────────────────────
-github_repository            = "tmcmanhcuong/tf2-corp-platform"
+github_repository            = "tf2-team/tf2-corp-platform"
 github_actions_ecr_role_name = "techx-gha-platform-dev"
 github_actions_environments  = ["development"]
 github_actions_allowed_refs  = ["refs/heads/techx-dev-corp"]
