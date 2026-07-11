@@ -29,7 +29,8 @@ CPU architecture (**amd64** vs **arm64**) is orthogonal to `workload-class` plac
 | **Hard placement (code)** | **Implemented** — Karpenter 1.13.1 pin, NodePool taints/weights/budgets, system MNG, chart hard contracts |
 | **Live migration** | Operator runbook — see rollout phases below; apply only after inventory + plan review |
 | **MNG critical taint** | Still **disabled** (one-way isolation only) |
-| **Admission / PDB / topology** | Follow-up |
+| **Chart topology spread** | **Soft only** (`ScheduleAnyway` zone/hostname) on spot-tolerant app pods — chart-side; see chart `docs/operations/workload-placement.md` |
+| **Admission / PDB / hard topology** | Follow-up |
 
 ### 2.1 Configured behavior
 
@@ -41,7 +42,7 @@ CPU architecture (**amd64** vs **arm64**) is orthogonal to `workload-class` plac
 | **NodePools** | `stateless-spot` (weight 100) + `stateless-on-demand` (weight 10) when Spot preferred; prod initial On-Demand only |
 | **NodePool contract** | Labels + taint `workload-class=spot-tolerant:NoSchedule` |
 | **Disruption budgets** | Per NodePool; migration freeze `"0"` / `"0"` |
-| **App chart** | Hard selectors + Karpenter toleration for stateless; critical list without Karpenter toleration |
+| **App chart** | Hard selectors + Karpenter toleration for stateless; critical list without Karpenter toleration; soft topology spreads on default (spot-tolerant) contract only |
 | **System pins** | CoreDNS + EBS CSI controller add-on config; Karpenter controller; Argo CD; ESO; ALB controller helm note |
 
 ---
@@ -174,5 +175,6 @@ terraform -chdir=environments/development validate
 
 * [`karpenter.md`](./karpenter.md) — install, upgrade, NodePools, rollback constraints
 * [`DEPLOYMENT.md`](./DEPLOYMENT.md) — environment apply order
-* Chart ops: `techx-corp-chart/docs/operations/workload-placement.md`
+* Chart ops: `techx-corp-chart/docs/operations/workload-placement.md` (hard placement + soft topology spread)
 * Change record: `docs/changes/2026-07-11-enforce-managed-karpenter-pod-placement.md`
+* Chart topology balancing: `techx-corp-chart/docs/changes/2026-07-11-pod-topology-spread-balancing.md`
