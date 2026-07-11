@@ -249,6 +249,10 @@ Private subnets are `/24`; prefix mode uses `/28` blocks. With a small node coun
 
 ---
 
+## CPU architecture (amd64 / arm64)
+
+Node ISA (x86 vs Graviton), EKS `ami_type` pairing, multi-arch image prerequisites, and migration/rollback between architectures: see [`cpu-architecture.md`](./cpu-architecture.md).
+
 ## Phase 1b: Karpenter (node autoscaling)
 
 Karpenter provisions EC2 nodes from Pending pods. Discovery tags (`karpenter.sh/discovery = <cluster>`) are applied to private subnets and the cluster security group by the VPC/EKS modules.

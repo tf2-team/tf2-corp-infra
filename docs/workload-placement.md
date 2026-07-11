@@ -4,6 +4,8 @@ This document defines how TechX EKS places **critical** workloads on **managed n
 
 It is the scheduling counterpart to [`karpenter.md`](./karpenter.md) (capacity provisioning) and applies across `techx-corp-infra` (nodes) and `techx-corp-chart` (pod `schedulingRules`).
 
+CPU architecture (**amd64** vs **arm64**) is orthogonal to `workload-class` placement. See [`cpu-architecture.md`](./cpu-architecture.md) for ISA differences, AMI/instance pairing, and architecture migration plans.
+
 ---
 
 ## 1. Goal

@@ -2,6 +2,8 @@
 
 This document describes how **Karpenter** is integrated into TechX EKS clusters, why it was chosen over alternatives, and how to deploy, verify, and operate it.
 
+For **amd64 vs arm64 (Graviton)** node architecture, AMI pairing, and migration between architectures, see [`cpu-architecture.md`](./cpu-architecture.md).
+
 ## 1. Overview
 
 EKS previously used **static managed node groups** only (`desired_size` fixed in Terraform). Pod HPA could scale workloads, but when nodes were full, pods stayed `Pending`.
