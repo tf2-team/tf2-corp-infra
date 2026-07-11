@@ -68,9 +68,9 @@ node_groups = {
 
   # New critical floor (create-only in first migration plan).
   "system-1a" = {
-    instance_types = ["t3.medium"]
+    instance_types = ["t4g.medium"]
     capacity_type  = "ON_DEMAND"
-    ami_type       = "AL2023_x86_64_STANDARD"
+    ami_type       = "AL2023_ARM_64_STANDARD"
     disk_size      = 30
     desired_size   = 1
     min_size       = 1
@@ -85,9 +85,9 @@ node_groups = {
     }
   }
   "system-1b" = {
-    instance_types = ["t3.medium"]
+    instance_types = ["t4g.medium"]
     capacity_type  = "ON_DEMAND"
-    ami_type       = "AL2023_x86_64_STANDARD"
+    ami_type       = "AL2023_ARM_64_STANDARD"
     disk_size      = 30
     desired_size   = 1
     min_size       = 1

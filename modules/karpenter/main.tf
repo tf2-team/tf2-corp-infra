@@ -45,7 +45,7 @@ locals {
       {
         key      = "kubernetes.io/arch"
         operator = "In"
-        values   = ["amd64"]
+        values   = ["arm64"]
       },
       {
         key      = "kubernetes.io/os"
