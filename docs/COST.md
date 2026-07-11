@@ -115,7 +115,7 @@ Both **development** and **production** currently use the same compute shape:
 | Cluster max nodes (MNG only) | **6** | **4** |
 | Karpenter | **Spot preferred** + OD fallback (spot-tolerant apps); CPU limit 32 | On-Demand NodePool when install enabled; CPU limit 64 |
 | Node disk | 30 GB | 30 GB |
-| ECR project | `techx-dev-corp/*` (keep last **5**) | `techx-corp/*` (keep last **20**) |
+| ECR project | `techx-dev-corp/*` (keep last **5** runtime + **1** `buildcache`) | `techx-corp/*` (keep last **20** runtime + **1** `buildcache`) |
 | Argo CD (`argocd_enabled`) | **true** | **false** |
 | Storefront public ALB | Yes (Helm overlay) | Yes (Helm overlay) |
 | Path blocking on ALB | `false` (dev open for demo) | `true` (block sensitive paths) |
@@ -245,7 +245,7 @@ Dev and prod are **independent stacks** (separate VPC, EKS, NAT, ALB, node group
 | **Dev + prod** | **~$560–650** | Planning number **~$600** |
 | Shared bootstrap (S3 state, KMS, OIDC) | **&lt; ~$5** | Negligible vs EKS/EC2 |
 
-Prod ECR keeps more image history (`keep_last_n_images = 20` vs dev `5`), so **ECR storage** may be higher on prod over time (still small vs compute).
+Prod ECR keeps more runtime image history (`keep_last_n_images = 20` vs dev `5`; both keep **1** `buildcache`), so **ECR storage** may be higher on prod over time (still small vs compute).
 
 ---
 
@@ -288,7 +288,7 @@ Ordered roughly by impact for this architecture. Trade-offs are intentional — 
 - Single NAT per environment (not one NAT per AZ)
 - Small on-demand node footprint (2× `t3.large` desired)
 - OpenSearch / Prometheus persistence often off or minimal
-- Dev ECR lifecycle keep-last **5**
+- Dev ECR lifecycle keep-last **5** runtime images + **1** `buildcache` per repo
 - Prod Argo CD install gated off until ready
 
 ---

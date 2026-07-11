@@ -9,11 +9,12 @@ tags = {
 
 # Image format: REGISTRY/techx-dev-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
-ecr_project_name       = "techx-dev-corp"
-ecr_naming_mode        = "nested"
-ecr_keep_last_n_images = 5
-ecr_scan_on_push       = true
-ecr_force_delete       = true
+ecr_project_name           = "techx-dev-corp"
+ecr_naming_mode            = "nested"
+ecr_keep_last_n_images     = 5
+ecr_keep_last_n_buildcache = 1
+ecr_scan_on_push           = true
+ecr_force_delete           = true
 
 # ──────────────────────────────────────────────
 # VPC Configuration
@@ -64,44 +65,7 @@ kubernetes_version = "1.36"
 # One managed node group per AZ so EBS volumes / pods can schedule in both zones.
 node_groups = {
   # Legacy migration capacity (do not change instance/lifecycle here while creating system-*).
-  "general-1a" = {
-    instance_types = ["t3.medium"]
-    capacity_type  = "ON_DEMAND"
-    # EKS 1.33+ rejects AL2_x86_64; use Amazon Linux 2023
-    ami_type     = "AL2023_x86_64_STANDARD"
-    disk_size    = 30
-    desired_size = 1
-    min_size     = 1
-    max_size     = 3
-    # Prefix-delegation density (default ENI mode maxPods=35 fills with system+app+DS)
-    max_pods    = 110
-    subnet_keys = ["priv-1a"]
-    labels = {
-      role           = "critical"
-      workload-class = "critical"
-      env            = "development"
-      az             = "us-east-1a"
-    }
-    # Phase 2 hard isolation (disabled): only enable after DaemonSets/system pods tolerate.
-    # taints = [{ key = "workload-class", value = "critical", effect = "NO_SCHEDULE" }]
-  }
-  "general-1b" = {
-    instance_types = ["t3.medium"]
-    capacity_type  = "ON_DEMAND"
-    ami_type       = "AL2023_x86_64_STANDARD"
-    disk_size      = 30
-    desired_size   = 1
-    min_size       = 1
-    max_size       = 3
-    max_pods       = 110
-    subnet_keys    = ["priv-1b"]
-    labels = {
-      role           = "critical"
-      workload-class = "critical"
-      env            = "development"
-      az             = "us-east-1b"
-    }
-  }
+
   # New critical floor (create-only in first migration plan).
   "system-1a" = {
     instance_types = ["t3.medium"]

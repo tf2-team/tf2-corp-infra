@@ -27,8 +27,14 @@ variable "ecr_naming_mode" {
 
 variable "ecr_keep_last_n_images" {
   type        = number
-  description = "Lifecycle: keep N most recent images per service repo (development: 5)"
+  description = "Lifecycle: keep N most recent non-buildcache images per service repo (development: 5)"
   default     = 5
+}
+
+variable "ecr_keep_last_n_buildcache" {
+  type        = number
+  description = "Lifecycle: keep N most recent :buildcache-tagged images per service repo (default 1)"
+  default     = 1
 }
 
 variable "ecr_scan_on_push" {
@@ -45,10 +51,11 @@ variable "ecr_force_delete" {
 
 variable "ecr_repository_overrides" {
   type = map(object({
-    image_tag_mutability = optional(string)
-    scan_on_push         = optional(bool)
-    keep_last_n_images   = optional(number)
-    force_delete         = optional(bool)
+    image_tag_mutability   = optional(string)
+    scan_on_push           = optional(bool)
+    keep_last_n_images     = optional(number)
+    keep_last_n_buildcache = optional(number)
+    force_delete           = optional(bool)
   }))
   default     = {}
   description = "Optional per-service ECR setting overrides (module ships full platform catalog)"

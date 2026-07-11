@@ -9,11 +9,12 @@ tags = {
 
 # Image format: REGISTRY/techx-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
-ecr_project_name       = "techx-prod-corp"
-ecr_naming_mode        = "nested"
-ecr_keep_last_n_images = 20
-ecr_scan_on_push       = true
-ecr_force_delete       = true
+ecr_project_name           = "techx-prod-corp"
+ecr_naming_mode            = "nested"
+ecr_keep_last_n_images     = 20
+ecr_keep_last_n_buildcache = 1
+ecr_scan_on_push           = true
+ecr_force_delete           = true
 
 # ──────────────────────────────────────────────
 # VPC Configuration

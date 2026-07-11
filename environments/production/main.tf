@@ -2,12 +2,13 @@ module "ecr" {
   source = "../../modules/ecr"
 
   # Creates techx-corp/<service> for every platform bake service (module default catalog)
-  project_name       = var.ecr_project_name
-  naming_mode        = var.ecr_naming_mode
-  keep_last_n_images = var.ecr_keep_last_n_images
-  scan_on_push       = var.ecr_scan_on_push
-  force_delete       = var.ecr_force_delete
-  repositories       = var.ecr_repository_overrides
+  project_name           = var.ecr_project_name
+  naming_mode            = var.ecr_naming_mode
+  keep_last_n_images     = var.ecr_keep_last_n_images
+  keep_last_n_buildcache = var.ecr_keep_last_n_buildcache
+  scan_on_push           = var.ecr_scan_on_push
+  force_delete           = var.ecr_force_delete
+  repositories           = var.ecr_repository_overrides
 }
 
 module "github_actions_ecr" {

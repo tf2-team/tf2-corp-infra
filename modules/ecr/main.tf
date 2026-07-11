@@ -20,6 +20,10 @@ locals {
         try(var.repositories[name].keep_last_n_images, null),
         var.keep_last_n_images
       )
+      keep_last_n_buildcache = coalesce(
+        try(var.repositories[name].keep_last_n_buildcache, null),
+        var.keep_last_n_buildcache
+      )
       force_delete = coalesce(
         try(var.repositories[name].force_delete, null),
         var.force_delete
@@ -61,10 +65,26 @@ resource "aws_ecr_lifecycle_policy" "this" {
 
   repository = aws_ecr_repository.this[each.key].name
 
+  # Platform CI uses :buildcache as a movable registry cache tag (docker-bake.hcl).
+  # Rule 1 expires extra buildcache digests so they do not compete with runtime retention.
+  # Rule 2 keeps the last N remaining images (sha-* / other tags + untagged layers).
   policy = jsonencode({
     rules = [
       {
         rulePriority = 1
+        description  = "Keep last ${each.value.keep_last_n_buildcache} buildcache image(s)"
+        selection = {
+          tagStatus     = "tagged"
+          tagPrefixList = ["buildcache"]
+          countType     = "imageCountMoreThan"
+          countNumber   = each.value.keep_last_n_buildcache
+        }
+        action = {
+          type = "expire"
+        }
+      },
+      {
+        rulePriority = 2
         description  = "Keep last ${each.value.keep_last_n_images} images"
         selection = {
           tagStatus   = "any"
