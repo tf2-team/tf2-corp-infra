@@ -45,9 +45,11 @@ github_actions_terraform_production = {
   plan_role_name           = "GitHubTerraformProdPlanRole"
   apply_role_name          = "GitHubTerraformProdApplyRole"
   apply_github_environment = "production"
-  plan_allowed_refs        = ["refs/heads/main"]
-  plan_allow_pull_request  = true
-  state_key_prefix         = "production/"
+  # Plan is read-mostly; allow main + techx-dev-corp so Terraform CI matrix can plan
+  # both envs from the dev branch (workflow_dispatch / push). Apply stays Environment-only.
+  plan_allowed_refs       = ["refs/heads/main", "refs/heads/techx-dev-corp"]
+  plan_allow_pull_request = true
+  state_key_prefix        = "production/"
   # environments/production cluster_name = techx-tf2-prod
   iam_name_prefixes = ["techx-tf2-prod"]
 }

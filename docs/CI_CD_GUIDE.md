@@ -162,7 +162,7 @@ Bootstrap creates the IAM OIDC provider for `https://token.actions.githubusercon
 | --- | --- | --- | --- |
 | Dev plan | `GitHubTerraformDevPlanRole` | `pull_request`, `ref:refs/heads/techx-dev-corp` | `ReadOnlyAccess` + state prefix `development/` |
 | Dev apply | `GitHubTerraformDevApplyRole` | `environment:dev` | `PowerUserAccess` + custom IAM scoped to `iam_name_prefixes` (default `techx-dev*`) + state `development/` |
-| Prod plan | `GitHubTerraformProdPlanRole` | `pull_request`, `ref:refs/heads/main` | `ReadOnlyAccess` + state prefix `production/` |
+| Prod plan | `GitHubTerraformProdPlanRole` | `pull_request`, `ref:refs/heads/main`, `ref:refs/heads/techx-dev-corp` | `ReadOnlyAccess` + state prefix `production/` |
 | Prod apply | `GitHubTerraformProdApplyRole` | `environment:production` | `PowerUserAccess` + custom IAM scoped to `iam_name_prefixes` (default `techx-tf2-prod*`) + state `production/` |
 
 Apply roles must remain Environment-scoped so GitHub Environment required reviewers gate writes. Do not add broad `ref:*` trust to apply roles without an explicit security review.

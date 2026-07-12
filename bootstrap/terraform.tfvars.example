@@ -46,9 +46,10 @@ github_actions_terraform_production = {
   plan_role_name           = "GitHubTerraformProdPlanRole"
   apply_role_name          = "GitHubTerraformProdApplyRole"
   apply_github_environment = "production"
-  plan_allowed_refs        = ["refs/heads/main"]
-  plan_allow_pull_request  = true
-  state_key_prefix         = "production/"
+  # Include techx-dev-corp so Terraform CI can plan production from the dev branch
+  plan_allowed_refs       = ["refs/heads/main", "refs/heads/techx-dev-corp"]
+  plan_allow_pull_request = true
+  state_key_prefix        = "production/"
   # Must cover IAM names created by environments/production (cluster_name-based)
   iam_name_prefixes = ["techx-tf2-prod"]
 }
