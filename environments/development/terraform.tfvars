@@ -187,3 +187,9 @@ karpenter_consolidate_after = "1m"
 cluster_autoscaler_enabled       = false
 cluster_autoscaler_install_helm  = false
 cluster_autoscaler_chart_version = "9.46.6"
+
+# -----------------------------------------------
+
+# Trigger CICD
+
+# -----------------------------------------------
