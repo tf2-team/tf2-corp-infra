@@ -68,7 +68,7 @@ Defaults match workflow Environment names and secret examples:
 
 | Role | OIDC subjects (default) | Permissions |
 | --- | --- | --- |
-| Dev plan | `repo:…:pull_request`, `repo:…:ref:refs/heads/techx-dev-corp` | AWS `ReadOnlyAccess` + S3/KMS state under `development/` |
+| Dev plan | `repo:…:environment:dev` (plan jobs), plus `pull_request` / `ref:refs/heads/techx-dev-corp` | AWS `ReadOnlyAccess` + S3/KMS state under `development/` |
 | Dev apply | `repo:…:environment:dev` | `PowerUserAccess` + prefix-scoped custom IAM (`iam_name_prefixes`, default `techx-dev`) + state under `development/` |
 | Prod plan | `repo:…:pull_request`, `repo:…:ref:refs/heads/main`, `repo:…:ref:refs/heads/techx-dev-corp` | `ReadOnlyAccess` + state under `production/` |
 | Prod apply | `repo:…:environment:production` | `PowerUserAccess` + prefix-scoped custom IAM (default `techx-tf2-prod`) + state under `production/` |
@@ -109,13 +109,17 @@ If roles with the same names already exist outside Terraform, **import** them in
 | Setting | Value |
 | --- | --- |
 | Name | `dev` exactly (workflows use `environment: dev`) |
-| Required reviewers | Optional for a lab; recommended for shared accounts |
-| Deployment branches | Limit to `main` (recommended) |
+| Required reviewers | Optional — if set, **every** Dev plan (CI + promote plan) waits for approval |
+| Deployment branches | Prefer `techx-dev-corp` (and any branches that must run Dev plan/apply) |
 
 Used by:
 
-- Promote Dev → apply job
-- Destroy Dev
+- Terraform CI → Plan dev
+- Promote Dev → plan job **and** apply job
+- Drift → Drift dev
+- Destroy Dev (apply role)
+
+Store **all DEV_*** secrets on this Environment (plan + apply + backend + region).
 
 ### Environment: `production`
 
@@ -125,43 +129,45 @@ Used by:
 | Required reviewers | **Yes** — add one or more reviewers |
 | Prevent self-review | Enable when the GitHub plan allows |
 | Wait timer | Optional |
-| Deployment branches | Limit to `main` only |
+| Deployment branches | Limit to `main` (and any branch used for Promote Production dispatch) |
 
 Used by:
 
-- Promote Production → apply
-- Destroy Production → apply
+- Promote Production → **apply only**
+- Destroy Production → **apply only**
 
-Plan jobs intentionally **do not** use these Environments. Only apply / destroy-apply jobs do.
+Production **plan** jobs (CI, promote plan, destroy-plan, drift production) intentionally **do not** attach Environment `production`, so required reviewers do not block every plan. Those jobs use **repository** `PROD_*` secrets.
 
 Environment approval is requested before a protected job starts a runner. Destroy confirmation phrases therefore run in a **separate unprotected job** so a wrong phrase never waits on reviewers or assumes AWS roles.
 
 ---
 
-## 3. Create repository secrets
+## 3. Secrets placement (repository vs Environment)
 
-**Settings → Secrets and variables → Actions → New repository secret**
-
-Create **all ten** secrets. Preferred source after bootstrap apply:
+Preferred source after bootstrap apply:
 
 ```bash
 terraform -chdir=bootstrap output -json github_actions_terraform_github_secrets
 ```
 
-| Secret | Source |
-| --- | --- |
-| `DEV_AWS_PLAN_ROLE_ARN` | Bootstrap output `DEV_AWS_PLAN_ROLE_ARN` |
-| `DEV_AWS_APPLY_ROLE_ARN` | Bootstrap output `DEV_AWS_APPLY_ROLE_ARN` |
-| `DEV_TF_BACKEND_BUCKET` | Bootstrap `state_bucket_name` |
-| `DEV_TF_BACKEND_REGION` | Bootstrap region (`us-east-1`) |
-| `DEV_AWS_REGION` | Same as backend region |
-| `PROD_AWS_PLAN_ROLE_ARN` | Bootstrap output `PROD_AWS_PLAN_ROLE_ARN` |
-| `PROD_AWS_APPLY_ROLE_ARN` | Bootstrap output `PROD_AWS_APPLY_ROLE_ARN` |
-| `PROD_TF_BACKEND_BUCKET` | Same state bucket (keys differ by prefix) |
-| `PROD_TF_BACKEND_REGION` | Same region |
-| `PROD_AWS_REGION` | Same region |
+| Secret | Repository | Environment `dev` | Environment `production` |
+| --- | --- | --- | --- |
+| `DEV_AWS_PLAN_ROLE_ARN` | optional fallback | **required** | — |
+| `DEV_AWS_APPLY_ROLE_ARN` | optional | **required** | — |
+| `DEV_TF_BACKEND_BUCKET` | optional fallback | **required** | — |
+| `DEV_TF_BACKEND_REGION` | optional fallback | **required** | — |
+| `DEV_AWS_REGION` | optional fallback | **required** | — |
+| `PROD_AWS_PLAN_ROLE_ARN` | **required** (CI/drift/destroy plan) | — | optional |
+| `PROD_AWS_APPLY_ROLE_ARN` | optional | — | **required** |
+| `PROD_TF_BACKEND_BUCKET` | **required** for prod plan jobs | — | **required** for apply |
+| `PROD_TF_BACKEND_REGION` | **required** for prod plan jobs | — | **required** for apply |
+| `PROD_AWS_REGION` | **required** for prod plan jobs | — | **required** for apply |
 
-Optional hardening: store **apply** role ARNs as **Environment secrets** on `dev` / `production` instead of repository secrets (names must stay the same). Plan and drift jobs still need plan role ARNs at **repository** secret level because those jobs do not always attach an Environment.
+**Why this split**
+
+- Jobs with `environment: dev` resolve Environment secrets first → Dev plan OIDC subject becomes `repo:…:environment:dev` (bootstrap plan role trust must allow that).
+- Jobs **without** an Environment (production plan) only see repository secrets → keep `PROD_AWS_PLAN_ROLE_ARN` at repository level.
+- Apply jobs already use `environment: dev` / `production` and should use Environment secrets for apply role ARNs.
 
 Committed `backend.hcl` files are not required for CI; bucket and region come from secrets.
 

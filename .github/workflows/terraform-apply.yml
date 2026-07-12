@@ -27,6 +27,10 @@ jobs:
   plan:
     name: Plan ${{ inputs.environment }}
     runs-on: ubuntu-latest
+    # Dev: attach Environment `dev` for secrets/OIDC environment:dev.
+    # Production: do NOT attach Environment here — required reviewers on
+    # `production` must only gate the apply job below.
+    environment: ${{ inputs.environment == 'dev' && 'dev' || fromJSON('null') }}
     env:
       TF_VAR_plan_role_arn: ${{ inputs.environment == 'dev' && secrets.DEV_AWS_PLAN_ROLE_ARN || secrets.PROD_AWS_PLAN_ROLE_ARN }}
     outputs:

@@ -39,6 +39,8 @@ jobs:
     name: Plan destroy production
     needs: validate-confirm
     runs-on: ubuntu-latest
+    # No Environment on destroy-plan — approval only on destroy-apply (production).
+    # Uses repository PROD plan secrets + OIDC ref/pull_request subjects.
     env:
       TF_VAR_plan_role_arn: ${{ secrets.PROD_AWS_PLAN_ROLE_ARN }}
     outputs:

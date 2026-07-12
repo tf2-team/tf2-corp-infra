@@ -112,6 +112,11 @@ jobs:
   plan:
     name: Plan ${{ matrix.environment }}
     runs-on: ubuntu-latest
+    # Dev plan uses Environment `dev` so Environment secrets resolve and OIDC sub
+    # is environment:dev. Production plan intentionally has NO Environment so
+    # required reviewers on `production` only gate apply (not every PR plan).
+    # null omits the Environment key (empty string is not reliable).
+    environment: ${{ matrix.github_environment != '' && matrix.github_environment || fromJSON('null') }}
     env:
       TF_VAR_plan_role_arn: ${{ matrix.environment == 'dev' && secrets.DEV_AWS_PLAN_ROLE_ARN || secrets.PROD_AWS_PLAN_ROLE_ARN }}
     needs:
@@ -124,8 +129,10 @@ jobs:
       matrix:
         include:
           - environment: dev
+            github_environment: dev
             terraform_dir: environments/development
           - environment: production
+            github_environment: ""
             terraform_dir: environments/production
     steps:
       - name: Checkout

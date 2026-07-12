@@ -19,6 +19,8 @@ jobs:
   drift:
     name: Drift ${{ matrix.environment }}
     runs-on: ubuntu-latest
+    # Same rule as CI plan: Environment only for dev; production plan uses repo secrets.
+    environment: ${{ matrix.github_environment != '' && matrix.github_environment || fromJSON('null') }}
     concurrency:
       group: terraform-state-${{ matrix.concurrency_env }}
       cancel-in-progress: false
@@ -29,9 +31,11 @@ jobs:
       matrix:
         include:
           - environment: dev
+            github_environment: dev
             concurrency_env: dev
             terraform_dir: environments/development
           - environment: production
+            github_environment: ""
             concurrency_env: production
             terraform_dir: environments/production
     steps:

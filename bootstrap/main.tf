@@ -199,15 +199,18 @@ module "github_actions_ecr" {
 locals {
   github_actions_terraform_roles = {
     "development-plan" = {
-      name                = var.github_actions_terraform_development.plan_role_name
-      github_repository   = var.github_actions_terraform_development.github_repository
-      github_environments = []
-      allowed_refs        = var.github_actions_terraform_development.plan_allowed_refs
-      allow_pull_request  = var.github_actions_terraform_development.plan_allow_pull_request
-      permission_level    = "plan"
-      state_key_prefixes  = [var.github_actions_terraform_development.state_key_prefix]
-      iam_name_prefixes   = []
-      description         = "GitHub Actions Terraform plan role for development (${var.github_actions_terraform_development.github_repository})"
+      name              = var.github_actions_terraform_development.plan_role_name
+      github_repository = var.github_actions_terraform_development.github_repository
+      # Plan jobs attach GitHub Environment `dev` for secrets → OIDC sub environment:dev
+      github_environments = [
+        var.github_actions_terraform_development.apply_github_environment,
+      ]
+      allowed_refs       = var.github_actions_terraform_development.plan_allowed_refs
+      allow_pull_request = var.github_actions_terraform_development.plan_allow_pull_request
+      permission_level   = "plan"
+      state_key_prefixes = [var.github_actions_terraform_development.state_key_prefix]
+      iam_name_prefixes  = []
+      description        = "GitHub Actions Terraform plan role for development (${var.github_actions_terraform_development.github_repository})"
     }
     "development-apply" = {
       name              = var.github_actions_terraform_development.apply_role_name
@@ -223,8 +226,10 @@ locals {
       description        = "GitHub Actions Terraform apply role for development (Environment ${var.github_actions_terraform_development.apply_github_environment})"
     }
     "production-plan" = {
-      name                = var.github_actions_terraform_production.plan_role_name
-      github_repository   = var.github_actions_terraform_production.github_repository
+      name              = var.github_actions_terraform_production.plan_role_name
+      github_repository = var.github_actions_terraform_production.github_repository
+      # Production plan jobs intentionally omit GitHub Environment (required reviewers
+      # on `production` only gate apply). Trust stays ref + pull_request subjects.
       github_environments = []
       allowed_refs        = var.github_actions_terraform_production.plan_allowed_refs
       allow_pull_request  = var.github_actions_terraform_production.plan_allow_pull_request

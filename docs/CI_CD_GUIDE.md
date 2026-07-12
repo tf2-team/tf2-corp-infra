@@ -100,12 +100,16 @@ Create these as **repository secrets** (plan/drift/PR jobs do not always attach 
 
 ## GitHub Environments
 
-| Environment | Protection |
-| --- | --- |
-| `dev` | Optional approval; used by Promote Dev apply and Destroy Dev |
-| `production` | **Required reviewers**; prevent self-review when the GitHub plan allows. Used by Promote Production apply and Destroy Production apply |
+| Environment | Protection | Used by |
+| --- | --- | --- |
+| `dev` | Optional approval (if enabled, **plan + apply** wait) | CI Plan dev, Promote Dev plan+apply, Drift dev, Destroy Dev |
+| `production` | **Required reviewers**; prevent self-review when allowed | Promote Production **apply**, Destroy Production **apply** only |
 
-Environment approval runs before the protected job starts a runner. Confirmation phrases therefore run in a **separate unprotected job** so a wrong phrase never waits on reviewers or assumes AWS roles.
+Production plan jobs (CI, promote plan, destroy-plan, drift production) **do not** set `environment: production`, so required reviewers do not block plans. They use **repository** `PROD_*` secrets.
+
+Dev plan jobs **do** set `environment: dev` so Environment secrets resolve and OIDC `sub` is `repo:…:environment:dev`. Bootstrap development-plan trust must include that subject (plus ref/PR subjects as configured).
+
+Environment approval runs before a protected job starts a runner. Destroy confirmation phrases therefore run in a **separate unprotected job** so a wrong phrase never waits on reviewers or assumes AWS roles.
 
 ## Destroy flows
 
@@ -160,9 +164,9 @@ Bootstrap creates the IAM OIDC provider for `https://token.actions.githubusercon
 
 | Role | Default name | OIDC subjects (default) | Permissions |
 | --- | --- | --- | --- |
-| Dev plan | `GitHubTerraformDevPlanRole` | `pull_request`, `ref:refs/heads/techx-dev-corp` | `ReadOnlyAccess` + state prefix `development/` |
+| Dev plan | `GitHubTerraformDevPlanRole` | `environment:dev` (CI/promote/drift plan), plus `pull_request` / `ref:refs/heads/techx-dev-corp` | `ReadOnlyAccess` + state prefix `development/` |
 | Dev apply | `GitHubTerraformDevApplyRole` | `environment:dev` | `PowerUserAccess` + custom IAM scoped to `iam_name_prefixes` (default `techx-dev*`) + state `development/` |
-| Prod plan | `GitHubTerraformProdPlanRole` | `pull_request`, `ref:refs/heads/main`, `ref:refs/heads/techx-dev-corp` | `ReadOnlyAccess` + state prefix `production/` |
+| Prod plan | `GitHubTerraformProdPlanRole` | `pull_request`, `ref:refs/heads/main`, `ref:refs/heads/techx-dev-corp` (no Environment job) | `ReadOnlyAccess` + state prefix `production/` |
 | Prod apply | `GitHubTerraformProdApplyRole` | `environment:production` | `PowerUserAccess` + custom IAM scoped to `iam_name_prefixes` (default `techx-tf2-prod*`) + state `production/` |
 
 Apply roles must remain Environment-scoped so GitHub Environment required reviewers gate writes. Do not add broad `ref:*` trust to apply roles without an explicit security review.
