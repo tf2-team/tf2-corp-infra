@@ -206,6 +206,7 @@ locals {
       allow_pull_request  = var.github_actions_terraform_development.plan_allow_pull_request
       permission_level    = "plan"
       state_key_prefixes  = [var.github_actions_terraform_development.state_key_prefix]
+      iam_name_prefixes   = []
       description         = "GitHub Actions Terraform plan role for development (${var.github_actions_terraform_development.github_repository})"
     }
     "development-apply" = {
@@ -218,6 +219,7 @@ locals {
       allow_pull_request = false
       permission_level   = "apply"
       state_key_prefixes = [var.github_actions_terraform_development.state_key_prefix]
+      iam_name_prefixes  = var.github_actions_terraform_development.iam_name_prefixes
       description        = "GitHub Actions Terraform apply role for development (Environment ${var.github_actions_terraform_development.apply_github_environment})"
     }
     "production-plan" = {
@@ -228,6 +230,7 @@ locals {
       allow_pull_request  = var.github_actions_terraform_production.plan_allow_pull_request
       permission_level    = "plan"
       state_key_prefixes  = [var.github_actions_terraform_production.state_key_prefix]
+      iam_name_prefixes   = []
       description         = "GitHub Actions Terraform plan role for production (${var.github_actions_terraform_production.github_repository})"
     }
     "production-apply" = {
@@ -240,6 +243,7 @@ locals {
       allow_pull_request = false
       permission_level   = "apply"
       state_key_prefixes = [var.github_actions_terraform_production.state_key_prefix]
+      iam_name_prefixes  = var.github_actions_terraform_production.iam_name_prefixes
       description        = "GitHub Actions Terraform apply role for production (Environment ${var.github_actions_terraform_production.apply_github_environment})"
     }
   }
@@ -260,6 +264,7 @@ module "github_actions_terraform" {
   state_bucket_arn    = aws_s3_bucket.state_bucket.arn
   state_kms_key_arn   = aws_kms_key.state_key.arn
   state_key_prefixes  = each.value.state_key_prefixes
+  iam_name_prefixes   = each.value.iam_name_prefixes
 
   tags = merge(var.tags, {
     Purpose = "github-actions-terraform"

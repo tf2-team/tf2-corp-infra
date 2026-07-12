@@ -22,3 +22,8 @@ output "state_key_prefixes" {
   value       = var.state_key_prefixes
   description = "State key prefixes this role may access"
 }
+
+output "iam_name_prefixes" {
+  value       = var.iam_name_prefixes
+  description = "IAM name prefixes this apply role may manage (empty for plan roles)"
+}

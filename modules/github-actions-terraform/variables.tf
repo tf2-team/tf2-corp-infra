@@ -55,11 +55,31 @@ variable "allow_pull_request" {
 
 variable "permission_level" {
   type        = string
-  description = "plan = ReadOnlyAccess + state backend; apply = PowerUser + IAM + state backend"
+  description = "plan = ReadOnlyAccess + state backend; apply = PowerUser + prefix-scoped IAM + state backend"
 
   validation {
     condition     = contains(["plan", "apply"], var.permission_level)
     error_message = "permission_level must be \"plan\" or \"apply\"."
+  }
+}
+
+variable "iam_name_prefixes" {
+  type        = list(string)
+  default     = []
+  description = <<-EOT
+    IAM role/policy/instance-profile name prefixes this apply role may manage.
+    Required when permission_level = apply. Match env-stack naming (usually cluster_name),
+    e.g. ["techx-dev"] or ["techx-tf2-prod"]. Plan roles ignore this list.
+    Does not grant IAMFullAccess; only ARNs matching these prefixes (plus OIDC providers
+    and service-linked roles) are writable.
+  EOT
+
+  validation {
+    condition = alltrue([
+      for p in var.iam_name_prefixes :
+      length(p) > 0 && !strcontains(p, "/") && !strcontains(p, "*")
+    ])
+    error_message = "iam_name_prefixes entries must be non-empty, without / or * (suffix wildcard is applied by the module)."
   }
 }
 

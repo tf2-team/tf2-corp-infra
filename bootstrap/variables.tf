@@ -84,12 +84,19 @@ variable "github_actions_terraform_development" {
     plan_allow_pull_request = optional(bool, true)
     # State key prefix for environments/development (trailing slash recommended)
     state_key_prefix = optional(string, "development/")
+    # IAM role/policy name prefixes for apply (match env cluster_name; default techx-dev)
+    iam_name_prefixes = optional(list(string), ["techx-dev"])
   })
   description = "Development infra-repo Terraform plan/apply OIDC roles (GitHub Actions)"
 
   validation {
     condition     = can(regex("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", var.github_actions_terraform_development.github_repository))
     error_message = "github_actions_terraform_development.github_repository must be owner/name."
+  }
+
+  validation {
+    condition     = length(var.github_actions_terraform_development.iam_name_prefixes) > 0
+    error_message = "github_actions_terraform_development.iam_name_prefixes must not be empty (apply role IAM scope)."
   }
 }
 
@@ -103,11 +110,18 @@ variable "github_actions_terraform_production" {
     plan_allowed_refs        = optional(list(string), ["refs/heads/main"])
     plan_allow_pull_request  = optional(bool, true)
     state_key_prefix         = optional(string, "production/")
+    # IAM role/policy name prefixes for apply (match env cluster_name; default techx-tf2-prod)
+    iam_name_prefixes = optional(list(string), ["techx-tf2-prod"])
   })
   description = "Production infra-repo Terraform plan/apply OIDC roles (GitHub Actions)"
 
   validation {
     condition     = can(regex("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", var.github_actions_terraform_production.github_repository))
     error_message = "github_actions_terraform_production.github_repository must be owner/name."
+  }
+
+  validation {
+    condition     = length(var.github_actions_terraform_production.iam_name_prefixes) > 0
+    error_message = "github_actions_terraform_production.iam_name_prefixes must not be empty (apply role IAM scope)."
   }
 }

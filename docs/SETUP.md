@@ -69,11 +69,11 @@ Defaults match workflow Environment names and secret examples:
 | Role | OIDC subjects (default) | Permissions |
 | --- | --- | --- |
 | Dev plan | `repo:…:pull_request`, `repo:…:ref:refs/heads/main` | AWS `ReadOnlyAccess` + S3/KMS state under `development/` |
-| Dev apply | `repo:…:environment:dev` | `PowerUserAccess` + `IAMFullAccess` + state under `development/` |
+| Dev apply | `repo:…:environment:dev` | `PowerUserAccess` + prefix-scoped custom IAM (`iam_name_prefixes`, default `techx-dev`) + state under `development/` |
 | Prod plan | `repo:…:pull_request`, `repo:…:ref:refs/heads/main` | `ReadOnlyAccess` + state under `production/` |
-| Prod apply | `repo:…:environment:production` | `PowerUserAccess` + `IAMFullAccess` + state under `production/` |
+| Prod apply | `repo:…:environment:production` | `PowerUserAccess` + prefix-scoped custom IAM (default `techx-tf2-prod`) + state under `production/` |
 
-Apply roles intentionally **do not** trust raw git refs — only GitHub Environments — so required reviewers can gate writes.
+Apply roles intentionally **do not** trust raw git refs — only GitHub Environments — so required reviewers can gate writes. Apply roles **do not** use AWS managed `IAMFullAccess` (Checkov `CKV2_AWS_56`); IAM writes are limited to role/policy/instance-profile names under `iam_name_prefixes` (aligned with env `cluster_name`), plus OIDC provider and service-linked role management needed by EKS modules.
 
 State keys used by this repo:
 

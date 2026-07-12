@@ -35,6 +35,8 @@ github_actions_terraform_development = {
   plan_allowed_refs        = ["refs/heads/main"]
   plan_allow_pull_request  = true
   state_key_prefix         = "development/"
+  # environments/development cluster_name = techx-dev
+  iam_name_prefixes = ["techx-dev"]
 }
 
 github_actions_terraform_production = {
@@ -45,4 +47,6 @@ github_actions_terraform_production = {
   plan_allowed_refs        = ["refs/heads/main"]
   plan_allow_pull_request  = true
   state_key_prefix         = "production/"
+  # environments/production cluster_name = techx-tf2-prod
+  iam_name_prefixes = ["techx-tf2-prod"]
 }

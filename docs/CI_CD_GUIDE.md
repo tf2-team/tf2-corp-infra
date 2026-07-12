@@ -161,11 +161,13 @@ Bootstrap creates the IAM OIDC provider for `https://token.actions.githubusercon
 | Role | Default name | OIDC subjects (default) | Permissions |
 | --- | --- | --- | --- |
 | Dev plan | `GitHubTerraformDevPlanRole` | `pull_request`, `ref:refs/heads/main` | `ReadOnlyAccess` + state prefix `development/` |
-| Dev apply | `GitHubTerraformDevApplyRole` | `environment:dev` | `PowerUserAccess` + `IAMFullAccess` + state `development/` |
+| Dev apply | `GitHubTerraformDevApplyRole` | `environment:dev` | `PowerUserAccess` + custom IAM scoped to `iam_name_prefixes` (default `techx-dev*`) + state `development/` |
 | Prod plan | `GitHubTerraformProdPlanRole` | `pull_request`, `ref:refs/heads/main` | `ReadOnlyAccess` + state prefix `production/` |
-| Prod apply | `GitHubTerraformProdApplyRole` | `environment:production` | `PowerUserAccess` + `IAMFullAccess` + state `production/` |
+| Prod apply | `GitHubTerraformProdApplyRole` | `environment:production` | `PowerUserAccess` + custom IAM scoped to `iam_name_prefixes` (default `techx-tf2-prod*`) + state `production/` |
 
 Apply roles must remain Environment-scoped so GitHub Environment required reviewers gate writes. Do not add broad `ref:*` trust to apply roles without an explicit security review.
+
+Apply roles **do not** use AWS managed `IAMFullAccess` (Checkov `CKV2_AWS_56`). IAM writes are limited to roles/policies/instance-profiles under configured name prefixes (aligned with env `cluster_name`), plus OIDC provider and service-linked role management needed by EKS modules.
 
 ## Action pin maintenance
 
