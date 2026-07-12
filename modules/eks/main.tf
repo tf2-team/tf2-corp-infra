@@ -315,10 +315,28 @@ resource "aws_eks_addon" "this" {
   ]
 }
 
+# EKS Access Entry API rejects kubernetes_groups that start with "system:"
+# (e.g. system:masters from the old aws-auth ConfigMap model).
+# Use a STANDARD entry + AmazonEKSClusterAdminPolicy instead.
 resource "aws_eks_access_entry" "plan_role" {
-  count             = var.plan_role_arn != null ? 1 : 0
-  cluster_name      = aws_eks_cluster.this.name
-  principal_arn     = var.plan_role_arn
-  kubernetes_groups = ["system:masters"] # Cho phép Plan Role được phép tương tác với API Server để lập kế hoạch
+  count = var.plan_role_arn != null ? 1 : 0
+
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = var.plan_role_arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "plan_role" {
+  count = var.plan_role_arn != null ? 1 : 0
+
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = var.plan_role_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [aws_eks_access_entry.plan_role]
 }
 
