@@ -188,7 +188,7 @@ Do not rely on floating tags (`@v4`) in workflows.
 
 ## Notes
 
-- Terraform state locking uses S3 native lock files (`use_lockfile = true`).
-- Backend bucket/region come from secrets; committed `backend.hcl` files are not required for CI.
-- Fork pull requests skip the AWS plan job (no secrets to forks).
-- Paths for development: `environments/development` (not a shortened alias).
+- Terraform state is locked with S3 native lock files through `use_lockfile = true`.
+- The workflows pass backend bucket and region through GitHub variables, so real `backend.hcl` files remain uncommitted.
+- Production applies are serialized with workflow concurrency to prevent parallel state writes.
+- Jobs that run `terraform init` use the composite action `.github/actions/setup-terraform-cached`, which caches provider plugins via `TF_PLUGIN_CACHE_DIR` (keyed on `**/.terraform.lock.hcl`). TFLint enables `cache: true` on `setup-tflint`.

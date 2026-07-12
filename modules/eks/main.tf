@@ -73,6 +73,13 @@ resource "aws_eks_cluster" "this" {
     support_type = var.upgrade_policy_support_type
   }
 
+  # Pin cluster access mode so apply does not leave API-only / ConfigMap-only drift
+  # that then has to be fixed in the console. Cluster creator gets admin via bootstrap.
+  access_config {
+    authentication_mode                         = "API_AND_CONFIG_MAP"
+    bootstrap_cluster_creator_admin_permissions = true
+  }
+
   vpc_config {
     subnet_ids              = var.subnet_ids
     endpoint_public_access  = var.endpoint_public_access
@@ -308,10 +315,28 @@ resource "aws_eks_addon" "this" {
   ]
 }
 
+# EKS Access Entry API rejects kubernetes_groups that start with "system:"
+# (e.g. system:masters from the old aws-auth ConfigMap model).
+# Use a STANDARD entry + AmazonEKSClusterAdminPolicy instead.
 resource "aws_eks_access_entry" "plan_role" {
-  count             = var.plan_role_arn != null ? 1 : 0
-  cluster_name      = aws_eks_cluster.this.name
-  principal_arn     = var.plan_role_arn
-  kubernetes_groups = ["system:masters"] # Cho phép Plan Role được phép tương tác với API Server để lập kế hoạch
+  count = var.plan_role_arn != null ? 1 : 0
+
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = var.plan_role_arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "plan_role" {
+  count = var.plan_role_arn != null ? 1 : 0
+
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = var.plan_role_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [aws_eks_access_entry.plan_role]
 }
 
