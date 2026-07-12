@@ -83,7 +83,7 @@ module "eks" {
   enable_cluster_autoscaler_asg_tags = var.cluster_autoscaler_enabled
 }
 
-# GitOps control plane (REL-09). Prefer enable on development first; keep prod off until cutover.
+# GitOps control plane (REL-09). Same enablement model as development (API access required at apply).
 module "argocd" {
   source = "../../modules/argocd"
 
@@ -120,7 +120,7 @@ module "external_secrets" {
 }
 
 # ──────────────────────────────────────────────
-# Karpenter — node autoscaling (On-Demand preferred in production)
+# Karpenter — node autoscaling (Spot-preferred; same model as development)
 # ──────────────────────────────────────────────
 
 module "karpenter" {
@@ -140,6 +140,7 @@ module "karpenter" {
   node_taints             = var.karpenter_node_taints
   nodepool_weights        = var.karpenter_nodepool_weights
   disruption_budget_nodes = var.karpenter_disruption_budget_nodes
+  consolidate_after       = var.karpenter_consolidate_after
   nodepool_cpu_limit      = var.karpenter_nodepool_cpu_limit
   nodepool_memory_limit   = var.karpenter_nodepool_memory_limit
   availability_zones      = var.karpenter_availability_zones

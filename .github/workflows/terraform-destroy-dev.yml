@@ -2,10 +2,19 @@ name: Terraform Destroy Dev
 
 on:
   workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type destroy-dev to proceed"
+        required: true
+        type: string
 
 permissions:
   contents: read
   id-token: write
+
+concurrency:
+  group: terraform-state-dev
+  cancel-in-progress: false
 
 env:
   TF_VERSION: "1.10.5"
@@ -13,25 +22,36 @@ env:
   TF_INPUT: "false"
 
 jobs:
+  validate-confirm:
+    name: Validate confirmation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify confirmation phrase
+        if: ${{ inputs.confirm != 'destroy-dev' }}
+        run: |
+          echo "Confirmation string mismatch; expected destroy-dev."
+          exit 1
+      - name: Confirmation accepted
+        if: ${{ inputs.confirm == 'destroy-dev' }}
+        run: echo "Confirmation accepted."
+
   destroy-dev:
     name: Destroy Dev
+    needs: validate-confirm
     runs-on: ubuntu-latest
     environment: dev
-    concurrency:
-      group: terraform-apply-dev
-      cancel-in-progress: false
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
       - name: Configure AWS credentials for dev
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ secrets.DEV_AWS_APPLY_ROLE_ARN }}
           aws-region: ${{ secrets.DEV_AWS_REGION }}

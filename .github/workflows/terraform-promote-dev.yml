@@ -1,3 +1,5 @@
+# Auto-apply development after merge to main (path-filtered).
+# Production is never auto-applied; see terraform-promote-production.yml.
 name: Promote Dev
 
 on:
@@ -13,6 +15,10 @@ on:
 permissions:
   contents: read
   id-token: write
+
+concurrency:
+  group: terraform-state-dev
+  cancel-in-progress: false
 
 jobs:
   apply-dev:

@@ -2,10 +2,19 @@ name: Terraform Destroy Production
 
 on:
   workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type destroy-production to proceed"
+        required: true
+        type: string
 
 permissions:
   contents: read
   id-token: write
+
+concurrency:
+  group: terraform-state-production
+  cancel-in-progress: false
 
 env:
   TF_VERSION: "1.10.5"
@@ -13,25 +22,117 @@ env:
   TF_INPUT: "false"
 
 jobs:
-  destroy-production:
-    name: Destroy Production
+  validate-confirm:
+    name: Validate confirmation
     runs-on: ubuntu-latest
-    environment: production
-    concurrency:
-      group: terraform-apply-production
-      cancel-in-progress: false
+    steps:
+      - name: Verify confirmation phrase
+        if: ${{ inputs.confirm != 'destroy-production' }}
+        run: |
+          echo "Confirmation string mismatch; expected destroy-production."
+          exit 1
+      - name: Confirmation accepted
+        if: ${{ inputs.confirm == 'destroy-production' }}
+        run: echo "Confirmation accepted."
+
+  destroy-plan:
+    name: Plan destroy production
+    needs: validate-confirm
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_plan_role_arn: ${{ secrets.PROD_AWS_PLAN_ROLE_ARN }}
+    outputs:
+      has_changes: ${{ steps.plan.outputs.has_changes }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
-      - name: Configure AWS credentials for production
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Configure AWS credentials for production plan
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          role-to-assume: ${{ secrets.PROD_AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ secrets.PROD_AWS_REGION }}
+
+      - name: Terraform init production
+        env:
+          TF_BACKEND_BUCKET: ${{ secrets.PROD_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ secrets.PROD_TF_BACKEND_REGION }}
+        run: |
+          terraform -chdir=environments/production init \
+            -backend-config="bucket=${TF_BACKEND_BUCKET}" \
+            -backend-config="region=${TF_BACKEND_REGION}"
+
+      - name: Terraform plan destroy
+        id: plan
+        shell: bash
+        run: |
+          set +e
+          terraform -chdir=environments/production plan -destroy -detailed-exitcode -out=tfplan
+          status=$?
+          set -e
+          if [ "${status}" -eq 1 ]; then
+            exit 1
+          fi
+          if [ "${status}" -eq 2 ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Render safe plan summary
+        if: steps.plan.outputs.has_changes == 'true'
+        shell: bash
+        run: |
+          chmod +x scripts/render-terraform-plan-summary.sh
+          mkdir -p plan-artifact
+          cp environments/production/tfplan plan-artifact/tfplan
+          terraform -chdir=environments/production show -json tfplan \
+            | scripts/render-terraform-plan-summary.sh "production" \
+            | tee plan-artifact/plan-summary.md
+          {
+            echo "## Production destroy plan"
+            echo
+            cat plan-artifact/plan-summary.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload destroy plan artifact
+        if: steps.plan.outputs.has_changes == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: terraform-destroy-plan-production
+          path: plan-artifact/
+          retention-days: 3
+
+      - name: No destroy changes
+        if: steps.plan.outputs.has_changes != 'true'
+        run: echo "No resources to destroy; skipping Environment approval and apply."
+
+  destroy-apply:
+    name: Apply destroy production
+    needs: destroy-plan
+    if: needs.destroy-plan.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      TF_VAR_plan_role_arn: ${{ secrets.PROD_AWS_PLAN_ROLE_ARN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials for production apply
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ secrets.PROD_AWS_APPLY_ROLE_ARN }}
           aws-region: ${{ secrets.PROD_AWS_REGION }}
@@ -45,6 +146,15 @@ jobs:
             -backend-config="bucket=${TF_BACKEND_BUCKET}" \
             -backend-config="region=${TF_BACKEND_REGION}"
 
-      - name: Terraform destroy production
-        run: |
-          terraform -chdir=environments/production destroy -auto-approve
+      - name: Download destroy plan
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: terraform-destroy-plan-production
+          path: plan-artifact
+
+      - name: Place plan file
+        shell: bash
+        run: cp plan-artifact/tfplan environments/production/tfplan
+
+      - name: Terraform apply destroy plan
+        run: terraform -chdir=environments/production apply -auto-approve tfplan

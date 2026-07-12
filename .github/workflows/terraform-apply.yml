@@ -29,29 +29,28 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TF_VAR_plan_role_arn: ${{ inputs.environment == 'dev' && secrets.DEV_AWS_PLAN_ROLE_ARN || secrets.PROD_AWS_PLAN_ROLE_ARN }}
-    concurrency:
-      group: terraform-plan-${{ inputs.environment }}
-      cancel-in-progress: false
+    outputs:
+      has_changes: ${{ steps.plan.outputs.has_changes }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
       - name: Configure AWS credentials for dev plan
         if: inputs.environment == 'dev'
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ secrets.DEV_AWS_PLAN_ROLE_ARN }}
           aws-region: ${{ secrets.DEV_AWS_REGION }}
 
       - name: Configure AWS credentials for production plan
         if: inputs.environment == 'production'
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ secrets.PROD_AWS_PLAN_ROLE_ARN }}
           aws-region: ${{ secrets.PROD_AWS_REGION }}
@@ -77,14 +76,43 @@ jobs:
             -backend-config="region=${TF_BACKEND_REGION}"
 
       - name: Terraform plan
-        run: terraform -chdir=${{ inputs.terraform_dir }} plan -out=tfplan
+        id: plan
+        shell: bash
+        run: |
+          set +e
+          terraform -chdir=${{ inputs.terraform_dir }} plan -out=tfplan -detailed-exitcode
+          status=$?
+          set -e
+          if [ "${status}" -eq 1 ]; then
+            exit 1
+          fi
+          if [ "${status}" -eq 2 ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Render safe plan summary
+        shell: bash
+        run: |
+          chmod +x scripts/render-terraform-plan-summary.sh
+          mkdir -p plan-artifact
+          cp "${{ inputs.terraform_dir }}/tfplan" plan-artifact/tfplan
+          terraform -chdir=${{ inputs.terraform_dir }} show -json tfplan \
+            | scripts/render-terraform-plan-summary.sh "${{ inputs.environment }}" \
+            | tee plan-artifact/plan-summary.md
+          {
+            echo "## Plan: ${{ inputs.environment }}"
+            echo
+            cat plan-artifact/plan-summary.md
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload plan artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: terraform-apply-plan-${{ inputs.environment }}
-          path: ${{ inputs.terraform_dir }}/tfplan
-          retention-days: 30
+          path: plan-artifact/
+          retention-days: 3
 
   apply:
     name: Apply ${{ inputs.environment }}
@@ -94,29 +122,26 @@ jobs:
     needs: plan
     if: ${{ inputs.plan_only == false }}
     environment: ${{ inputs.environment }}
-    concurrency:
-      group: terraform-apply-${{ inputs.environment }}
-      cancel-in-progress: false
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
       - name: Configure AWS credentials for dev apply
         if: inputs.environment == 'dev'
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ secrets.DEV_AWS_APPLY_ROLE_ARN }}
           aws-region: ${{ secrets.DEV_AWS_REGION }}
 
       - name: Configure AWS credentials for production apply
         if: inputs.environment == 'production'
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ secrets.PROD_AWS_APPLY_ROLE_ARN }}
           aws-region: ${{ secrets.PROD_AWS_REGION }}
@@ -142,10 +167,15 @@ jobs:
             -backend-config="region=${TF_BACKEND_REGION}"
 
       - name: Download approved plan
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: terraform-apply-plan-${{ inputs.environment }}
-          path: ${{ inputs.terraform_dir }}
+          path: plan-artifact
+
+      - name: Place plan file
+        shell: bash
+        run: |
+          cp plan-artifact/tfplan "${{ inputs.terraform_dir }}/tfplan"
 
       - name: Terraform apply
         run: terraform -chdir=${{ inputs.terraform_dir }} apply -auto-approve tfplan

@@ -1,13 +1,8 @@
+# Manual production promote only (workflow_dispatch).
+# Do not re-add push triggers; validate in development first.
 name: Promote Production
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "environments/production/**"
-      - "modules/**"
-      - ".github/workflows/**"
   workflow_dispatch:
     inputs:
       plan_only:
@@ -20,11 +15,15 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: terraform-state-production
+  cancel-in-progress: false
+
 jobs:
   apply-production:
     uses: ./.github/workflows/terraform-apply.yml
     with:
       environment: production
       terraform_dir: environments/production
-      plan_only: ${{ inputs.plan_only || false }}
+      plan_only: ${{ inputs.plan_only }}
     secrets: inherit
