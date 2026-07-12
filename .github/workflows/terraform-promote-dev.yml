@@ -1,11 +1,11 @@
-# Auto-apply development after merge to main (path-filtered).
+# Auto-apply development after merge to techx-dev-corp (path-filtered).
 # Production is never auto-applied; see terraform-promote-production.yml.
 name: Promote Dev
 
 on:
   push:
     branches:
-      - main
+      - techx-dev-corp
     paths:
       - "environments/development/**"
       - "modules/**"

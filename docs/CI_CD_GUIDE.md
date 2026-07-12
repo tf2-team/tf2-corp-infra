@@ -9,7 +9,7 @@ This repository uses GitHub Actions with AWS OIDC and Terraform S3 remote state.
 | Workflow | File | Triggers | Purpose |
 | --- | --- | --- | --- |
 | **Terraform CI** | `terraform-ci.yml` | `pull_request` (path-filtered), `workflow_dispatch` | Format, validate, TFLint, Checkov (+ SARIF), dual-env plan with **safe** PR summaries |
-| **Promote Dev** | `terraform-promote-dev.yml` | `push` to `main` (`environments/development/**`, `modules/**`, `.github/workflows/**`), `workflow_dispatch` | Plan + apply development |
+| **Promote Dev** | `terraform-promote-dev.yml` | `push` to `techx-dev-corp` (`environments/development/**`, `modules/**`, `.github/workflows/**`), `workflow_dispatch` | Plan + apply development |
 | **Promote Production** | `terraform-promote-production.yml` | **`workflow_dispatch` only** (`plan_only` input) | Plan + apply production after human approval |
 | **Terraform Drift Detection** | `terraform-drift.yml` | Weekdays `22:00` UTC cron, `workflow_dispatch` | Plan both envs; manage one drift issue per environment |
 | **Terraform Destroy Dev** | `terraform-destroy-dev.yml` | `workflow_dispatch` (`confirm=destroy-dev`) | Destroy development after confirmation + Environment |
@@ -29,7 +29,7 @@ After bootstrap apply, set repository secrets from `terraform -chdir=bootstrap o
 
 1. Open a pull request for infrastructure changes.
 2. Review static checks, Checkov, and **safe structural** Terraform plan summaries on the PR.
-3. Merge to `main` → **Promote Dev** applies development (path-filtered).
+3. Merge to `techx-dev-corp` → **Promote Dev** applies development (path-filtered).
 4. Validate in development.
 5. Run **Promote Production** manually (`workflow_dispatch`). Optional: `plan_only=true`.
 6. Approve the `production` GitHub Environment gate; apply uses the **immutable** binary plan from the same run.
@@ -160,7 +160,7 @@ Bootstrap creates the IAM OIDC provider for `https://token.actions.githubusercon
 
 | Role | Default name | OIDC subjects (default) | Permissions |
 | --- | --- | --- | --- |
-| Dev plan | `GitHubTerraformDevPlanRole` | `pull_request`, `ref:refs/heads/main` | `ReadOnlyAccess` + state prefix `development/` |
+| Dev plan | `GitHubTerraformDevPlanRole` | `pull_request`, `ref:refs/heads/techx-dev-corp` | `ReadOnlyAccess` + state prefix `development/` |
 | Dev apply | `GitHubTerraformDevApplyRole` | `environment:dev` | `PowerUserAccess` + custom IAM scoped to `iam_name_prefixes` (default `techx-dev*`) + state `development/` |
 | Prod plan | `GitHubTerraformProdPlanRole` | `pull_request`, `ref:refs/heads/main` | `ReadOnlyAccess` + state prefix `production/` |
 | Prod apply | `GitHubTerraformProdApplyRole` | `environment:production` | `PowerUserAccess` + custom IAM scoped to `iam_name_prefixes` (default `techx-tf2-prod*`) + state `production/` |
@@ -171,13 +171,14 @@ Apply roles **do not** use AWS managed `IAMFullAccess` (Checkov `CKV2_AWS_56`). 
 
 ## Action pin maintenance
 
-Third-party Actions are pinned to **full commit SHAs** with a trailing `# vN` comment matching the major tag used before the pin.
+Third-party Actions are pinned to **full commit SHAs** with a trailing `# vX.Y.Z` (or `# vN`) comment matching the release tag resolved for that SHA.
 
 When updating an action:
 
-1. Resolve the commit behind the desired **same major** tag (do not silently jump majors in routine maintenance).
-2. Replace the SHA and keep the `# vN` comment accurate.
-3. Re-run CI and `actionlint`.
+1. Resolve the commit behind the desired release tag (`gh api repos/<org>/<action>/git/ref/tags/<tag>`, peel annotated tags).
+2. Prefer **same major** for routine maintenance. Jump majors only when intentionally refreshing to latest (test OIDC, artifacts, and plan/apply paths).
+3. Replace the SHA and keep the version comment accurate.
+4. Re-run CI and `actionlint`.
 
 Do not rely on floating tags (`@v4`) in workflows.
 

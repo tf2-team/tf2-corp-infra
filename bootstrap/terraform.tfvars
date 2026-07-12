@@ -32,9 +32,10 @@ github_actions_terraform_development = {
   plan_role_name           = "GitHubTerraformDevPlanRole"
   apply_role_name          = "GitHubTerraformDevApplyRole"
   apply_github_environment = "dev"
-  plan_allowed_refs        = ["refs/heads/main"]
-  plan_allow_pull_request  = true
-  state_key_prefix         = "development/"
+  # Dev branch is techx-dev-corp (not main). Subjects: ref + pull_request.
+  plan_allowed_refs       = ["refs/heads/techx-dev-corp"]
+  plan_allow_pull_request = true
+  state_key_prefix        = "development/"
   # environments/development cluster_name = techx-dev
   iam_name_prefixes = ["techx-dev"]
 }

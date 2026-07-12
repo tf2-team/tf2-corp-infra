@@ -68,7 +68,7 @@ Defaults match workflow Environment names and secret examples:
 
 | Role | OIDC subjects (default) | Permissions |
 | --- | --- | --- |
-| Dev plan | `repo:…:pull_request`, `repo:…:ref:refs/heads/main` | AWS `ReadOnlyAccess` + S3/KMS state under `development/` |
+| Dev plan | `repo:…:pull_request`, `repo:…:ref:refs/heads/techx-dev-corp` | AWS `ReadOnlyAccess` + S3/KMS state under `development/` |
 | Dev apply | `repo:…:environment:dev` | `PowerUserAccess` + prefix-scoped custom IAM (`iam_name_prefixes`, default `techx-dev`) + state under `development/` |
 | Prod plan | `repo:…:pull_request`, `repo:…:ref:refs/heads/main` | `ReadOnlyAccess` + state under `production/` |
 | Prod apply | `repo:…:environment:production` | `PowerUserAccess` + prefix-scoped custom IAM (default `techx-tf2-prod`) + state under `production/` |
@@ -93,7 +93,7 @@ If roles with the same names already exist outside Terraform, **import** them in
 ## 1. Repository settings (GitHub)
 
 1. Open the **infra** GitHub repository that contains `.github/workflows/terraform-*.yml`.
-2. Confirm the default branch is **`main`** (Promote Dev triggers on push to `main`).
+2. Confirm the **dev integration branch** is **`techx-dev-corp`** (Promote Dev triggers on push to `techx-dev-corp`; production promote remains manual from `main` / dispatch).
 3. **Settings → Actions → General**
    - Allow Actions workflows for this repository.
    - Workflow permissions: repository default may be read-only; workflows declare their own `permissions:` blocks (`pull-requests: write`, `issues: write`, `id-token: write`, etc.). Ensure org policy does not strip OIDC (`id-token`) or required write scopes for PR comments / drift issues.
@@ -194,7 +194,7 @@ After workflows exist on the default branch, **Actions** should list:
 | Workflow | File | Trigger | Operator setup |
 | --- | --- | --- | --- |
 | Terraform CI | `terraform-ci.yml` | PR (path-filtered), `workflow_dispatch` | Branch protection |
-| Promote Dev | `terraform-promote-dev.yml` | Push to `main` (path-filtered), `workflow_dispatch` | Environment `dev` |
+| Promote Dev | `terraform-promote-dev.yml` | Push to `techx-dev-corp` (path-filtered), `workflow_dispatch` | Environment `dev` |
 | Promote Production | `terraform-promote-production.yml` | **`workflow_dispatch` only** (`plan_only`) | Environment `production` |
 | Terraform Drift Detection | `terraform-drift.yml` | Weekdays `22:00` UTC, `workflow_dispatch` | Issues permission (declared in workflow) |
 | Terraform Destroy Dev | `terraform-destroy-dev.yml` | `workflow_dispatch` (`confirm=destroy-dev`) | Environment `dev` |
@@ -224,7 +224,7 @@ Production never auto-applies on push.
 
 ### 6.2 Promote Dev
 
-1. Merge the PR to `main`, or run **Actions → Promote Dev → Run workflow**.
+1. Merge the PR to `techx-dev-corp`, or run **Actions → Promote Dev → Run workflow**.
 2. If Environment `dev` has required reviewers, approve the deployment.
 3. Confirm OIDC assume succeeds and apply finishes green.
 4. Spot-check AWS resources and job logs (`terraform output`).
@@ -266,7 +266,7 @@ Production destroy is **plan-then-approve**: destroy plan with plan role, then E
 
 ```text
 1. PR → Terraform CI (static + dual-env plan + safe PR comment)
-2. Merge to main → Promote Dev auto-applies (path-filtered)
+2. Merge to `techx-dev-corp` → Promote Dev auto-applies (path-filtered)
 3. Validate in development
 4. Actions → Promote Production (manual; optional plan_only)
 5. Approve production Environment → apply immutable plan
