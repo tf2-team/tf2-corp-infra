@@ -10,6 +10,10 @@ permissions:
   id-token: write
   issues: write
 
+concurrency:
+  group: terraform-drift
+  cancel-in-progress: false
+
 env:
   TF_VERSION: "1.10.5"
   TF_IN_AUTOMATION: "true"
@@ -19,11 +23,6 @@ jobs:
   drift:
     name: Drift ${{ matrix.environment }}
     runs-on: ubuntu-latest
-    # Same rule as CI plan: Environment only for dev; production plan uses repo secrets.
-    environment: ${{ matrix.github_environment != '' && matrix.github_environment || fromJSON('null') }}
-    concurrency:
-      group: terraform-state-${{ matrix.concurrency_env }}
-      cancel-in-progress: false
     env:
       TF_VAR_plan_role_arn: ${{ matrix.environment == 'dev' && secrets.DEV_AWS_PLAN_ROLE_ARN || secrets.PROD_AWS_PLAN_ROLE_ARN }}
     strategy:
@@ -31,16 +30,12 @@ jobs:
       matrix:
         include:
           - environment: dev
-            github_environment: dev
-            concurrency_env: dev
             terraform_dir: environments/development
           - environment: production
-            github_environment: ""
-            concurrency_env: production
             terraform_dir: environments/production
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@v4
 
       - name: Setup Terraform
         uses: ./.github/actions/setup-terraform-cached
@@ -50,14 +45,14 @@ jobs:
 
       - name: Configure AWS credentials for dev
         if: matrix.environment == 'dev'
-        uses: aws-actions/configure-aws-credentials@517a711dbcd0e402f90c77e7e2f81e849156e31d # v6.2.2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.DEV_AWS_PLAN_ROLE_ARN }}
           aws-region: ${{ secrets.DEV_AWS_REGION }}
 
       - name: Configure AWS credentials for production
         if: matrix.environment == 'production'
-        uses: aws-actions/configure-aws-credentials@517a711dbcd0e402f90c77e7e2f81e849156e31d # v6.2.2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.PROD_AWS_PLAN_ROLE_ARN }}
           aws-region: ${{ secrets.PROD_AWS_REGION }}
@@ -89,162 +84,35 @@ jobs:
           set +e
           terraform -chdir=${{ matrix.terraform_dir }} plan -detailed-exitcode -out=tfplan
           status=$?
-          set -e
           echo "exitcode=${status}" >> "$GITHUB_OUTPUT"
           if [ "${status}" -eq 1 ]; then
             exit 1
           fi
+          exit 0
 
-      - name: Render safe drift summary
-        if: steps.drift.outputs.exitcode == '0' || steps.drift.outputs.exitcode == '2'
-        shell: bash
-        run: |
-          chmod +x scripts/render-terraform-plan-summary.sh
-          terraform -chdir=${{ matrix.terraform_dir }} show -json tfplan \
-            | scripts/render-terraform-plan-summary.sh "${{ matrix.environment }}" \
-            | tee drift-summary.md
-          {
-            echo "## Drift: ${{ matrix.environment }}"
-            echo
-            cat drift-summary.md
-          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Render drift report
+        if: steps.drift.outputs.exitcode == '2'
+        run: terraform -chdir=${{ matrix.terraform_dir }} show -no-color tfplan > drift-${{ matrix.environment }}.txt
 
-      - name: Upload safe drift summary
-        if: steps.drift.outputs.exitcode == '0' || steps.drift.outputs.exitcode == '2'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: drift-summary-${{ matrix.environment }}
-          path: drift-summary.md
-          retention-days: 7
-
-      - name: Manage drift issue
-        if: steps.drift.outputs.exitcode == '0' || steps.drift.outputs.exitcode == '2'
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      - name: Open drift issue
+        if: steps.drift.outputs.exitcode == '2'
+        uses: actions/github-script@v7
         with:
           script: |
             const fs = require("fs");
-            const env = "${{ matrix.environment }}";
-            const exitcode = "${{ steps.drift.outputs.exitcode }}";
-            const title = `Terraform drift detected: ${env}`;
-            const labelsWanted = ["terraform", "drift", env];
-
-            async function ensureLabel(name) {
-              try {
-                await github.rest.issues.getLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  name,
-                });
-              } catch (err) {
-                if (err.status === 404) {
-                  await github.rest.issues.createLabel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    name,
-                    color: name === "drift" ? "d93f0b" : "0e8a16",
-                  });
-                } else {
-                  throw err;
-                }
-              }
-            }
-
-            for (const name of labelsWanted) {
-              await ensureLabel(name);
-            }
-
-            async function findOpenDriftIssue() {
-              let page = 1;
-              const per_page = 100;
-              while (true) {
-                const { data: issues } = await github.rest.issues.listForRepo({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  state: "open",
-                  labels: "terraform,drift," + env,
-                  per_page,
-                  page,
-                });
-                for (const issue of issues) {
-                  if (issue.pull_request) continue;
-                  if (issue.title === title) {
-                    return issue;
-                  }
-                }
-                if (issues.length < per_page) break;
-                page += 1;
-              }
-              // Fallback: paginate without relying solely on label filter
-              page = 1;
-              while (true) {
-                const { data: issues } = await github.rest.issues.listForRepo({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  state: "open",
-                  per_page,
-                  page,
-                });
-                for (const issue of issues) {
-                  if (issue.pull_request) continue;
-                  if (issue.title === title) {
-                    return issue;
-                  }
-                }
-                if (issues.length < per_page) break;
-                page += 1;
-              }
-              return null;
-            }
-
-            const existing = await findOpenDriftIssue();
-
-            if (exitcode === "2") {
-              const summary = fs.readFileSync("drift-summary.md", "utf8");
-              const body = [
-                "Scheduled drift detection found infrastructure changes outside Terraform.",
-                "",
-                summary,
-                "",
-                `_Workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}_`,
-              ].join("\n");
-
-              if (existing) {
-                await github.rest.issues.update({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: existing.number,
-                  body,
-                  labels: labelsWanted,
-                });
-              } else {
-                await github.rest.issues.create({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  title,
-                  body,
-                  labels: labelsWanted,
-                });
-              }
-              return;
-            }
-
-            // exitcode 0 — clean
-            if (existing) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: existing.number,
-                body: [
-                  "Drift is no longer detected for this environment.",
-                  "",
-                  `_Resolved by workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}_`,
-                ].join("\n"),
-              });
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: existing.number,
-                state: "closed",
-                state_reason: "completed",
-              });
-            }
+            const plan = fs.readFileSync("drift-${{ matrix.environment }}.txt", "utf8");
+            const title = "Terraform drift detected: ${{ matrix.environment }}";
+            const body = [
+              "Scheduled drift detection found infrastructure changes outside Terraform.",
+              "",
+              "```terraform",
+              plan.slice(0, 60000),
+              "```"
+            ].join("\n");
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ["terraform", "drift", "${{ matrix.environment }}"]
+            });
