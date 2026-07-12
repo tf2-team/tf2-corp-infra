@@ -1,0 +1,6 @@
+apiVersion: v2
+name: karpenter-node-resources
+description: EC2NodeClass and NodePool(s) for Karpenter (applied after CRDs exist)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

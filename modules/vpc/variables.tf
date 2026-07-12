@@ -90,3 +90,13 @@ variable "eks_cluster_name" {
     Null = không gắn tag EKS (dùng khi VPC không phục vụ EKS).
   EOT
 }
+
+variable "enable_karpenter_discovery_tags" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = <<-EOT
+    When true and eks_cluster_name is set, private subnets get
+    karpenter.sh/discovery = <eks_cluster_name> for Karpenter EC2NodeClass selectors.
+  EOT
+}

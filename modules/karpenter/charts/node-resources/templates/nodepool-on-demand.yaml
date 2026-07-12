@@ -1,0 +1,45 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: stateless-on-demand
+  labels:
+    workload-class: spot-tolerant
+spec:
+  weight: {{ .Values.nodepoolWeights.onDemand }}
+  template:
+    metadata:
+      labels:
+        # Elastic app capacity (not the critical MNG floor), even when On-Demand.
+        workload-class: spot-tolerant
+        role: spot-tolerant
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: {{ .Values.ec2nodeclassName }}
+      expireAfter: {{ .Values.expireAfter | quote }}
+      {{- with .Values.nodeTaints }}
+      taints:
+        {{- range . }}
+        - key: {{ .key | quote }}
+          value: {{ .value | quote }}
+          effect: {{ .effect }}
+        {{- end }}
+      {{- end }}
+      requirements:
+        {{- range .Values.onDemandRequirements }}
+        - key: {{ .key | quote }}
+          operator: {{ .operator | quote }}
+          values:
+            {{- range .values }}
+            - {{ . | quote }}
+            {{- end }}
+        {{- end }}
+  limits:
+    cpu: {{ .Values.cpuLimit | quote }}
+    memory: {{ .Values.memoryLimit | quote }}
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: {{ .Values.consolidateAfter | quote }}
+    budgets:
+      - nodes: {{ .Values.disruptionBudgetNodes.onDemand | quote }}

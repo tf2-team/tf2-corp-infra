@@ -61,6 +61,16 @@ variable "node_groups" {
     # Pin to specific subnets (one AZ) for multi-AZ balance; null = all var.subnet_ids
     subnet_ids = optional(list(string))
     labels     = optional(map(string), {}) # Kubernetes node labels
+    # Optional taints for hard isolation (Phase 2 workload placement).
+    # Example: [{ key = "workload-class", value = "critical", effect = "NO_SCHEDULE" }]
+    taints = optional(list(object({
+      key    = string
+      value  = optional(string)
+      effect = string # NO_SCHEDULE | NO_EXECUTE | PREFER_NO_SCHEDULE
+    })), [])
+    # When set, creates a launch template with AL2023 NodeConfig kubelet.maxPods.
+    # Use with VPC CNI prefix delegation (e.g. 110 for t3.large). Requires node recycle.
+    max_pods = optional(number)
   }))
   description = <<-EOT
     Managed Node Groups. Key is short name; resource name = {cluster_name}-{key}.
@@ -68,23 +78,28 @@ variable "node_groups" {
     For multi-AZ balance, create one group per AZ and set subnet_ids to a single
     private subnet (env main.tf resolves subnet_keys from the VPC module).
 
+    Labels: use workload-class=critical for the system/data floor (see docs/workload-placement.md).
+    Taints: optional hard isolation; only enable after critical pods and DaemonSets have matching tolerations.
+
+    max_pods: optional kubelet maxPods via launch template (AL2023 NodeConfig).
+    Pair with vpc-cni ENABLE_PREFIX_DELEGATION for higher density than default ENI mode
+    (t3.large default maxPods=35 → ~110 with prefix mode).
+
     Example (env tfvars uses subnet_keys; main.tf maps to subnet_ids):
       node_groups = {
         "general-1a" = {
           instance_types = ["t3.large"]
+          capacity_type  = "ON_DEMAND"
           desired_size   = 1
           min_size       = 1
           max_size       = 2
+          max_pods       = 110
           subnet_keys    = ["priv-1a"]
-          labels         = { az = "us-east-1a" }
-        }
-        "general-1b" = {
-          instance_types = ["t3.large"]
-          desired_size   = 1
-          min_size       = 1
-          max_size       = 2
-          subnet_keys    = ["priv-1b"]
-          labels         = { az = "us-east-1b" }
+          labels = {
+            role           = "critical"
+            workload-class = "critical"
+            az             = "us-east-1a"
+          }
         }
       }
   EOT
@@ -94,20 +109,51 @@ variable "addons" {
   type = map(object({
     addon_version            = optional(string) # null = dùng default version của EKS
     service_account_role_arn = optional(string) # IRSA ARN cho addon cần quyền IAM (vd: aws-ebs-csi-driver, vpc-cni)
+    # JSON string for EKS addon configurationValues (e.g. vpc-cni prefix delegation).
+    configuration_values = optional(string)
   }))
   default     = {}
   description = <<-EOT
     Bản đồ các EKS Managed Add-on cần cài.
     Key là tên addon chính xác theo AWS (vd: vpc-cni, coredns, kube-proxy, aws-ebs-csi-driver).
 
-    Ví dụ:
+    Ví dụ (prefix delegation for higher pod density).
+    In .tfvars use a raw JSON string (functions are not allowed in tfvars):
+      configuration_values = "{\"env\":{\"ENABLE_PREFIX_DELEGATION\":\"true\",\"WARM_PREFIX_TARGET\":\"1\"}}"
+    In .tf files you may use jsonencode({ env = { ... } }).
+
+    Example:
       addons = {
-        "vpc-cni"            = {}
+        "vpc-cni" = {
+          configuration_values = "{\"env\":{\"ENABLE_PREFIX_DELEGATION\":\"true\",\"WARM_PREFIX_TARGET\":\"1\"}}"
+        }
         "coredns"            = {}
         "kube-proxy"         = {}
         # service_account_role_arn optional: module auto-wires IRSA for aws-ebs-csi-driver
         "aws-ebs-csi-driver" = {}
       }
+  EOT
+}
+
+variable "enable_karpenter_discovery_tags" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = <<-EOT
+    Tag the EKS cluster security group with karpenter.sh/discovery = cluster_name
+    so Karpenter EC2NodeClass can select it for provisioned nodes.
+  EOT
+}
+
+variable "enable_cluster_autoscaler_asg_tags" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = <<-EOT
+    Tag each managed node group ASG for Cluster Autoscaler auto-discovery:
+      k8s.io/cluster-autoscaler/enabled = true
+      k8s.io/cluster-autoscaler/<cluster_name> = owned
+    Enable when cluster_autoscaler_enabled is true. Harmless if CA Helm is not installed.
   EOT
 }
 
@@ -127,5 +173,11 @@ variable "existing_oidc_provider_arn" {
     condition     = var.existing_oidc_provider_arn == null ? true : can(regex("^arn:[a-z0-9-]+:iam::[0-9]{12}:oidc-provider/.+$", var.existing_oidc_provider_arn))
     error_message = "The existing_oidc_provider_arn must be a valid IAM OIDC provider ARN matching the format: arn:<partition>:iam::<account>:oidc-provider/..."
   }
+}
+
+variable "plan_role_arn" {
+  type        = string
+  default     = null
+  description = "IAM Role ARN of the GitHub Actions Plan Role to authorize in EKS"
 }
 

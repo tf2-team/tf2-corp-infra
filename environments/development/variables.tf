@@ -27,8 +27,14 @@ variable "ecr_naming_mode" {
 
 variable "ecr_keep_last_n_images" {
   type        = number
-  description = "Lifecycle: keep N most recent images per service repo (development: 5)"
+  description = "Lifecycle: keep N most recent non-buildcache images per service repo (development: 5)"
   default     = 5
+}
+
+variable "ecr_keep_last_n_buildcache" {
+  type        = number
+  description = "Lifecycle: keep N most recent :buildcache-tagged images per service repo (default 1)"
+  default     = 1
 }
 
 variable "ecr_scan_on_push" {
@@ -45,10 +51,11 @@ variable "ecr_force_delete" {
 
 variable "ecr_repository_overrides" {
   type = map(object({
-    image_tag_mutability = optional(string)
-    scan_on_push         = optional(bool)
-    keep_last_n_images   = optional(number)
-    force_delete         = optional(bool)
+    image_tag_mutability   = optional(string)
+    scan_on_push           = optional(bool)
+    keep_last_n_images     = optional(number)
+    keep_last_n_buildcache = optional(number)
+    force_delete           = optional(bool)
   }))
   default     = {}
   description = "Optional per-service ECR setting overrides (module ships full platform catalog)"
@@ -119,17 +126,26 @@ variable "node_groups" {
     # Optional raw IDs (overrides subnet_keys when set)
     subnet_ids = optional(list(string))
     labels     = optional(map(string), {})
+    # Optional hard isolation taints (Phase 2). Prefer soft labels first.
+    taints = optional(list(object({
+      key    = string
+      value  = optional(string)
+      effect = string
+    })), [])
+    # kubelet maxPods via launch template (pair with vpc-cni prefix delegation)
+    max_pods = optional(number)
   }))
-  description = "Managed Node Groups. Pin one group per AZ via subnet_keys for multi-AZ balance."
+  description = "Managed Node Groups. Pin one group per AZ via subnet_keys for multi-AZ balance. Use workload-class=critical labels for the system/data floor."
 }
 
 variable "addons" {
   type = map(object({
     addon_version            = optional(string)
     service_account_role_arn = optional(string)
+    configuration_values     = optional(string)
   }))
   default     = {}
-  description = "Bản đồ các EKS Managed Add-on"
+  description = "Bản đồ các EKS Managed Add-on (optional configuration_values JSON for e.g. vpc-cni)"
 }
 
 variable "create_oidc_provider" {
@@ -298,3 +314,149 @@ variable "external_secrets_chart_version" {
   default     = "0.14.4"
   description = "Pinned external-secrets Helm chart version"
 }
+
+# ──────────────────────────────────────────────
+# Karpenter (node autoscaling)
+# ──────────────────────────────────────────────
+
+variable "karpenter_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "Create Karpenter IAM, node role, access entry, and interruption SQS"
+}
+
+variable "karpenter_install_helm" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Install Karpenter Helm chart (requires cluster API at apply)"
+}
+
+variable "karpenter_create_node_resources" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Apply EC2NodeClass + NodePool CRs (requires Helm CRDs)"
+}
+
+variable "karpenter_chart_version" {
+  type        = string
+  default     = "1.13.1"
+  description = "Pinned Karpenter Helm chart version (karpenter-crd and karpenter must match)"
+}
+
+variable "karpenter_spot_preferred" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "Prefer Spot NodePool with On-Demand fallback (recommended for development)"
+}
+
+variable "karpenter_node_taints" {
+  type = list(object({
+    key    = string
+    value  = string
+    effect = string
+  }))
+  default     = []
+  description = "Taints applied to Karpenter NodePools (hard placement for spot-tolerant workloads)"
+}
+
+variable "karpenter_nodepool_weights" {
+  type = object({
+    spot      = number
+    on_demand = number
+  })
+  default = {
+    spot      = 100
+    on_demand = 10
+  }
+  description = "Scheduling preference weights for Karpenter NodePools"
+}
+
+variable "karpenter_disruption_budget_nodes" {
+  type = object({
+    spot      = string
+    on_demand = string
+  })
+  default = {
+    spot      = "1"
+    on_demand = "1"
+  }
+  description = <<-EOT
+    Per-NodePool voluntary disruption limits (not a global cluster budget).
+    Steady state "1"/"1" allows consolidation under WhenEmptyOrUnderutilized.
+    Use "0"/"0" only to freeze voluntary disruption during upgrades/migrations.
+  EOT
+}
+
+variable "karpenter_consolidate_after" {
+  type        = string
+  default     = "1m"
+  nullable    = false
+  description = "NodePool disruption consolidateAfter (how long underutilized/empty nodes wait before reclaim)."
+}
+
+variable "karpenter_nodepool_cpu_limit" {
+  type        = string
+  default     = "32"
+  description = "NodePool CPU limit to cap spend"
+}
+
+variable "karpenter_nodepool_memory_limit" {
+  type        = string
+  default     = "64Gi"
+  description = "NodePool memory limit to cap spend"
+}
+
+variable "karpenter_availability_zones" {
+  type        = list(string)
+  default     = ["us-east-1a", "us-east-1b"]
+  description = "Zones allowed for Karpenter NodePools"
+}
+
+variable "karpenter_node_max_pods" {
+  type        = number
+  default     = 110
+  nullable    = true
+  description = "EC2NodeClass kubelet maxPods (pair with vpc-cni prefix delegation). null = AMI default."
+}
+
+variable "karpenter_min_instance_cpu" {
+  type        = number
+  default     = 2
+  nullable    = false
+  description = "Minimum vCPU for Karpenter nodes (0 disables). Avoids 1-vCPU instances with ~8 max pods."
+}
+
+# ──────────────────────────────────────────────
+# Cluster Autoscaler (optional MNG/ASG scaler — OFF by default)
+# ──────────────────────────────────────────────
+
+variable "cluster_autoscaler_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Create Cluster Autoscaler IRSA role/policy and tag MNG ASGs for auto-discovery"
+}
+
+variable "cluster_autoscaler_install_helm" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Install Cluster Autoscaler Helm chart (requires cluster API; mutually exclusive with Karpenter install)"
+}
+
+variable "cluster_autoscaler_chart_version" {
+  type        = string
+  default     = "9.46.6"
+  description = "Pinned cluster-autoscaler Helm chart version"
+}
+
+variable "plan_role_arn" {
+  type        = string
+  default     = null
+  description = "IAM Role ARN of the GitHub Actions Plan Role to authorize in EKS"
+}
+

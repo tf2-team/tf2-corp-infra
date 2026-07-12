@@ -20,6 +20,14 @@ locals {
     "kubernetes.io/cluster/${var.eks_cluster_name}" = "shared"
     "kubernetes.io/role/internal-elb"               = "1"
   } : {}
+
+  # Karpenter subnet discovery (EC2NodeClass subnetSelectorTerms).
+  # Same value as cluster name so NodePools can select private subnets only.
+  karpenter_discovery_tags = (
+    var.eks_cluster_name != null && var.enable_karpenter_discovery_tags
+    ? { "karpenter.sh/discovery" = var.eks_cluster_name }
+    : {}
+  )
 }
 
 # ──────────────────────────────────────────────
@@ -77,7 +85,7 @@ resource "aws_subnet" "private" {
   cidr_block        = each.value.cidr_block
   availability_zone = each.value.availability_zone
 
-  tags = merge(local.eks_private_tags, {
+  tags = merge(local.eks_private_tags, local.karpenter_discovery_tags, {
     Name = "${var.name}-private-${each.key}"
     Tier = "private"
   })

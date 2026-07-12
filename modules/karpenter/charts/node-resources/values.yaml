@@ -1,0 +1,29 @@
+ec2nodeclassName: default
+nodeRoleName: ""
+discoveryTagValue: ""
+amiAlias: al2023@latest
+spotPreferred: false
+expireAfter: 720h
+consolidateAfter: 1m
+cpuLimit: "32"
+memoryLimit: "64Gi"
+# kubelet maxPods (null/omit = AMI default). Pair with VPC CNI prefix delegation.
+maxPods: 110
+
+# NodePool scheduling preference weights (higher = preferred first).
+nodepoolWeights:
+  spot: 100
+  onDemand: 10
+
+# Per-NodePool voluntary disruption limits (Karpenter budget nodes string).
+# Migration freeze: "0". Steady state: "1" per pool (not a global cluster budget).
+disruptionBudgetNodes:
+  spot: "0"
+  onDemand: "0"
+
+# Taints applied to both NodePools (hard placement for classified stateless pods).
+nodeTaints: []
+
+# List of requirement objects: { key, operator, values }
+spotRequirements: []
+onDemandRequirements: []

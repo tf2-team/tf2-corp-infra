@@ -14,7 +14,7 @@ variable "chart_version" {
   type        = string
   description = "Pinned argo-helm argo-cd chart version"
   # Pin intentionally; bump only after dev validation.
-  default     = "7.8.28"
+  default = "7.8.28"
 }
 
 variable "timeout_seconds" {
@@ -30,13 +30,13 @@ variable "server_domain" {
 }
 
 variable "controller_replicas" {
-  type        = number
-  default     = 1
+  type    = number
+  default = 1
 }
 
 variable "repo_server_replicas" {
-  type        = number
-  default     = 1
+  type    = number
+  default = 1
 }
 
 variable "enable_applicationset" {

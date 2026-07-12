@@ -219,6 +219,110 @@ kubectl get nodes -L topology.kubernetes.io/zone
 # expect at least one Ready node in us-east-1a and one in us-east-1b
 ```
 
+Managed node groups remain the **system/bootstrap** pool. **Workload node autoscaling** is handled by **Karpenter** (see next phase and `docs/karpenter.md`).
+
+### Pod density (VPC CNI prefix delegation + maxPods)
+
+Default ENI secondary-IP mode gives **t3.large maxPods ≈ 35**. A full demo (system add-ons + Argo CD/ESO + app stack + DaemonSets such as `otel-collector-agent`) can hit that ceiling. DaemonSets are **node-pinned** — Karpenter adding a *new* node does not free a slot on an already-full node.
+
+Both environments enable:
+
+| Knob | Where | Value |
+|------|--------|-------|
+| `ENABLE_PREFIX_DELEGATION` / `WARM_PREFIX_TARGET` | `addons.vpc-cni.configuration_values` | `true` / `1` |
+| `max_pods` | each managed node group | `110` (AL2023 NodeConfig via launch template) |
+| `karpenter_node_max_pods` | Karpenter EC2NodeClass | `110` |
+| `karpenter_min_instance_cpu` | NodePool requirement | `2` (avoids 1-vCPU / ~8-pod instances) |
+
+**Apply order / operator steps:**
+
+1. `terraform apply` (updates vpc-cni, creates launch templates, rolls MNG + Karpenter CRs).
+2. Confirm CNI: `kubectl -n kube-system set env daemonset/aws-node --list | findstr PREFIX` → `ENABLE_PREFIX_DELEGATION=true`.
+3. Confirm maxPods after node recycle:  
+   `kubectl get nodes -o custom-columns=NAME:.metadata.name,TYPE:.metadata.labels."node\.kubernetes\.io/instance-type",PODS:.status.allocatable.pods`  
+   Replaced nodes should show **110** (not 35 / 8).
+4. If an old node still shows 35: cordon/drain that node (or wait for MNG rolling update) so a new instance boots with the launch template.
+5. Recycle existing Karpenter nodes the same way (maxPods is set at node join).
+6. Confirm DaemonSets: `kubectl -n techx-corp-dev get ds otel-collector-agent` → Desired = Ready.
+
+Private subnets are `/24`; prefix mode uses `/28` blocks. With a small node count and `WARM_PREFIX_TARGET=1`, IP pressure is low — monitor `AvailableIpAddressCount` if node count grows large.
+
+---
+
+## CPU architecture (amd64 / arm64)
+
+Node ISA (x86 vs Graviton), EKS `ami_type` pairing, multi-arch image prerequisites, and migration/rollback between architectures: see [`cpu-architecture.md`](./cpu-architecture.md).
+
+## Phase 1b: Karpenter (node autoscaling)
+
+Karpenter provisions EC2 nodes from Pending pods. Discovery tags (`karpenter.sh/discovery = <cluster>`) are applied to private subnets and the cluster security group by the VPC/EKS modules.
+
+Pinned version: **`1.13.1`** for both `karpenter-crd` and `karpenter` (required for Kubernetes 1.36). Upgrade **CRD before controller**. Do not roll back to 1.3.x while the cluster stays on 1.36.
+
+| Env | Spot preferred | Default install (tfvars) |
+|-----|----------------|--------------------------|
+| development | **yes** (`stateless-spot` weight 100 + `stateless-on-demand` weight 10) | `install_helm` + `create_node_resources` **true** |
+| production | **no** (`stateless-on-demand` only for initial placement) | IAM/SQS only until you flip install flags |
+
+Both NodePools use label + taint `workload-class=spot-tolerant:NoSchedule`. Migration disruption budgets default to `"0"` per pool.
+
+```bash
+# Development (full install when cluster API is reachable during apply)
+terraform -chdir=environments/development plan
+terraform -chdir=environments/development apply
+
+kubectl -n kube-system get pods -l app.kubernetes.io/name=karpenter
+kubectl get ec2nodeclass,nodepool
+kubectl get nodes -L karpenter.sh/nodepool -L karpenter.sh/capacity-type -L workload-class
+
+terraform -chdir=environments/development output karpenter_bootstrap_note
+```
+
+Production: set `karpenter_install_helm = true` and `karpenter_create_node_resources = true` in `environments/production/terraform.tfvars` when ready, then apply. Enable Spot only after production placement acceptance.
+
+Full comparison (CA vs Karpenter vs EKS Auto Mode), verification scale-test, and rollback: **`docs/karpenter.md`**.
+
+---
+
+## Phase 1b-extra: Workload placement (critical MNG vs Karpenter hard placement)
+
+**Critical floor:** `system-1a` / `system-1b` (`workload-class=critical`, On-Demand, `max_size=2` ceiling only — **no** Cluster Autoscaler auto scale-out). Legacy `general-*` remains during dual-run migration.
+
+**Karpenter:** labeled + tainted `workload-class=spot-tolerant:NoSchedule` for classified stateless apps.
+
+| Workload | Placement |
+|----------|-----------|
+| System (Karpenter controller, CoreDNS, ESO, Argo CD, metrics-server, ALB controller, EBS CSI controller) | `nodeSelector: workload-class=critical` |
+| Stateful data + observability + `frontend-proxy` / `flagd` | Chart required critical selector (no Karpenter toleration) |
+| Classified stateless apps (`frontend`, catalog, recommendation, load-generator, …) | Hard `spot-tolerant` selector + Karpenter toleration |
+| Universal DaemonSets (CNI, kube-proxy, ebs-csi-node, OTel agent) | No workload-class selector; tolerate Karpenter taint |
+| Unclassified pods | May still land on MNG (one-way isolation) |
+
+**Apply order:** inventory → Karpenter upgrade → create system MNG (create-only plan) → capacity gate → controller pins / NodePool taints → **then** chart sync → migrate AZ-by-AZ → open disruption budgets → remove legacy.
+
+```bash
+kubectl get nodes -L workload-class,role,karpenter.sh/nodepool,karpenter.sh/capacity-type
+kubectl get pod -A -o wide
+```
+
+Details, capacity gates, canaries, rollback: **`docs/workload-placement.md`**.
+
+---
+
+## Phase 1c: Cluster Autoscaler (optional, off by default)
+
+Default capacity remains **small managed node groups + Karpenter**. Cluster Autoscaler is wired in Terraform but **disabled** in both environments (`cluster_autoscaler_enabled = false`, `cluster_autoscaler_install_helm = false`).
+
+* CA scales **MNG ASGs only** within `min_size`/`max_size` — not Karpenter nodes.
+* **Do not** enable CA Helm while Karpenter install/NodePools are active (Terraform `check` enforces mutual exclusion).
+* For CA-only mode: disable Karpenter first, then flip CA flags. Full runbook: **`docs/cluster-autoscaler.md`**.
+
+```bash
+# Defaults create no CA resources
+terraform -chdir=environments/development plan | findstr /i "cluster-autoscaler" || true
+terraform -chdir=environments/development output cluster_autoscaler_bootstrap_note
+```
+
 ---
 
 ## Phase 2: Kubeconfig & Load Balancer Controller
@@ -482,8 +586,9 @@ Smoke test + `helm rollback` — xem `techx-corp-chart/docs/DEPLOYMENT.md`.
 |---|---|
 | `modules/ecr` | Nested (hoặc flat) ECR + lifecycle + catalog services |
 | `modules/github-actions-ecr` | GitHub OIDC provider (optional) + IAM role ECR push |
-| `modules/vpc` | VPC, subnets, NAT, EKS subnet tags |
-| `modules/eks` | EKS, node groups, EKS OIDC (IRSA), ALB controller role |
+| `modules/vpc` | VPC, subnets, NAT, EKS + Karpenter discovery subnet tags |
+| `modules/eks` | EKS, node groups, EKS OIDC (IRSA), ALB controller role, cluster SG discovery tag |
+| `modules/karpenter` | Karpenter IRSA, node role, SQS interruption, Helm, NodePool/EC2NodeClass |
 | `modules/secrets-manager` | ASM secret shells (metadata only; no secret values) |
 | `modules/external-secrets` | ESO IRSA + optional Helm/ClusterSecretStore |
 

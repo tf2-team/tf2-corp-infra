@@ -76,7 +76,22 @@ variable "scan_on_push" {
 variable "keep_last_n_images" {
   type        = number
   default     = 10
-  description = "Lifecycle policy: keep only the N most recent images per repository"
+  description = "Lifecycle policy: keep only the N most recent non-buildcache images per repository"
+}
+
+variable "keep_last_n_buildcache" {
+  type        = number
+  default     = 1
+  description = <<-EOT
+    Lifecycle policy: keep only the N most recent images tagged with prefix "buildcache".
+    Platform CI pushes IMAGE_NAME/<service>:buildcache as registry build cache (mode=max).
+    Default 1 so only the latest cache artifact is retained per service repo.
+  EOT
+
+  validation {
+    condition     = var.keep_last_n_buildcache >= 1
+    error_message = "keep_last_n_buildcache must be at least 1."
+  }
 }
 
 variable "force_delete" {
@@ -87,10 +102,11 @@ variable "force_delete" {
 
 variable "repositories" {
   type = map(object({
-    image_tag_mutability = optional(string)
-    scan_on_push         = optional(bool)
-    keep_last_n_images   = optional(number)
-    force_delete         = optional(bool)
+    image_tag_mutability   = optional(string)
+    scan_on_push           = optional(bool)
+    keep_last_n_images     = optional(number)
+    keep_last_n_buildcache = optional(number)
+    force_delete           = optional(bool)
   }))
   default     = {}
   description = <<-EOT

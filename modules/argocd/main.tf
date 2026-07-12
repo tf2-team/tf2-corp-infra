@@ -29,10 +29,14 @@ resource "helm_release" "argocd" {
   timeout          = var.timeout_seconds
 
   # v1: ClusterIP only — no public Ingress / storefront ALB exposure.
+  # Pin control-plane pods to critical MNG (docs/workload-placement.md).
   values = [
     yamlencode({
       global = {
         domain = var.server_domain
+        nodeSelector = {
+          "workload-class" = "critical"
+        }
       }
       configs = {
         params = {
@@ -40,7 +44,7 @@ resource "helm_release" "argocd" {
           "server.insecure" = false
         }
         cm = {
-          "timeout.reconciliation" = "180s"
+          "timeout.reconciliation"       = "180s"
           "application.instanceLabelKey" = "argocd.argoproj.io/instance"
         }
         rbac = {

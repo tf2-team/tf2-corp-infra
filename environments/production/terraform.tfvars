@@ -9,11 +9,12 @@ tags = {
 
 # Image format: REGISTRY/techx-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
-ecr_project_name       = "techx-prod-corp"
-ecr_naming_mode        = "nested"
-ecr_keep_last_n_images = 20
-ecr_scan_on_push       = true
-ecr_force_delete       = true
+ecr_project_name           = "techx-prod-corp"
+ecr_naming_mode            = "nested"
+ecr_keep_last_n_images     = 20
+ecr_keep_last_n_buildcache = 1
+ecr_scan_on_push           = true
+ecr_force_delete           = true
 
 # ──────────────────────────────────────────────
 # VPC Configuration
@@ -56,9 +57,12 @@ nat_gateways = {
 cluster_name       = "techx-tf2-prod"
 kubernetes_version = "1.36"
 
+# Critical floor (hard placement): system-* MNG (On-Demand, workload-class=critical).
+# general-* remain as legacy dual-run capacity until production placement acceptance.
+# Phase 1 has no Cluster Autoscaler; max_size is an emergency ceiling only (no auto scale-out).
 # One managed node group per AZ (EBS / StatefulSet scheduling across zones).
-# Apply destroys techx-tf2-general and creates techx-tf2-general-1a + techx-tf2-general-1b.
 node_groups = {
+  # Legacy migration capacity — leave capacity/lifecycle unchanged in create-system plans.
   "general-1a" = {
     instance_types = ["t3.large"]
     capacity_type  = "ON_DEMAND"
@@ -68,11 +72,16 @@ node_groups = {
     desired_size = 1
     min_size     = 1
     max_size     = 2
-    subnet_keys  = ["priv-1a"]
+    # Prefix-delegation density (default ENI mode maxPods=35 fills with system+app+DS)
+    max_pods    = 110
+    subnet_keys = ["priv-1a"]
     labels = {
-      role = "general"
-      az   = "us-east-1a"
+      role           = "critical"
+      workload-class = "critical"
+      az             = "us-east-1a"
     }
+    # Phase 2 hard isolation (disabled): only enable after DaemonSets/system pods tolerate.
+    # taints = [{ key = "workload-class", value = "critical", effect = "NO_SCHEDULE" }]
   }
   "general-1b" = {
     instance_types = ["t3.large"]
@@ -82,19 +91,61 @@ node_groups = {
     desired_size   = 1
     min_size       = 1
     max_size       = 2
+    max_pods       = 110
     subnet_keys    = ["priv-1b"]
     labels = {
-      role = "general"
-      az   = "us-east-1b"
+      role           = "critical"
+      workload-class = "critical"
+      az             = "us-east-1b"
+    }
+  }
+  # New critical floor (create-only in first production placement plan).
+  "system-1a" = {
+    instance_types = ["t3.medium"]
+    capacity_type  = "ON_DEMAND"
+    ami_type       = "AL2023_x86_64_STANDARD"
+    disk_size      = 30
+    desired_size   = 1
+    min_size       = 1
+    max_size       = 2
+    max_pods       = 110
+    subnet_keys    = ["priv-1a"]
+    labels = {
+      role           = "critical"
+      workload-class = "critical"
+      az             = "us-east-1a"
+    }
+  }
+  "system-1b" = {
+    instance_types = ["t3.medium"]
+    capacity_type  = "ON_DEMAND"
+    ami_type       = "AL2023_x86_64_STANDARD"
+    disk_size      = 30
+    desired_size   = 1
+    min_size       = 1
+    max_size       = 2
+    max_pods       = 110
+    subnet_keys    = ["priv-1b"]
+    labels = {
+      role           = "critical"
+      workload-class = "critical"
+      az             = "us-east-1b"
     }
   }
 }
 
 addons = {
-  "vpc-cni"            = {}
-  "coredns"            = {}
-  "kube-proxy"         = {}
-  "aws-ebs-csi-driver" = {}
+  "vpc-cni" = {
+    # Raw JSON string (jsonencode is not allowed in .tfvars)
+    configuration_values = "{\"env\":{\"ENABLE_PREFIX_DELEGATION\":\"true\",\"WARM_PREFIX_TARGET\":\"1\"}}"
+  }
+  "coredns" = {
+    configuration_values = "{\"nodeSelector\":{\"workload-class\":\"critical\"}}"
+  }
+  "kube-proxy" = {}
+  "aws-ebs-csi-driver" = {
+    configuration_values = "{\"controller\":{\"nodeSelector\":{\"workload-class\":\"critical\"}}}"
+  }
 }
 
 # ──────────────────────────────────────────────
@@ -118,3 +169,47 @@ argocd_chart_version = "7.8.28"
 # false = allow all paths through to frontend-proxy
 # ──────────────────────────────────────────────
 storefront_alb_block_sensitive_paths = true
+
+# ──────────────────────────────────────────────
+# Karpenter (node autoscaling) — On-Demand only for initial production placement
+# IAM/SQS enabled; set install_helm + create_node_resources true when cluster API is ready
+# Spot enablement is a separate post-acceptance rollout (do not enable with first placement).
+# CRD and controller must share chart_version; upgrade CRD before controller.
+# ──────────────────────────────────────────────
+karpenter_enabled               = true
+karpenter_install_helm          = false
+karpenter_create_node_resources = false
+karpenter_chart_version         = "1.13.1"
+karpenter_spot_preferred        = false
+karpenter_nodepool_cpu_limit    = "64"
+karpenter_nodepool_memory_limit = "128Gi"
+karpenter_availability_zones    = ["us-east-1a", "us-east-1b"]
+# Applied when karpenter_create_node_resources=true; matches MNG density
+karpenter_node_max_pods    = 110
+karpenter_min_instance_cpu = 2
+karpenter_node_taints = [
+  {
+    key    = "workload-class"
+    value  = "spot-tolerant"
+    effect = "NoSchedule"
+  }
+]
+karpenter_nodepool_weights = {
+  spot      = 100
+  on_demand = 10
+}
+# Migration freeze until production placement acceptance
+karpenter_disruption_budget_nodes = {
+  spot      = "0"
+  on_demand = "0"
+}
+
+# ──────────────────────────────────────────────
+# Cluster Autoscaler — OFF by default
+# Scales managed node group ASGs only (within min_size/max_size).
+# For CA-only experiments: disable Karpenter install/NodePools first, then enable CA.
+# See docs/cluster-autoscaler.md
+# ──────────────────────────────────────────────
+cluster_autoscaler_enabled       = false
+cluster_autoscaler_install_helm  = false
+cluster_autoscaler_chart_version = "9.46.6"

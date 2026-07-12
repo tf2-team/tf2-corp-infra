@@ -1,5 +1,10 @@
-# Checkov configuration
-# Skip checks that are intentional design decisions or accepted risk for this project
+# Checkov config for techx-corp-infra Terraform
+# Run: checkov -d . --config-file .checkov.yaml --quiet --framework terraform
+
+framework:
+  - terraform
+
+compact: true
 
 skip-check:
   # ECR: image_tag_mutability is configurable per repository via tfvars (MUTABLE for dev, can be IMMUTABLE for prod)

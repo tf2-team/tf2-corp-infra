@@ -104,7 +104,8 @@ output "aws_load_balancer_controller_helm_command" {
       --set vpcId=${module.vpc.vpc_id} \
       --set serviceAccount.create=true \
       --set serviceAccount.name=aws-load-balancer-controller \
-      --set serviceAccount.annotations.eks\.amazonaws\.com/role-arn=${module.eks.aws_load_balancer_controller_role_arn}
+      --set serviceAccount.annotations.eks\.amazonaws\.com/role-arn=${module.eks.aws_load_balancer_controller_role_arn} \
+      --set nodeSelector.workload-class=critical
   EOT
 }
 
@@ -273,4 +274,47 @@ output "external_secrets_bootstrap_note" {
     See techx-corp-chart/docs/operations/external-secrets.md
   EOT
   description = "Operator bootstrap order for ESO cutover"
+}
+
+# ──────────────────────────────────────────────
+# Karpenter
+# ──────────────────────────────────────────────
+
+output "karpenter_controller_role_arn" {
+  value       = module.karpenter.controller_role_arn
+  description = "IRSA role ARN for Karpenter controller"
+}
+
+output "karpenter_node_role_arn" {
+  value       = module.karpenter.node_role_arn
+  description = "IAM role ARN for Karpenter-provisioned EC2 nodes"
+}
+
+output "karpenter_interruption_queue_name" {
+  value       = module.karpenter.interruption_queue_name
+  description = "SQS queue for Spot/instance interruption events"
+}
+
+output "karpenter_bootstrap_note" {
+  value       = module.karpenter.bootstrap_note
+  description = "Operator notes for Karpenter verification"
+}
+
+# ──────────────────────────────────────────────
+# Cluster Autoscaler
+# ──────────────────────────────────────────────
+
+output "cluster_autoscaler_role_arn" {
+  value       = module.cluster_autoscaler.role_arn
+  description = "IRSA role ARN for Cluster Autoscaler (null when disabled)"
+}
+
+output "cluster_autoscaler_helm_installed" {
+  value       = module.cluster_autoscaler.helm_installed
+  description = "Whether Terraform installed the Cluster Autoscaler Helm release"
+}
+
+output "cluster_autoscaler_bootstrap_note" {
+  value       = module.cluster_autoscaler.bootstrap_note
+  description = "Operator notes for Cluster Autoscaler"
 }
