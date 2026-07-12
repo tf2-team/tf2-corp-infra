@@ -1,9 +1,9 @@
 # ──────────────────────────────────────────────
 # GitHub Actions OIDC → IAM role for ECR push
+# OIDC provider is account-level and owned by bootstrap.
 # ──────────────────────────────────────────────
 
 locals {
-  github_oidc_url  = "https://token.actions.githubusercontent.com"
   github_oidc_host = "token.actions.githubusercontent.com"
 
   environment_subjects = [
@@ -17,42 +17,6 @@ locals {
   ]
 
   allowed_subjects = concat(local.environment_subjects, local.ref_subjects)
-
-  oidc_provider_arn = (
-    var.create_oidc_provider
-    ? aws_iam_openid_connect_provider.github[0].arn
-    : (
-      var.existing_oidc_provider_arn != null
-      ? var.existing_oidc_provider_arn
-      : data.aws_iam_openid_connect_provider.github[0].arn
-    )
-  )
-}
-
-# ──────────────────────────────────────────────
-# GitHub OIDC provider (account-level singleton)
-# ──────────────────────────────────────────────
-
-data "tls_certificate" "github" {
-  count = var.create_oidc_provider ? 1 : 0
-  url   = local.github_oidc_url
-}
-
-resource "aws_iam_openid_connect_provider" "github" {
-  count = var.create_oidc_provider ? 1 : 0
-
-  url             = local.github_oidc_url
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = [data.tls_certificate.github[0].certificates[length(data.tls_certificate.github[0].certificates) - 1].sha1_fingerprint]
-
-  tags = merge(var.tags, {
-    Name = "github-actions-oidc"
-  })
-}
-
-data "aws_iam_openid_connect_provider" "github" {
-  count = (!var.create_oidc_provider && var.existing_oidc_provider_arn == null) ? 1 : 0
-  url   = local.github_oidc_url
 }
 
 # ──────────────────────────────────────────────
@@ -67,7 +31,7 @@ data "aws_iam_policy_document" "assume_role" {
 
     principals {
       type        = "Federated"
-      identifiers = [local.oidc_provider_arn]
+      identifiers = [var.oidc_provider_arn]
     }
 
     condition {
@@ -92,13 +56,6 @@ resource "aws_iam_role" "this" {
   tags = merge(var.tags, {
     Name = var.name
   })
-
-  lifecycle {
-    precondition {
-      condition     = var.create_oidc_provider ? var.existing_oidc_provider_arn == null : true
-      error_message = "If create_oidc_provider is true, existing_oidc_provider_arn must be null."
-    }
-  }
 }
 
 # ──────────────────────────────────────────────

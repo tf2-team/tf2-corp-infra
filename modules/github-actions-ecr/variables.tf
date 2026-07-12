@@ -23,31 +23,23 @@ variable "github_environments" {
   }
 }
 
+variable "oidc_provider_arn" {
+  type        = string
+  description = "ARN of the account-level GitHub Actions OIDC provider (created by bootstrap)"
+
+  validation {
+    condition     = can(regex("^arn:[a-z0-9-]+:iam::[0-9]{12}:oidc-provider/.+$", var.oidc_provider_arn))
+    error_message = "oidc_provider_arn must be a valid IAM OIDC provider ARN."
+  }
+}
+
 variable "ecr_repository_arns" {
   type        = list(string)
-  description = "ECR repository ARNs this role may push images to"
+  description = "ECR repository ARNs this role may push images to (supports trailing /* wildcards)"
 
   validation {
     condition     = length(var.ecr_repository_arns) > 0
     error_message = "At least one ECR repository ARN is required."
-  }
-}
-
-variable "create_oidc_provider" {
-  type        = bool
-  default     = true
-  nullable    = false
-  description = "Create the account-level GitHub OIDC provider. Only one provider may exist per AWS account — set false in secondary environments."
-}
-
-variable "existing_oidc_provider_arn" {
-  type        = string
-  default     = null
-  description = "ARN of an existing GitHub OIDC provider. Used when create_oidc_provider is false. If null, looks up by URL."
-
-  validation {
-    condition     = var.existing_oidc_provider_arn == null ? true : can(regex("^arn:[a-z0-9-]+:iam::[0-9]{12}:oidc-provider/.+$", var.existing_oidc_provider_arn))
-    error_message = "existing_oidc_provider_arn must be a valid IAM OIDC provider ARN."
   }
 }
 

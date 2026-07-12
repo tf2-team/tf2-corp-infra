@@ -1,0 +1,20 @@
+{
+  "format_version": "1.2",
+  "resource_changes": [
+    {
+      "address": "aws_s3_bucket.noop",
+      "change": {
+        "actions": ["no-op"],
+        "before": { "secret_attr": "SHOULD_NEVER_APPEAR_NOOP" },
+        "after": { "secret_attr": "SHOULD_NEVER_APPEAR_NOOP" }
+      }
+    }
+  ],
+  "output_changes": {
+    "leaky_output": {
+      "actions": ["create"],
+      "before": null,
+      "after": "SHOULD_NEVER_APPEAR_OUTPUT"
+    }
+  }
+}
