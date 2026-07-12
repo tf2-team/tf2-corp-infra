@@ -73,6 +73,13 @@ resource "aws_eks_cluster" "this" {
     support_type = var.upgrade_policy_support_type
   }
 
+  # Pin cluster access mode so apply does not leave API-only / ConfigMap-only drift
+  # that then has to be fixed in the console. Cluster creator gets admin via bootstrap.
+  access_config {
+    authentication_mode                         = "API_AND_CONFIG_MAP"
+    bootstrap_cluster_creator_admin_permissions = true
+  }
+
   vpc_config {
     subnet_ids              = var.subnet_ids
     endpoint_public_access  = var.endpoint_public_access
