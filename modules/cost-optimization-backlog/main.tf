@@ -100,7 +100,7 @@ resource "aws_s3_bucket_policy" "export" {
 }
 
 resource "aws_costoptimizationhub_enrollment_status" "this" {
-  count = local.create ? 1 : 0
+  count = local.create && var.manage_enrollment ? 1 : 0
 
   include_member_accounts = var.include_member_accounts
 }

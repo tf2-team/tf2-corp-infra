@@ -65,6 +65,13 @@ variable "include_member_accounts" {
   description = "Enroll organization member accounts when this is the management account"
 }
 
+variable "manage_enrollment" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, Terraform manages Cost Optimization Hub enrollment. Keep false when enrollment is handled manually or the pipeline lacks Organizations permissions."
+}
+
 variable "include_all_recommendations" {
   type        = bool
   default     = false

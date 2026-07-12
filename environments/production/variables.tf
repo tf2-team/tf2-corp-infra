@@ -801,6 +801,13 @@ variable "cost_budget_action_daily_threshold_percentage" {
   description = "Manual Budget Action threshold for the daily budget"
 }
 
+variable "cost_budget_daily_action_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Keep false because AWS Budgets Actions do not support DAILY budgets"
+}
+
 # ──────────────────────────────────────────────
 # Cost Anomaly Detection — account-level; production only
 # ──────────────────────────────────────────────
@@ -1061,6 +1068,13 @@ variable "cost_optimization_backlog_include_member_accounts" {
   default     = false
   nullable    = false
   description = "Enroll organization member accounts if this is the management account"
+}
+
+variable "cost_optimization_backlog_manage_enrollment" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, Terraform manages Cost Optimization Hub enrollment; false when enrollment is handled manually in the console"
 }
 
 variable "cost_optimization_backlog_include_all_recommendations" {
