@@ -6,3 +6,21 @@ tags = {
   ManagedBy   = "Terraform"
   Project     = "techx-platform"
 }
+
+# GitHub Actions OIDC + platform ECR push roles (account-level).
+# ECR repos themselves are still created by environment stacks.
+github_actions_ecr_production = {
+  role_name           = "techx-gha-platform-prod"
+  github_repository   = "tf2-team/tf2-corp-platform"
+  github_environments = ["production"]
+  allowed_refs        = ["refs/heads/main", "refs/tags/v*"]
+  ecr_project_name    = "techx-prod-corp"
+}
+
+github_actions_ecr_development = {
+  role_name           = "techx-gha-platform-dev"
+  github_repository   = "tf2-team/tf2-corp-platform"
+  github_environments = ["development"]
+  allowed_refs        = ["refs/heads/techx-dev-corp"]
+  ecr_project_name    = "techx-dev-corp"
+}

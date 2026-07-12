@@ -14,7 +14,7 @@ This repository uses GitHub Actions with AWS OIDC and Terraform S3 remote state.
 | **Terraform Destroy Production** | `terraform-destroy-production.yml` | `workflow_dispatch` (`confirm=destroy-production`) | Plan-then-approve production destroy |
 | **Terraform Apply** (reusable) | `terraform-apply.yml` | `workflow_call` only | Shared plan → artifact → Environment-gated apply |
 
-**Bootstrap** (`bootstrap/`) is validated in CI (fmt/validate) but is **not** auto-applied. Apply bootstrap out-of-band / manually.
+**Bootstrap** (`bootstrap/`) is validated in CI (fmt/validate) but is **not** auto-applied. Apply bootstrap out-of-band / manually. Bootstrap owns the S3 remote state backend **and** account-level GitHub Actions OIDC + platform ECR push roles (`techx-gha-platform-*`). Terraform **plan/apply** IAM roles for this repo remain operator-managed (see secrets table below).
 
 ## Operating model
 

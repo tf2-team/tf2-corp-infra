@@ -125,16 +125,6 @@ addons = {
 }
 
 # ──────────────────────────────────────────────
-# GitHub Actions → ECR push (OIDC)
-# OIDC provider is created by production; this env reuses it.
-# ──────────────────────────────────────────────
-github_repository            = "tf2-team/tf2-corp-platform"
-github_actions_ecr_role_name = "techx-gha-platform-dev"
-github_actions_environments  = ["development"]
-github_actions_allowed_refs  = ["refs/heads/techx-dev-corp"]
-create_github_oidc_provider  = false
-
-# ──────────────────────────────────────────────
 # Argo CD (REL-09) — set true when ready to install control plane
 # Requires: aws eks update-kubeconfig + cluster API reachable during apply
 # ──────────────────────────────────────────────

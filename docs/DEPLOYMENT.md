@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > **Vai trò của Repository này (`techx-corp-infra`):**
-> Repository này chịu trách nhiệm **Terraform**: bootstrap remote state, VPC, EKS, **nested ECR** (`techx-corp/*`, `techx-dev-corp/*`), **GitHub Actions OIDC roles** (push image), và IAM cho AWS Load Balancer Controller.
+> Repository này chịu trách nhiệm **Terraform**: bootstrap remote state + **GitHub Actions OIDC + ECR push roles**, VPC, EKS, **nested ECR** (`techx-prod-corp/*`, `techx-dev-corp/*`), và IAM cho AWS Load Balancer Controller.
 
 ---
 
@@ -14,14 +14,14 @@
   ```text
   [REGISTRY]/[PROJECT]/[SERVICE]:[VERSION]
   ```
-- Cung cấp IAM role cho GitHub Actions push image (OIDC, không access key dài hạn).
+- Bootstrap tạo account-level GitHub OIDC provider + IAM roles push image (OIDC, không access key dài hạn).
 - Xuất outputs cho platform CI/CD và chart Helm.
 
 ## 2. Bản đồ Repository
 
 | Repository | Vai trò |
 |---|---|
-| **`techx-corp-infra`** | Terraform: state, network, EKS, ECR nested, GHA OIDC, ALB IAM |
+| **`techx-corp-infra`** | Terraform: bootstrap (state + GHA OIDC/ECR roles), network, EKS, ECR nested, ALB IAM |
 | **`techx-corp-platform`** | Build/push images vào ECR |
 | **`techx-corp-chart`** | Helm deploy từ image `REGISTRY/PROJECT/SERVICE:VERSION` |
 
@@ -47,14 +47,13 @@
 | Hằng số | Giá trị |
 |---|---|
 | `project_name` (infra tags/VPC prefix) | `techx` |
-| `ecr_project_name` | `techx-corp` |
-| Nested repos | `techx-corp/ad`, `techx-corp/checkout`, … |
-| Image base | `493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-corp` |
+| `ecr_project_name` | `techx-prod-corp` |
+| Nested repos | `techx-prod-corp/ad`, `techx-prod-corp/checkout`, … |
+| Image base | `493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp` |
 | EKS | `techx-tf2` |
-| GHA role | `techx-gha-platform-prod` |
+| GHA role (bootstrap) | `techx-gha-platform-prod` |
 | GitHub Environment (OIDC sub) | `production` |
 | Allowed refs | `refs/heads/main`, `refs/tags/v*` |
-| Creates GitHub OIDC provider | **yes** (account singleton) |
 | State key | `production/terraform.tfstate` |
 
 ### Development (`environments/development`)
@@ -66,10 +65,9 @@
 | Nested repos | `techx-dev-corp/ad`, … |
 | Image base | `493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-dev-corp` |
 | EKS | `techx-dev` |
-| GHA role | `techx-gha-platform-dev` |
+| GHA role (bootstrap) | `techx-gha-platform-dev` |
 | GitHub Environment | `development` |
 | Allowed refs | `refs/heads/techx-dev-corp` |
-| Creates GitHub OIDC provider | **no** (lookup provider đã tạo bởi production) |
 | State key | `development/terraform.tfstate` |
 
 ### Catalog ECR services (module `modules/ecr`)
@@ -81,27 +79,27 @@ Một repo nested cho mỗi service bake (đồng bộ platform compose):
 Ví dụ tên repo AWS:
 
 ```text
-techx-corp/ad
-techx-corp/frontend
+techx-prod-corp/ad
+techx-prod-corp/frontend
 techx-dev-corp/checkout
 ```
 
 Image đầy đủ (sau khi platform push):
 
 ```text
-493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-corp/ad:sha-a1b2c3d
+493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/ad:sha-a1b2c3d
 ```
 
 > **Migration note:** Định dạng monorepo cũ (`techx-corp` một repo, tag `1.0-ad`) đã thay bằng nested. Plan có thể **destroy** repo flat cũ và **create** nhiều repo nested — review plan kỹ.
 
 ---
 
-## Phase 1: Bootstrap Remote State
+## Phase 1: Bootstrap Remote State + GitHub CI/CD IAM
 
 > [!CAUTION]
 > 1. Không commit state cục bộ / `backend.hcl` thật.  
 > 2. Production: luôn `plan -out` → review → `apply` artifact.  
-> 3. Apply **production trước development** (OIDC provider GitHub).
+> 3. Bootstrap owns the **account-level** GitHub OIDC provider and both platform ECR push roles — apply bootstrap **before** environment stacks (and before platform image push).
 
 ### Bước 1: Bootstrap
 
@@ -110,6 +108,13 @@ terraform -chdir=bootstrap init
 terraform -chdir=bootstrap plan -out=bootstrap.tfplan
 terraform -chdir=bootstrap apply "bootstrap.tfplan"
 ```
+
+**Review plan** — kỳ vọng tạo (trong số khác):
+
+- S3 state bucket + KMS key
+- `aws_iam_openid_connect_provider.github` → `token.actions.githubusercontent.com`
+- `module.github_actions_ecr["production"].aws_iam_role.this` → `techx-gha-platform-prod`
+- `module.github_actions_ecr["development"].aws_iam_role.this` → `techx-gha-platform-dev`
 
 Tạo `bootstrap/backend.hcl` (không commit):
 
@@ -150,10 +155,9 @@ terraform -chdir=environments/production plan -out=prod.tfplan
 
 **Review plan** — kỳ vọng tạo (trong số khác):
 
-- `module.ecr.aws_ecr_repository.this["ad"]` → name `techx-corp/ad` (× full catalog)
-- `module.github_actions_ecr.aws_iam_openid_connect_provider.github` (nếu chưa có)
-- `module.github_actions_ecr.aws_iam_role.this` → `techx-gha-platform-prod`
+- `module.ecr.aws_ecr_repository.this["ad"]` → name `techx-prod-corp/ad` (× full catalog)
 - VPC / EKS / ALB controller role
+- **Không** tạo GitHub OIDC provider hay `techx-gha-platform-*` roles (đã ở bootstrap)
 
 ```bash
 terraform -chdir=environments/production apply "prod.tfplan"
@@ -165,36 +169,39 @@ terraform -chdir=environments/production apply "prod.tfplan"
 # backend.hcl key = "development/terraform.tfstate"
 terraform -chdir=environments/development init -backend-config=backend.hcl
 terraform -chdir=environments/development plan -out=dev.tfplan
-# Kỳ vọng: techx-dev-corp/<service>, role techx-gha-platform-dev, KHÔNG tạo lại OIDC provider
+# Kỳ vọng: techx-dev-corp/<service>; không tạo GHA OIDC/roles
 terraform -chdir=environments/development apply "dev.tfplan"
 ```
 
 ### Bước 4: Outputs cho CI/CD & Helm
 
 ```bash
+# Bootstrap — GHA OIDC + ECR push roles
+terraform -chdir=bootstrap output github_oidc_provider_arn
+terraform -chdir=bootstrap output github_actions_ecr_production_role_arn
+terraform -chdir=bootstrap output github_actions_ecr_development_role_arn
+terraform -chdir=bootstrap output github_actions_allowed_subjects
+
 # Production
 terraform -chdir=environments/production output ecr_image_base_url
-# 493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-corp
+# 493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp
 
 terraform -chdir=environments/production output ecr_service_names
 terraform -chdir=environments/production output ecr_repository_names
-terraform -chdir=environments/production output github_actions_ecr_role_arn
-terraform -chdir=environments/production output github_actions_allowed_subjects
 terraform -chdir=environments/production output aws_load_balancer_controller_role_arn
 terraform -chdir=environments/production output -raw aws_load_balancer_controller_helm_command
 
 # Development
 terraform -chdir=environments/development output ecr_image_base_url
 # .../techx-dev-corp
-terraform -chdir=environments/development output github_actions_ecr_role_arn
 ```
 
 **Gán GitHub Environments** (repo platform):
 
 | GitHub Environment | `AWS_ROLE_ARN` | `IMAGE_NAME` |
 |---|---|---|
-| `production` | output prod `github_actions_ecr_role_arn` | output prod `ecr_image_base_url` |
-| `development` | output dev `github_actions_ecr_role_arn` | output dev `ecr_image_base_url` |
+| `production` | bootstrap `github_actions_ecr_production_role_arn` | output prod `ecr_image_base_url` |
+| `development` | bootstrap `github_actions_ecr_development_role_arn` | output dev `ecr_image_base_url` |
 
 Chi tiết workflow: `techx-corp-platform/docs/CICD.md`.
 
@@ -507,7 +514,7 @@ IMAGE_NAME=<ecr_image_base_url>
 | `main` / tag `v*` | `techx-corp` |
 | branch `techx-dev-corp` | `techx-dev-corp` |
 
-OIDC: workflow assume role từ `github_actions_ecr_role_arn` (permissions đã scope toàn bộ nested repo ARNs của stack).
+OIDC: workflow assume role từ bootstrap `github_actions_ecr_*_role_arn` (ECR permissions scoped to `repository/<ecr_project_name>/*`).
 
 ---
 
@@ -585,7 +592,7 @@ Smoke test + `helm rollback` — xem `techx-corp-chart/docs/DEPLOYMENT.md`.
 | Module | Chức năng |
 |---|---|
 | `modules/ecr` | Nested (hoặc flat) ECR + lifecycle + catalog services |
-| `modules/github-actions-ecr` | GitHub OIDC provider (optional) + IAM role ECR push |
+| `modules/github-actions-ecr` | IAM role ECR push (OIDC provider lives in `bootstrap/`) |
 | `modules/vpc` | VPC, subnets, NAT, EKS + Karpenter discovery subnet tags |
 | `modules/eks` | EKS, node groups, EKS OIDC (IRSA), ALB controller role, cluster SG discovery tag |
 | `modules/karpenter` | Karpenter IRSA, node role, SQS interruption, Helm, NodePool/EC2NodeClass |
@@ -602,17 +609,22 @@ Smoke test + `helm rollback` — xem `techx-corp-chart/docs/DEPLOYMENT.md`.
 terraform -chdir=environments/production force-unlock <LOCK_ID>
 ```
 
-### 2. OIDC provider already exists (development)
+### 2. OIDC provider / GHA roles already exist (state move)
 
-Development đặt `create_github_oidc_provider = false` và lookup URL `token.actions.githubusercontent.com`.  
-Nếu apply dev **trước** prod: set `create_github_oidc_provider = true` một lần, hoặc import provider hiện có.
+GitHub OIDC + ECR push roles moved from environment stacks into `bootstrap/`. If they already exist in AWS from a previous env apply:
+
+1. Remove from environment state **without destroy** (`terraform state rm …`).
+2. Import into bootstrap state (see change doc migration notes).
+3. Or import existing OIDC provider into bootstrap if it was created out-of-band.
+
+Do **not** create a second account-level OIDC provider for `token.actions.githubusercontent.com`.
 
 ### 3. GHA không assume được role
 
 - Trust `sub` phải khớp:  
   `repo:tmcmanhcuong/tf2-corp-platform:environment:production`  
   (hoặc `development`, hoặc `ref:refs/heads/main`, …)
-- Output: `github_actions_allowed_subjects`
+- Bootstrap output: `github_actions_allowed_subjects`
 
 ### 4. AWS Load Balancer Controller CrashLoop / IMDS timeout
 

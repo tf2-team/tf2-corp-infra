@@ -11,22 +11,6 @@ module "ecr" {
   repositories           = var.ecr_repository_overrides
 }
 
-module "github_actions_ecr" {
-  source = "../../modules/github-actions-ecr"
-
-  name                = var.github_actions_ecr_role_name
-  github_repository   = var.github_repository
-  github_environments = var.github_actions_environments
-  allowed_refs        = var.github_actions_allowed_refs
-  ecr_repository_arns = values(module.ecr.repository_arns)
-
-  # Account-level OIDC provider: create in production; development looks it up.
-  create_oidc_provider       = var.create_github_oidc_provider
-  existing_oidc_provider_arn = var.existing_github_oidc_provider_arn
-
-  tags = var.tags
-}
-
 module "vpc" {
   source = "../../modules/vpc"
 

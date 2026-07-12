@@ -167,52 +167,6 @@ variable "existing_oidc_provider_arn" {
 }
 
 # ──────────────────────────────────────────────
-# GitHub Actions → ECR push (OIDC)
-# ──────────────────────────────────────────────
-
-variable "github_repository" {
-  type        = string
-  description = "GitHub repository (owner/name) allowed to assume the ECR push role"
-  default     = "tmcmanhcuong/tf2-corp-platform"
-}
-
-variable "github_actions_ecr_role_name" {
-  type        = string
-  description = "IAM role name for GitHub Actions ECR push"
-  default     = "techx-gha-platform-dev"
-}
-
-variable "github_actions_environments" {
-  type        = list(string)
-  description = "GitHub Environments allowed to assume this role"
-  default     = ["development"]
-}
-
-variable "github_actions_allowed_refs" {
-  type        = list(string)
-  description = "Optional extra git refs allowed (OIDC sub repo:...:ref:...)"
-  default     = ["refs/heads/techx-dev-corp"]
-}
-
-variable "create_github_oidc_provider" {
-  type        = bool
-  default     = false
-  nullable    = false
-  description = "Create the account-level GitHub Actions OIDC provider. Default false — production creates it; development looks it up."
-}
-
-variable "existing_github_oidc_provider_arn" {
-  type        = string
-  default     = null
-  description = "ARN of an existing GitHub OIDC provider when create_github_oidc_provider is false (null = lookup by URL)"
-
-  validation {
-    condition     = var.existing_github_oidc_provider_arn == null ? true : can(regex("^arn:[a-z0-9-]+:iam::[0-9]{12}:oidc-provider/.+$", var.existing_github_oidc_provider_arn))
-    error_message = "existing_github_oidc_provider_arn must be a valid IAM OIDC provider ARN."
-  }
-}
-
-# ──────────────────────────────────────────────
 # Argo CD (GitOps control plane — REL-09)
 # ──────────────────────────────────────────────
 

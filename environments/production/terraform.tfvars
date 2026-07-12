@@ -122,16 +122,6 @@ addons = {
 }
 
 # ──────────────────────────────────────────────
-# GitHub Actions → ECR push (OIDC)
-# Production environment identity retained (role name, GH env, main/tags refs).
-# ──────────────────────────────────────────────
-github_repository            = "tmcmanhcuong/tf2-corp-platform"
-github_actions_ecr_role_name = "techx-gha-platform-prod"
-github_actions_environments  = ["production"]
-github_actions_allowed_refs  = ["refs/heads/main", "refs/tags/v*"]
-create_github_oidc_provider  = true
-
-# ──────────────────────────────────────────────
 # Argo CD (REL-09) — same enablement model as development
 # Requires: aws eks update-kubeconfig + cluster API reachable during apply
 # ──────────────────────────────────────────────

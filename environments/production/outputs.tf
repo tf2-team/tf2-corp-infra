@@ -110,30 +110,6 @@ output "aws_load_balancer_controller_helm_command" {
 }
 
 # ──────────────────────────────────────────────
-# GitHub Actions → ECR push
-# ──────────────────────────────────────────────
-
-output "github_actions_ecr_role_arn" {
-  value       = module.github_actions_ecr.role_arn
-  description = "Set as GitHub Environment variable AWS_ROLE_ARN on environment 'production'"
-}
-
-output "github_actions_ecr_role_name" {
-  value       = module.github_actions_ecr.role_name
-  description = "IAM role name for GitHub Actions ECR push"
-}
-
-output "github_oidc_provider_arn" {
-  value       = module.github_actions_ecr.oidc_provider_arn
-  description = "GitHub Actions OIDC provider ARN (account-level)"
-}
-
-output "github_actions_allowed_subjects" {
-  value       = module.github_actions_ecr.allowed_subjects
-  description = "OIDC subjects allowed to assume the production ECR push role"
-}
-
-# ──────────────────────────────────────────────
 # Storefront public ALB path blocking
 # ──────────────────────────────────────────────
 

@@ -127,3 +127,66 @@ resource "aws_s3_bucket_lifecycle_configuration" "state_bucket_lifecycle" {
     }
   }
 }
+
+# ──────────────────────────────────────────────
+# GitHub Actions OIDC (account-level singleton)
+# + ECR push roles for platform CI/CD
+# ──────────────────────────────────────────────
+
+locals {
+  github_oidc_url = "https://token.actions.githubusercontent.com"
+
+  # Nested ECR project prefixes (repos created later by environment stacks).
+  # Wildcard ARNs avoid depending on environment module outputs.
+  github_actions_ecr_roles = {
+    production = {
+      name                = var.github_actions_ecr_production.role_name
+      github_repository   = var.github_actions_ecr_production.github_repository
+      github_environments = var.github_actions_ecr_production.github_environments
+      allowed_refs        = var.github_actions_ecr_production.allowed_refs
+      ecr_repository_arns = [
+        "arn:aws:ecr:${var.aws_region}:${local.account_id}:repository/${var.github_actions_ecr_production.ecr_project_name}/*",
+      ]
+    }
+    development = {
+      name                = var.github_actions_ecr_development.role_name
+      github_repository   = var.github_actions_ecr_development.github_repository
+      github_environments = var.github_actions_ecr_development.github_environments
+      allowed_refs        = var.github_actions_ecr_development.allowed_refs
+      ecr_repository_arns = [
+        "arn:aws:ecr:${var.aws_region}:${local.account_id}:repository/${var.github_actions_ecr_development.ecr_project_name}/*",
+      ]
+    }
+  }
+}
+
+data "tls_certificate" "github" {
+  url = local.github_oidc_url
+}
+
+resource "aws_iam_openid_connect_provider" "github" {
+  url             = local.github_oidc_url
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.github.certificates[length(data.tls_certificate.github.certificates) - 1].sha1_fingerprint]
+
+  tags = merge(var.tags, {
+    Name = "github-actions-oidc"
+  })
+}
+
+module "github_actions_ecr" {
+  source   = "../modules/github-actions-ecr"
+  for_each = local.github_actions_ecr_roles
+
+  name                = each.value.name
+  github_repository   = each.value.github_repository
+  github_environments = each.value.github_environments
+  allowed_refs        = each.value.allowed_refs
+  oidc_provider_arn   = aws_iam_openid_connect_provider.github.arn
+  ecr_repository_arns = each.value.ecr_repository_arns
+
+  tags = merge(var.tags, {
+    Purpose = "github-actions-ecr-push"
+    Scope   = each.key
+  })
+}
