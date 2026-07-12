@@ -2,6 +2,8 @@
 
 This repository uses GitHub Actions with AWS OIDC and Terraform S3 remote state.
 
+**First-time enablement** (AWS roles, GitHub Environments, secrets, branch protection, verification): see [`SETUP.md`](./SETUP.md).
+
 ## Workflows
 
 | Workflow | File | Triggers | Purpose |
@@ -14,7 +16,14 @@ This repository uses GitHub Actions with AWS OIDC and Terraform S3 remote state.
 | **Terraform Destroy Production** | `terraform-destroy-production.yml` | `workflow_dispatch` (`confirm=destroy-production`) | Plan-then-approve production destroy |
 | **Terraform Apply** (reusable) | `terraform-apply.yml` | `workflow_call` only | Shared plan → artifact → Environment-gated apply |
 
-**Bootstrap** (`bootstrap/`) is validated in CI (fmt/validate) but is **not** auto-applied. Apply bootstrap out-of-band / manually. Bootstrap owns the S3 remote state backend **and** account-level GitHub Actions OIDC + platform ECR push roles (`techx-gha-platform-*`). Terraform **plan/apply** IAM roles for this repo remain operator-managed (see secrets table below).
+**Bootstrap** (`bootstrap/`) is validated in CI (fmt/validate) but is **not** auto-applied. Apply bootstrap out-of-band / manually. Bootstrap owns:
+
+* S3 remote state backend + KMS
+* Account-level GitHub Actions OIDC provider
+* Platform ECR push roles (`techx-gha-platform-*`)
+* **This repo’s** Terraform plan/apply roles (`GitHubTerraform*Plan/ApplyRole`) via `modules/github-actions-terraform`
+
+After bootstrap apply, set repository secrets from `terraform -chdir=bootstrap output` (see [`SETUP.md`](./SETUP.md)).
 
 ## Operating model
 
@@ -147,38 +156,16 @@ A later recurrence after close creates a **new** issue.
 
 ## AWS OIDC trust policy
 
-Create an IAM OIDC provider for `https://token.actions.githubusercontent.com`, then create separate plan/apply roles for dev and production.
+Bootstrap creates the IAM OIDC provider for `https://token.actions.githubusercontent.com` and the four Terraform plan/apply roles. Trust is enforced in Terraform (`modules/github-actions-terraform`):
 
-Production **apply** role trust should restrict the subject to the production GitHub Environment:
+| Role | Default name | OIDC subjects (default) | Permissions |
+| --- | --- | --- | --- |
+| Dev plan | `GitHubTerraformDevPlanRole` | `pull_request`, `ref:refs/heads/main` | `ReadOnlyAccess` + state prefix `development/` |
+| Dev apply | `GitHubTerraformDevApplyRole` | `environment:dev` | `PowerUserAccess` + `IAMFullAccess` + state `development/` |
+| Prod plan | `GitHubTerraformProdPlanRole` | `pull_request`, `ref:refs/heads/main` | `ReadOnlyAccess` + state prefix `production/` |
+| Prod apply | `GitHubTerraformProdApplyRole` | `environment:production` | `PowerUserAccess` + `IAMFullAccess` + state `production/` |
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam::<account-id>:oidc-provider/token.actions.githubusercontent.com"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-          "token.actions.githubusercontent.com:sub": "repo:<github-org>/<github-repo>:environment:production"
-        }
-      }
-    }
-  ]
-}
-```
-
-Dev apply subject:
-
-```text
-repo:<github-org>/<github-repo>:environment:dev
-```
-
-Plan roles are used by pull request and drift workflows. Scope their trust to the repository (and refs as appropriate); keep IAM permissions read-heavy. Apply roles carry write permissions and must be protected by GitHub Environments.
+Apply roles must remain Environment-scoped so GitHub Environment required reviewers gate writes. Do not add broad `ref:*` trust to apply roles without an explicit security review.
 
 ## Action pin maintenance
 

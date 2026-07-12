@@ -24,3 +24,26 @@ github_actions_ecr_development = {
   allowed_refs        = ["refs/heads/techx-dev-corp"]
   ecr_project_name    = "techx-dev-corp"
 }
+
+# GitHub Actions OIDC → Terraform plan/apply roles (infra repository).
+# github_repository must be the infra repo that runs terraform-*.yml workflows.
+# Apply roles trust GitHub Environments "dev" and "production" (exact workflow names).
+github_actions_terraform_development = {
+  github_repository        = "OWNER/tf2-corp-infra"
+  plan_role_name           = "GitHubTerraformDevPlanRole"
+  apply_role_name          = "GitHubTerraformDevApplyRole"
+  apply_github_environment = "dev"
+  plan_allowed_refs        = ["refs/heads/main"]
+  plan_allow_pull_request  = true
+  state_key_prefix         = "development/"
+}
+
+github_actions_terraform_production = {
+  github_repository        = "OWNER/tf2-corp-infra"
+  plan_role_name           = "GitHubTerraformProdPlanRole"
+  apply_role_name          = "GitHubTerraformProdApplyRole"
+  apply_github_environment = "production"
+  plan_allowed_refs        = ["refs/heads/main"]
+  plan_allow_pull_request  = true
+  state_key_prefix         = "production/"
+}

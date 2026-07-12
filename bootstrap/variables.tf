@@ -66,3 +66,48 @@ variable "github_actions_ecr_development" {
     error_message = "github_actions_ecr_development.github_environments must not be empty."
   }
 }
+
+# ──────────────────────────────────────────────
+# GitHub Actions → Terraform plan/apply roles (infra repo)
+# Account-level; applied manually with bootstrap (not env promote CI).
+# ──────────────────────────────────────────────
+
+variable "github_actions_terraform_development" {
+  type = object({
+    github_repository = string
+    plan_role_name    = optional(string, "GitHubTerraformDevPlanRole")
+    apply_role_name   = optional(string, "GitHubTerraformDevApplyRole")
+    # GitHub Environment name on the infra repo (workflows use environment: dev)
+    apply_github_environment = optional(string, "dev")
+    # OIDC subjects for plan roles (PR + main + optional extra refs)
+    plan_allowed_refs       = optional(list(string), ["refs/heads/main"])
+    plan_allow_pull_request = optional(bool, true)
+    # State key prefix for environments/development (trailing slash recommended)
+    state_key_prefix = optional(string, "development/")
+  })
+  description = "Development infra-repo Terraform plan/apply OIDC roles (GitHub Actions)"
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", var.github_actions_terraform_development.github_repository))
+    error_message = "github_actions_terraform_development.github_repository must be owner/name."
+  }
+}
+
+variable "github_actions_terraform_production" {
+  type = object({
+    github_repository = string
+    plan_role_name    = optional(string, "GitHubTerraformProdPlanRole")
+    apply_role_name   = optional(string, "GitHubTerraformProdApplyRole")
+    # GitHub Environment name on the infra repo (workflows use environment: production)
+    apply_github_environment = optional(string, "production")
+    plan_allowed_refs        = optional(list(string), ["refs/heads/main"])
+    plan_allow_pull_request  = optional(bool, true)
+    state_key_prefix         = optional(string, "production/")
+  })
+  description = "Production infra-repo Terraform plan/apply OIDC roles (GitHub Actions)"
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", var.github_actions_terraform_production.github_repository))
+    error_message = "github_actions_terraform_production.github_repository must be owner/name."
+  }
+}

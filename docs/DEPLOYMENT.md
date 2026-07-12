@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > **Vai trò của Repository này (`techx-corp-infra`):**
-> Repository này chịu trách nhiệm **Terraform**: bootstrap remote state + **GitHub Actions OIDC + ECR push roles**, VPC, EKS, **nested ECR** (`techx-prod-corp/*`, `techx-dev-corp/*`), và IAM cho AWS Load Balancer Controller.
+> Repository này chịu trách nhiệm **Terraform**: bootstrap remote state + **GitHub Actions OIDC + platform ECR push roles + infra Terraform plan/apply roles**, VPC, EKS, **nested ECR** (`techx-prod-corp/*`, `techx-dev-corp/*`), và IAM cho AWS Load Balancer Controller.
 
 ---
 
@@ -14,14 +14,14 @@
   ```text
   [REGISTRY]/[PROJECT]/[SERVICE]:[VERSION]
   ```
-- Bootstrap tạo account-level GitHub OIDC provider + IAM roles push image (OIDC, không access key dài hạn).
-- Xuất outputs cho platform CI/CD và chart Helm.
+- Bootstrap tạo account-level GitHub OIDC provider + IAM roles push image (platform) + Terraform plan/apply roles (infra repo) — OIDC, không access key dài hạn.
+- Xuất outputs cho platform CI/CD, infra GitHub secrets, và chart Helm.
 
 ## 2. Bản đồ Repository
 
 | Repository | Vai trò |
 |---|---|
-| **`techx-corp-infra`** | Terraform: bootstrap (state + GHA OIDC/ECR roles), network, EKS, ECR nested, ALB IAM |
+| **`techx-corp-infra`** | Terraform: bootstrap (state + GHA OIDC/ECR + Terraform plan/apply roles), network, EKS, ECR nested, ALB IAM |
 | **`techx-corp-platform`** | Build/push images vào ECR |
 | **`techx-corp-chart`** | Helm deploy từ image `REGISTRY/PROJECT/SERVICE:VERSION` |
 
@@ -99,7 +99,7 @@ Image đầy đủ (sau khi platform push):
 > [!CAUTION]
 > 1. Không commit state cục bộ / `backend.hcl` thật.  
 > 2. Production: luôn `plan -out` → review → `apply` artifact.  
-> 3. Bootstrap owns the **account-level** GitHub OIDC provider and both platform ECR push roles — apply bootstrap **before** environment stacks (and before platform image push).
+> 3. Bootstrap owns the **account-level** GitHub OIDC provider, both platform ECR push roles, and this repo’s Terraform plan/apply roles — apply bootstrap **before** environment stacks (and before platform image push / infra GHA).
 
 ### Bước 1: Bootstrap
 
@@ -115,6 +115,15 @@ terraform -chdir=bootstrap apply "bootstrap.tfplan"
 - `aws_iam_openid_connect_provider.github` → `token.actions.githubusercontent.com`
 - `module.github_actions_ecr["production"].aws_iam_role.this` → `techx-gha-platform-prod`
 - `module.github_actions_ecr["development"].aws_iam_role.this` → `techx-gha-platform-dev`
+- `module.github_actions_terraform["development-plan|apply"]` → `GitHubTerraformDevPlanRole` / `GitHubTerraformDevApplyRole`
+- `module.github_actions_terraform["production-plan|apply"]` → `GitHubTerraformProdPlanRole` / `GitHubTerraformProdApplyRole`
+
+Sau apply bootstrap, copy secrets cho **infra** GitHub repo:
+
+```bash
+terraform -chdir=bootstrap output -json github_actions_terraform_github_secrets
+# See docs/SETUP.md for Environments + secret names
+```
 
 Tạo `bootstrap/backend.hcl` (không commit):
 
