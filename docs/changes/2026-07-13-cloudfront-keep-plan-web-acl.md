@@ -84,6 +84,10 @@ None. Chart and platform are unchanged. No new AWS resources are created by Terr
 | **Backward compatibility** | PAYG stacks with null `cloudfront_web_acl_id` behave as before |
 | **Observability** | New `cloudfront_web_acl_id` output |
 
+## Post-merge integrity note (2026-07-13)
+
+After merges, the **web ACL pin remained intact** end-to-end (tfvars ARN, env wiring, module assignment). A later commit on the same message (`d22b148`) accidentally deleted `geo_restriction_type` / `geo_restriction_locations` from `modules/cloudfront-alb/variables.tf` while editing `web_acl_id`, which broke `terraform validate` (`Reference to undeclared input variable`). Those geo variables were restored; `web_acl_id` validation was already restored in `b0e0fcb`.
+
 ## Validation
 
 ### Automated Checks
@@ -91,7 +95,8 @@ None. Chart and platform are unchanged. No new AWS resources are created by Terr
 | Check | Command / Tool | Result |
 |---|---|---|
 | Live WebACL discovery | `aws cloudfront get-distribution --id ELZ9H0XX23S27 --query Distribution.DistributionConfig.WebACLId` | ✅ ARN returned (used in tfvars) |
-| Terraform validate | `terraform -chdir=environments/production init -backend=false` + `validate` | ✅ Pass |
+| Terraform validate | `terraform -chdir=environments/production init -backend=false` + `validate` | ✅ Pass (after geo var restore) |
+| Config vs live WebACL | production `cloudfront_web_acl_id` == AWS `WebACLId` | ✅ Match |
 
 ### Manual Verification
 
