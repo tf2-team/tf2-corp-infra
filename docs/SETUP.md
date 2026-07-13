@@ -93,7 +93,7 @@ If roles with the same names already exist outside Terraform, **import** them in
 ## 1. Repository settings (GitHub)
 
 1. Open the **infra** GitHub repository that contains `.github/workflows/terraform-*.yml`.
-2. Confirm the **dev integration branch** is **`techx-dev-corp`** (Promote Dev triggers on push to `techx-dev-corp`; production promote remains manual from `main` / dispatch).
+2. Confirm **production** is the default apply path: Promote Production triggers on push to **`main`** (path-filtered). Promote Dev is **manual** (`workflow_dispatch`) only.
 3. **Settings → Actions → General**
    - Allow Actions workflows for this repository.
    - Workflow permissions: repository default may be read-only; workflows declare their own `permissions:` blocks (`pull-requests: write`, `issues: write`, `id-token: write`, etc.). Ensure org policy does not strip OIDC (`id-token`) or required write scopes for PR comments / drift issues.
@@ -200,20 +200,20 @@ After workflows exist on the default branch, **Actions** should list:
 | Workflow | File | Trigger | Operator setup |
 | --- | --- | --- | --- |
 | Terraform CI | `terraform-ci.yml` | PR (path-filtered), `workflow_dispatch` | Branch protection |
-| Promote Dev | `terraform-promote-dev.yml` | Push to `techx-dev-corp` (path-filtered), `workflow_dispatch` | Environment `dev` |
-| Promote Production | `terraform-promote-production.yml` | **`workflow_dispatch` only** (`plan_only`) | Environment `production` |
+| Promote Dev | `terraform-promote-dev.yml` | **`workflow_dispatch` only** | Environment `dev` |
+| Promote Production | `terraform-promote-production.yml` | Push to `main` (path-filtered), `workflow_dispatch` (`plan_only`) | Environment `production` |
 | Terraform Drift Detection | `terraform-drift.yml` | Weekdays `22:00` UTC, `workflow_dispatch` | Issues permission (declared in workflow) |
 | Terraform Destroy Dev | `terraform-destroy-dev.yml` | `workflow_dispatch` (`confirm=destroy-dev`) | Environment `dev` |
 | Terraform Destroy Production | `terraform-destroy-production.yml` | `workflow_dispatch` (`confirm=destroy-production`) | Environment `production` |
 | Terraform Apply (reusable) | `terraform-apply.yml` | `workflow_call` only | — |
 
-Promote Dev path filters:
+Promote Production path filters (auto on push to `main`):
 
-- `environments/development/**`
+- `environments/production/**`
 - `modules/**`
 - `.github/workflows/**`
 
-Production never auto-applies on push.
+Development never auto-applies on push (manual **Promote Dev** only).
 
 ---
 
@@ -221,29 +221,26 @@ Production never auto-applies on push.
 
 ### 6.1 Static checks and plan (no apply)
 
-1. Open a small pull request that touches `environments/development/**`, `modules/**`, or another path that triggers Terraform CI.
+1. Open a small pull request that touches `environments/production/**`, `modules/**`, or another path that triggers Terraform CI.
 2. Confirm **Terraform CI** runs:
    - fmt / validate / TFLint / Checkov
    - Plan dev and Plan production (same-repo PR)
    - Sticky PR comments with **safe** summaries only (action counts + resource addresses; no attribute values)
 3. Fix Checkov/TFLint **errors** before merge. Existing warnings may be non-blocking; do not suppress new errors.
 
-### 6.2 Promote Dev
+### 6.2 Promote Production (auto on merge to `main`)
 
-1. Merge the PR to `techx-dev-corp`, or run **Actions → Promote Dev → Run workflow**.
+1. Merge the PR to `main` (path-filtered push starts **Promote Production**), or run **Actions → Promote Production → Run workflow**.
+2. Optional dry-run: dispatch with **`plan_only = true`** (plan + artifact; apply skipped).
+3. Approve the **production** Environment when prompted (if required reviewers are configured).
+4. Confirm apply uses the uploaded immutable `tfplan` from the same run.
+5. Spot-check AWS resources and job logs (`terraform output`).
+
+### 6.3 Promote Dev (manual / optional)
+
+1. **Actions → Promote Dev → Run workflow** when you need a development apply.
 2. If Environment `dev` has required reviewers, approve the deployment.
 3. Confirm OIDC assume succeeds and apply finishes green.
-4. Spot-check AWS resources and job logs (`terraform output`).
-
-### 6.3 Promote Production (manual)
-
-1. **Actions → Promote Production → Run workflow**.
-2. First run with **`plan_only = true`**:
-   - Expect plan + artifact + safe summary
-   - Apply job is skipped when `plan_only` is true
-3. Second run with **`plan_only = false`**.
-4. Approve the **production** Environment when prompted.
-5. Confirm apply uses the uploaded immutable `tfplan` from the same run.
 
 ### 6.4 Drift detection
 
@@ -272,14 +269,13 @@ Production destroy is **plan-then-approve**: destroy plan with plan role, then E
 
 ```text
 1. PR → Terraform CI (static + dual-env plan + safe PR comment)
-2. Merge to `techx-dev-corp` → Promote Dev auto-applies (path-filtered)
-3. Validate in development
-4. Actions → Promote Production (manual; optional plan_only)
-5. Approve production Environment → apply immutable plan
+2. Merge to `main` → Promote Production auto-applies (path-filtered)
+3. Approve production Environment (if required) → apply immutable plan
+4. (Optional) Actions → Promote Dev → Run workflow for development
 ```
 
-- Production **never** auto-applies on push.
-- Module changes on `main` auto-apply **development only**.
+- Development **never** auto-applies on push.
+- Module / production path changes on `main` auto-start **production** promote.
 - Bootstrap remains manual / out-of-band.
 
 ---
@@ -305,7 +301,8 @@ Production destroy is **plan-then-approve**: destroy plan with plan role, then E
 | Plan works, apply fails OIDC | Apply role trust missing Environment subject; Environment name not `dev` / `production` |
 | Backend init fails | Wrong `*_TF_BACKEND_BUCKET` / region, or role lacks S3/KMS on state prefix |
 | PR has no AWS plan | Fork PR (by design) or missing plan role secrets |
-| Promote Dev never runs | Path filter: only `environments/development/**`, `modules/**`, `.github/workflows/**` |
+| Promote Dev never runs | Expected unless you **Run workflow** manually (no push trigger) |
+| Promote Production never runs | Path filter: only `environments/production/**`, `modules/**`, `.github/workflows/**` on `main` |
 | Stuck on Environment | Required reviewer not approving; check the Deployments tab |
 | Destroy fails immediately after wrong confirm | Expected — re-run with the exact confirmation phrase |
 
@@ -317,7 +314,7 @@ Production destroy is **plan-then-approve**: destroy plan with plan role, then E
 2. **GitHub Environments:** `dev`, `production` (required reviewers on production).
 3. **Repository secrets:** all ten values from `github_actions_terraform_github_secrets`.
 4. **Branch protection:** PR + required CI checks on `main`.
-5. **Verify:** PR CI → merge / Promote Dev → Promote Production (`plan_only`, then real) → optional Drift.
+5. **Verify:** PR CI → merge to `main` / Promote Production → optional manual Promote Dev → optional Drift.
 
 ---
 
