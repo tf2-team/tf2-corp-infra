@@ -130,11 +130,8 @@ argocd_chart_version = "7.8.28"
 # Org chart repo (same as production); use techx-dev-corp ref for development GitOps.
 argocd_chart_repo_url = "https://github.com/tf2-team/tf2-corp-chart/tree/techx-dev-corp"
 
-# ──────────────────────────────────────────────
-# Storefront public ALB path blocking (Helm)
-# Aligned with production: allow all paths through to frontend-proxy
-# ──────────────────────────────────────────────
-storefront_alb_block_sensitive_paths = false
+# Storefront ALB is internal; path blocking (if any) is at CloudFront.
+storefront_alb_scheme = "internal"
 
 # Force-delete secret shells (same as production) for faster tear-down / re-bootstrap
 secrets_manager_recovery_window_in_days = 0
@@ -188,13 +185,20 @@ cluster_autoscaler_install_helm  = false
 cluster_autoscaler_chart_version = "9.46.6"
 
 # ──────────────────────────────────────────────
-# CloudFront free-tier — storefront ALB origin
-# Production has this enabled with shop.hungtran.id.vn; development stays OFF until
-# a dedicated ACM cert + dev ALB DNS + aliases are provided (do not reuse prod values).
+# CloudFront — internal ALB via VPC origin (OFF by default)
+# Prerequisites: internal ALB healthy; ACM us-east-1; ALB ARN + DNS.
 # See docs/cloudfront.md
 # ──────────────────────────────────────────────
 cloudfront_enabled = false
-# cloudfront_acm_certificate_arn = "arn:aws:acm:us-east-1:ACCOUNT:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-# cloudfront_origin_domain_name  = "k8s-….elb.amazonaws.com"
-# cloudfront_aliases             = ["shop-dev.example.com"]
-# cloudfront_price_class         = "PriceClass_200"
+# cloudfront_acm_certificate_arn   = "arn:aws:acm:us-east-1:ACCOUNT:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# cloudfront_origin_domain_name    = "internal-k8s-….elb.amazonaws.com"
+# cloudfront_origin_alb_arn        = "arn:aws:elasticloadbalancing:us-east-1:ACCOUNT:loadbalancer/app/…/…"
+# cloudfront_aliases               = ["shop-dev.example.com"]
+# cloudfront_price_class           = "PriceClass_100"
+# cloudfront_block_sensitive_paths = false
+
+# -----------------------------------------------
+
+# Trigger CICD
+
+# -----------------------------------------------

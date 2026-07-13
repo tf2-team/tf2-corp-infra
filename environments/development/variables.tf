@@ -190,41 +190,22 @@ variable "argocd_chart_repo_url" {
 }
 
 # ──────────────────────────────────────────────
-# Storefront public ALB path blocking (Helm-applied)
+# Storefront ALB (internal; no path blocks — blocking is on CloudFront)
 # ──────────────────────────────────────────────
 # Path rules are enforced by techx-corp-chart Ingress annotations (ALB Controller),
 # not by raw AWS Terraform resources. These variables are the IaC source of truth
 # for operators / deploy scripts.
 
-variable "storefront_alb_block_sensitive_paths" {
-  type        = bool
-  default     = true
+variable "storefront_alb_scheme" {
+  type        = string
+  default     = "internal"
   nullable    = false
-  description = <<-EOT
-    Toggle ALB fixed-response 403 for sensitive paths on the public storefront Ingress.
-    true  → BLOCK: /grafana, /jaeger, /loadgen, /feature, /flagservice, /otlp-http
-            ALLOW: / , /api/* , /images/* (and other non-blocked prefixes via catch-all /)
-    false → no path blocks; all prefixes forward to frontend-proxy
+  description = "ALB scheme for frontend-proxy-public Ingress (must be internal when using CloudFront VPC origin)"
 
-    Applied via Helm:
-      --set components.frontend-proxy.publicAlb.blockSensitivePaths=<true|false>
-    See outputs storefront_alb_helm_set_flags and storefront_alb_helm_deploy_command.
-
-    Both environments override this to false in terraform.tfvars (open storefront paths).
-  EOT
-}
-
-variable "storefront_alb_blocked_prefixes" {
-  type = list(string)
-  default = [
-    "/grafana",
-    "/jaeger",
-    "/loadgen",
-    "/feature",
-    "/flagservice",
-    "/otlp-http",
-  ]
-  description = "Sensitive path prefixes blocked when storefront_alb_block_sensitive_paths is true (must match chart values)"
+  validation {
+    condition     = contains(["internal", "internet-facing"], var.storefront_alb_scheme)
+    error_message = "storefront_alb_scheme must be internal or internet-facing."
+  }
 }
 
 # ──────────────────────────────────────────────
@@ -423,7 +404,7 @@ variable "cloudfront_enabled" {
   type        = bool
   default     = false
   nullable    = false
-  description = "Create CloudFront distribution in front of the storefront ALB (requires ACM + origin DNS + aliases)"
+  description = "Create CloudFront distribution with VPC origin to the internal storefront ALB"
 }
 
 variable "cloudfront_acm_certificate_arn" {
@@ -437,7 +418,19 @@ variable "cloudfront_origin_domain_name" {
   type        = string
   default     = ""
   nullable    = false
-  description = "Storefront ALB DNS name (kubectl get ingress frontend-proxy-public … hostname)"
+  description = "Internal storefront ALB DNS name (kubectl get ingress frontend-proxy-public … hostname)"
+}
+
+variable "cloudfront_origin_alb_arn" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = <<-EOT
+    Internal storefront ALB ARN for CloudFront VPC origin (required when cloudfront_enabled=true).
+    Example:
+      aws elbv2 describe-load-balancers --region us-east-1 ^
+        --query "LoadBalancers[?DNSName=='<alb-dns>'].LoadBalancerArn" --output text
+  EOT
 }
 
 variable "cloudfront_aliases" {
@@ -452,6 +445,30 @@ variable "cloudfront_price_class" {
   default     = "PriceClass_100"
   nullable    = false
   description = "CloudFront price class (PriceClass_100 is free-tier / lowest-cost footprint)"
+}
+
+variable "cloudfront_block_sensitive_paths" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = <<-EOT
+    When true, CloudFront Function returns HTTP 403 for cloudfront_blocked_prefixes.
+    Default false in development for open demo access via the edge.
+  EOT
+}
+
+variable "cloudfront_blocked_prefixes" {
+  type = list(string)
+  default = [
+    "/grafana",
+    "/jaeger",
+    "/loadgen",
+    "/feature",
+    "/flagservice",
+    "/otlp-http",
+  ]
+  nullable    = false
+  description = "URI path prefixes blocked at CloudFront when cloudfront_block_sensitive_paths is true"
 }
 
 variable "plan_role_arn" {
