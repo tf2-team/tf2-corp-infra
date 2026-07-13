@@ -553,53 +553,44 @@ helm upgrade --install techx-corp techx-corp-chart \
 - Primary rollback after GitOps: **git revert**, not Helm rollback
 - Chart append `/SERVICE` → full nested image path
 
-### Storefront ALB path blocking (Terraform flag → Helm)
+### Storefront internal ALB + CloudFront path blocking
 
-IaC toggle (does not create AWS rules by itself; applied via Helm Ingress):
+The storefront ALB is **internal** (chart `values-public-alb.yaml`: `scheme: internal`, no ALB path-block rules). Public HTTPS and sensitive-path **403**s are on **CloudFront** (VPC origin + Function).
 
-```hcl
-# environments/production/terraform.tfvars (or development)
-storefront_alb_block_sensitive_paths = true   # or false
-```
-
-```bash
-terraform -chdir=environments/production output storefront_alb_block_sensitive_paths
+```cmd
+terraform -chdir=environments/production output storefront_alb_scheme
 terraform -chdir=environments/production output storefront_alb_helm_set_flags
 terraform -chdir=environments/production output storefront_alb_security_posture
+terraform -chdir=environments/production output cloudfront_block_sensitive_paths
 ```
 
-If the app Helm release is **already installed**, toggle **only** the block flag (no image change):
+Helm break-glass flags always set internal ALB with no path blocks:
 
-```bash
-# ON
-helm upgrade techx-corp techx-corp-chart \
-  -n techx-corp \
-  --reuse-values \
-  --set components.frontend-proxy.publicAlb.blockSensitivePaths=true \
-  --wait --timeout 5m
-
-# OFF
-helm upgrade techx-corp techx-corp-chart \
-  -n techx-corp \
-  --reuse-values \
-  --set components.frontend-proxy.publicAlb.blockSensitivePaths=false \
-  --wait --timeout 5m
+```cmd
+terraform -chdir=environments/production output storefront_alb_helm_set_flags
+REM → --set components.frontend-proxy.publicAlb.scheme=internal --set …blockSensitivePaths=false
 ```
 
-Posture when ON: ALLOW `/`, `/api/*`, `/images/*` · BLOCK `/grafana`, `/jaeger`, `/loadgen`, `/feature`, `/flagservice`, `/otlp-http` (HTTP 403).
+Path blocking at the edge (Terraform):
 
-### CloudFront free-tier edge (optional — ALB origin)
+```hcl
+cloudfront_block_sensitive_paths = true   # or false
+# cloudfront_blocked_prefixes    = ["/grafana", "/jaeger", …]
+```
 
-Optional HTTPS edge in front of the storefront ALB. Off by default (`cloudfront_enabled = false`). Primary input is an **ACM certificate ARN** (must be issued in `us-east-1`); also require ALB DNS + domain aliases.
+### CloudFront edge (internal ALB VPC origin)
+
+Optional HTTPS edge. Off by default (`cloudfront_enabled = false`). When enabled: ACM ARN (`us-east-1`), **internal** ALB DNS + **ALB ARN** (VPC origin), and aliases.
 
 Full runbook: **[docs/cloudfront.md](./cloudfront.md)**.
 
 ```cmd
 cd /d techx-corp-infra
-REM After setting cloudfront_* in terraform.tfvars:
+REM After setting cloudfront_* (including cloudfront_origin_alb_arn) in terraform.tfvars:
 terraform -chdir=environments/production plan -out=tfplan
 terraform -chdir=environments/production apply tfplan
 terraform -chdir=environments/production output cloudfront_domain_name
+terraform -chdir=environments/production output cloudfront_vpc_origin_id
 ```
 
 ---
