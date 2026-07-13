@@ -196,6 +196,8 @@ cloudfront_enabled = false
 # cloudfront_aliases               = ["shop-dev.example.com"]
 # cloudfront_price_class           = "PriceClass_100"
 # cloudfront_block_sensitive_paths = false
+# Required if distribution is on a flat-rate pricing plan (keep plan-created ACL):
+# cloudfront_web_acl_id            = "arn:aws:wafv2:us-east-1:ACCOUNT:global/webacl/CreatedByCloudFront-…/…"
 
 # -----------------------------------------------
 

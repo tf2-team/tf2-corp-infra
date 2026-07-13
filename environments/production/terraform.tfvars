@@ -195,7 +195,11 @@ cloudfront_enabled             = true
 cloudfront_acm_certificate_arn = "arn:aws:acm:us-east-1:493499579600:certificate/d21f8de5-4a2b-43ae-b3d8-78f0c43957f9"
 cloudfront_origin_domain_name  = "k8s-techxcor-frontend-7248b316f5-455614012.us-east-1.elb.amazonaws.com"
 # REQUIRED for VPC origin — set after internal ALB exists (replace placeholder):
-cloudfront_origin_alb_arn        = "arn:aws:elasticloadbalancing:us-east-1:493499579600:loadbalancer/app/k8s-techxcor-frontend-ae4ef3a99c/67565bb9a2abe1fb"
-cloudfront_aliases               = ["shop.hungtran.id.vn"]
-cloudfront_price_class           = "PriceClass_200"
+cloudfront_origin_alb_arn = "arn:aws:elasticloadbalancing:us-east-1:493499579600:loadbalancer/app/k8s-techxcor-frontend-ae4ef3a99c/67565bb9a2abe1fb"
+cloudfront_aliases        = ["shop.hungtran.id.vn"]
+# Live distribution on flat-rate plan reports PriceClass_All; keep in sync to avoid plan drift.
+cloudfront_price_class           = "PriceClass_All"
 cloudfront_block_sensitive_paths = true
+# Flat-rate pricing plan requires a web ACL; keep the plan-created ACL (do not clear).
+# ELZ9H0XX23S27 → CreatedByCloudFront-fdcaf0af
+cloudfront_web_acl_id = "arn:aws:wafv2:us-east-1:493499579600:global/webacl/CreatedByCloudFront-fdcaf0af/386dc339-d89e-4b2f-933d-0a00e8128659"

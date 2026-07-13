@@ -471,6 +471,19 @@ variable "cloudfront_blocked_prefixes" {
   description = "URI path prefixes blocked at CloudFront when cloudfront_block_sensitive_paths is true"
 }
 
+variable "cloudfront_web_acl_id" {
+  type        = string
+  default     = null
+  description = <<-EOT
+    WAFv2 web ACL ARN for the storefront CloudFront distribution (global / us-east-1).
+    Required when the distribution is on a CloudFront flat-rate pricing plan: leave the
+    plan-created ACL attached so UpdateDistribution does not clear web_acl_id.
+    Discover with:
+      aws cloudfront get-distribution --id <DISTRIBUTION_ID> ^
+        --query Distribution.DistributionConfig.WebACLId --output text
+  EOT
+}
+
 variable "plan_role_arn" {
   type        = string
   default     = null

@@ -347,6 +347,11 @@ output "cloudfront_blocked_prefixes" {
   description = "Path prefixes blocked at CloudFront when path blocking is on"
 }
 
+output "cloudfront_web_acl_id" {
+  value       = module.cloudfront_storefront.web_acl_id
+  description = "WAFv2 web ACL ARN on the storefront distribution (null when unset/disabled)"
+}
+
 output "cloudfront_bootstrap_note" {
   value       = <<-EOT
     CloudFront storefront (internal ALB VPC origin):
@@ -354,9 +359,10 @@ output "cloudfront_bootstrap_note" {
     2) Wait for internal ALB DNS on Ingress frontend-proxy-public.
     3) Resolve ALB ARN from DNS; set cloudfront_origin_domain_name + cloudfront_origin_alb_arn.
     4) Issue ACM cert in us-east-1; set cloudfront_acm_certificate_arn + cloudfront_aliases.
-    5) terraform apply → point DNS CNAME/ALIAS to cloudfront_domain_name.
-    6) Verify storefront HTTPS and 403 on blocked prefixes (when cloudfront_block_sensitive_paths=true).
-    7) See docs/cloudfront.md for cutover/rollback.
+    5) If distribution uses a flat-rate pricing plan, set cloudfront_web_acl_id to the plan WebACL ARN.
+    6) terraform apply → point DNS CNAME/ALIAS to cloudfront_domain_name.
+    7) Verify storefront HTTPS and 403 on blocked prefixes (when cloudfront_block_sensitive_paths=true).
+    8) See docs/cloudfront.md for cutover/rollback.
   EOT
   description = "Operator enable sequence for CloudFront + VPC origin"
 }
