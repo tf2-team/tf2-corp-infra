@@ -192,7 +192,7 @@ cluster_autoscaler_chart_version = "9.46.6"
 # Prerequisites: public ALB healthy; ACM cert ISSUED in us-east-1.
 # See docs/cloudfront.md
 # ──────────────────────────────────────────────
-cloudfront_enabled = true
+cloudfront_enabled             = true
 cloudfront_acm_certificate_arn = "arn:aws:acm:us-east-1:493499579600:certificate/d21f8de5-4a2b-43ae-b3d8-78f0c43957f9"
 cloudfront_origin_domain_name  = "k8s-techxcor-frontend-7248b316f5-455614012.us-east-1.elb.amazonaws.com"
 cloudfront_aliases             = ["shop.hungtran.id.vn"]
