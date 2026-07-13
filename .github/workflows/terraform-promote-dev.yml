@@ -1,13 +1,8 @@
 name: Promote Dev
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "environments/development/**"
-      - "modules/**"
-      - ".github/workflows/**"
+  # Manual only: development is optional for capstone; test/apply prod on push by default.
+  # Run this workflow when you intentionally want a development apply.
   workflow_dispatch:
 
 permissions:
