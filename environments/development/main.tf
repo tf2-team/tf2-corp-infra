@@ -1,7 +1,7 @@
 module "ecr" {
   source = "../../modules/ecr"
 
-  # Creates techx-dev-corp/<service> for every platform bake service (module default catalog)
+  # Nested ECR repos under var.ecr_project_name (development: techx-dev-corp/<service>)
   project_name           = var.ecr_project_name
   naming_mode            = var.ecr_naming_mode
   keep_last_n_images     = var.ecr_keep_last_n_images
@@ -67,7 +67,7 @@ module "eks" {
   enable_cluster_autoscaler_asg_tags = var.cluster_autoscaler_enabled
 }
 
-# GitOps control plane (REL-09). Default off until cluster + kubectl path is ready.
+# GitOps control plane (REL-09). Same enablement model as production (API access required at apply).
 module "argocd" {
   source = "../../modules/argocd"
 
@@ -104,7 +104,7 @@ module "external_secrets" {
 }
 
 # ──────────────────────────────────────────────
-# Karpenter — node autoscaling (Spot-preferred in development)
+# Karpenter — node autoscaling (Spot-preferred; same model as production)
 # ──────────────────────────────────────────────
 
 module "karpenter" {

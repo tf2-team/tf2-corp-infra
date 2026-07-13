@@ -27,7 +27,7 @@ variable "ecr_naming_mode" {
 
 variable "ecr_keep_last_n_images" {
   type        = number
-  description = "Lifecycle: keep N most recent non-buildcache images per service repo (development: 5)"
+  description = "Lifecycle: keep N most recent non-buildcache images per service repo (aligned with production: 5)"
   default     = 5
 }
 
@@ -185,13 +185,16 @@ variable "argocd_chart_version" {
 
 variable "argocd_chart_repo_url" {
   type        = string
-  default     = "https://github.com/tmcmanhcuong/techx-corp-chart.git"
-  description = "Git URL of the Helm chart repo used by Argo CD Applications (document only; apps live in chart gitops/)"
+  default     = "https://github.com/tf2-team/tf2-corp-chart.git"
+  description = "Git URL of the Helm chart repo used by Argo CD Applications"
 }
 
 # ──────────────────────────────────────────────
 # Storefront ALB (internal; no path blocks — blocking is on CloudFront)
 # ──────────────────────────────────────────────
+# Path rules are enforced by techx-corp-chart Ingress annotations (ALB Controller),
+# not by raw AWS Terraform resources. These variables are the IaC source of truth
+# for operators / deploy scripts.
 
 variable "storefront_alb_scheme" {
   type        = string
@@ -218,7 +221,7 @@ variable "secrets_manager_name_prefix" {
 variable "secrets_manager_recovery_window_in_days" {
   type        = number
   description = "ASM recovery window for secret shells (0 = force delete; else 7–30)"
-  default     = 7
+  default     = 0
 }
 
 variable "secrets_manager_kms_key_id" {
@@ -289,7 +292,7 @@ variable "karpenter_spot_preferred" {
   type        = bool
   default     = true
   nullable    = false
-  description = "Prefer Spot NodePool with On-Demand fallback (recommended for development)"
+  description = "Prefer Spot NodePool with On-Demand fallback (aligned with production)"
 }
 
 variable "karpenter_node_taints" {

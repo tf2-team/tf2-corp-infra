@@ -9,6 +9,7 @@ tags = {
 
 # Image format: REGISTRY/techx-dev-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
+# Lifecycle matches production (keep last 5 images + 1 buildcache).
 ecr_project_name           = "techx-dev-corp"
 ecr_naming_mode            = "nested"
 ecr_keep_last_n_images     = 5
@@ -53,20 +54,16 @@ nat_gateways = {
 }
 
 # ──────────────────────────────────────────────
-# EKS Configuration (cost-optimized for development)
+# EKS Configuration (aligned with production topology)
+# Critical floor only: system-* MNG (ARM On-Demand, workload-class=critical).
+# No legacy general-* dual-run capacity — same model as production.
+# Phase 1 has no Cluster Autoscaler; max_size is an emergency ceiling only.
+# One managed node group per AZ so EBS volumes / pods can schedule in both zones.
 # ──────────────────────────────────────────────
 cluster_name       = "techx-dev"
 kubernetes_version = "1.36"
 
-# Critical floor (hard placement): system-* MNG (On-Demand, workload-class=critical).
-# general-* are legacy dual-run capacity during migration — leave unchanged in create-system
-# plans to avoid accidental replace/destroy. Drain and remove general-* only after acceptance.
-# Phase 1 has no Cluster Autoscaler; max_size is an emergency ceiling only (no auto scale-out).
-# One managed node group per AZ so EBS volumes / pods can schedule in both zones.
 node_groups = {
-  # Legacy migration capacity (do not change instance/lifecycle here while creating system-*).
-
-  # New critical floor (create-only in first migration plan).
   "system-1a" = {
     instance_types = ["t4g.medium"]
     capacity_type  = "ON_DEMAND"
@@ -125,21 +122,22 @@ addons = {
 }
 
 # ──────────────────────────────────────────────
-# Argo CD (REL-09) — set true when ready to install control plane
+# Argo CD (REL-09) — same enablement model as production
 # Requires: aws eks update-kubeconfig + cluster API reachable during apply
 # ──────────────────────────────────────────────
 argocd_enabled       = true
 argocd_chart_version = "7.8.28"
-# Override if chart lives under a different GitHub path:
-argocd_chart_repo_url = "https://github.com/tmcmanhcuong/tf2-corp-chart/tree/techx-dev-corp"
+# Org chart repo (same as production); use techx-dev-corp ref for development GitOps.
+argocd_chart_repo_url = "https://github.com/tf2-team/tf2-corp-chart/tree/techx-dev-corp"
 
 # Storefront ALB is internal; path blocking (if any) is at CloudFront.
 storefront_alb_scheme = "internal"
 
+# Force-delete secret shells (same as production) for faster tear-down / re-bootstrap
 secrets_manager_recovery_window_in_days = 0
 
 # ──────────────────────────────────────────────
-# Karpenter (node autoscaling) — Spot preferred
+# Karpenter (node autoscaling) — Spot preferred (same as production)
 # Requires: cluster API reachable when install_helm / create_node_resources are true
 # Default capacity model: critical MNG floor + Karpenter elastic (do not enable CA Helm with this).
 # CRD and controller must share chart_version; upgrade CRD before controller.
@@ -173,7 +171,7 @@ karpenter_disruption_budget_nodes = {
   spot      = "1"
   on_demand = "1"
 }
-# Short reclaim window in development (WhenEmptyOrUnderutilized).
+# Short reclaim window (WhenEmptyOrUnderutilized) — same as production.
 karpenter_consolidate_after = "1m"
 
 # ──────────────────────────────────────────────

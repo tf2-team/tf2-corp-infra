@@ -9,8 +9,8 @@ This repository uses GitHub Actions with AWS OIDC and Terraform S3 remote state.
 | Workflow | File | Triggers | Purpose |
 | --- | --- | --- | --- |
 | **Terraform CI** | `terraform-ci.yml` | `pull_request` (path-filtered), `workflow_dispatch` | Format, validate, TFLint, Checkov (+ SARIF), dual-env plan with **safe** PR summaries |
-| **Promote Dev** | `terraform-promote-dev.yml` | `push` to `techx-dev-corp` (`environments/development/**`, `modules/**`, `.github/workflows/**`), `workflow_dispatch` | Plan + apply development |
-| **Promote Production** | `terraform-promote-production.yml` | **`workflow_dispatch` only** (`plan_only` input) | Plan + apply production after human approval |
+| **Promote Dev** | `terraform-promote-dev.yml` | **`workflow_dispatch` only** | Plan + apply development (manual; optional for capstone) |
+| **Promote Production** | `terraform-promote-production.yml` | `push` to `main` (`environments/production/**`, `modules/**`, `.github/workflows/**`), `workflow_dispatch` (`plan_only`) | Plan + apply production (auto on path-filtered push; Environment gate still applies) |
 | **Terraform Drift Detection** | `terraform-drift.yml` | Weekdays `22:00` UTC cron, `workflow_dispatch` | Plan both envs; manage one drift issue per environment |
 | **Terraform Destroy Dev** | `terraform-destroy-dev.yml` | `workflow_dispatch` (`confirm=destroy-dev`) | Destroy development after confirmation + Environment |
 | **Terraform Destroy Production** | `terraform-destroy-production.yml` | `workflow_dispatch` (`confirm=destroy-production`) | Plan-then-approve production destroy |
@@ -29,12 +29,12 @@ After bootstrap apply, set repository secrets from `terraform -chdir=bootstrap o
 
 1. Open a pull request for infrastructure changes.
 2. Review static checks, Checkov, and **safe structural** Terraform plan summaries on the PR.
-3. Merge to `techx-dev-corp` → **Promote Dev** applies development (path-filtered).
-4. Validate in development.
-5. Run **Promote Production** manually (`workflow_dispatch`). Optional: `plan_only=true`.
-6. Approve the `production` GitHub Environment gate; apply uses the **immutable** binary plan from the same run.
+3. Merge to `main` → **Promote Production** applies production when paths match (`environments/production/**`, `modules/**`, workflows).
+4. Approve the `production` GitHub Environment gate if required; apply uses the **immutable** binary plan from the same run.
+5. (Optional) Run **Promote Dev** manually (`workflow_dispatch`) when you need a development stack apply.
+6. Optional: **Promote Production** with `plan_only=true` for a manual plan without apply.
 
-Module changes on `main` auto-apply **dev only**. Production never auto-applies on push.
+Module / production path changes on `main` auto-start **production** promote. Development never auto-applies on push.
 
 ## Safe plan summary policy
 
