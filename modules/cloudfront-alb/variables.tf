@@ -173,45 +173,6 @@ variable "web_acl_id" {
       aws cloudfront get-distribution --id <ID> --query Distribution.DistributionConfig.WebACLId
   EOT
   default     = null
-
-  validation {
-    condition = (
-      var.web_acl_id == null ||
-      var.web_acl_id == "" ||
-      can(regex("^arn:aws:wafv2:us-east-1:[0-9]{12}:global/webacl/.+", var.web_acl_id))
-    )
-    error_message = "web_acl_id must be null/empty or a us-east-1 global WAFv2 web ACL ARN (arn:aws:wafv2:us-east-1:ACCOUNT:global/webacl/…)."
-  }
-}
-
-variable "default_root_object" {
-  type        = string
-  description = "Default root object for viewer requests to / (Checkov CKV_AWS_305; storefront index)"
-  default     = "index.html"
-  nullable    = false
-}
-
-variable "geo_restriction_type" {
-  type        = string
-  description = "CloudFront geo restriction type (whitelist/blacklist enables CKV_AWS_374; none disables)"
-  default     = "whitelist"
-  nullable    = false
-
-  validation {
-    condition     = contains(["none", "whitelist", "blacklist"], var.geo_restriction_type)
-    error_message = "geo_restriction_type must be none, whitelist, or blacklist."
-  }
-}
-
-variable "geo_restriction_locations" {
-  type        = list(string)
-  description = "ISO 3166-1-alpha-2 country codes for geo restriction (used when type is whitelist/blacklist)"
-  # Broad enough for a public storefront; tighten per environment if needed.
-  default = [
-    "US", "CA", "GB", "DE", "FR", "NL", "IE", "SE", "NO", "DK",
-    "VN", "SG", "JP", "KR", "AU", "NZ", "IN", "TH", "MY", "ID", "PH",
-  ]
-  nullable = false
 }
 
 variable "tags" {
