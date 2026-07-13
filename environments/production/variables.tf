@@ -490,3 +490,61 @@ variable "plan_role_arn" {
   description = "IAM Role ARN of the GitHub Actions Plan Role to authorize in EKS"
 }
 
+# ──────────────────────────────────────────────
+# Client VPN — private operator access to internal ALB
+# ──────────────────────────────────────────────
+
+variable "client_vpn_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, create AWS Client VPN for private access to the internal storefront ALB"
+}
+
+variable "client_vpn_client_cidr_block" {
+  type        = string
+  default     = "10.100.0.0/22"
+  nullable    = false
+  description = "IPv4 CIDR for VPN clients (must not overlap VPC CIDR 10.0.0.0/16)"
+}
+
+variable "client_vpn_server_certificate_arn" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "ACM server certificate ARN for Client VPN (same region as VPC; required when enabled)"
+}
+
+variable "client_vpn_client_ca_arn" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "ACM ARN of the client CA certificate used for mutual TLS (required when enabled)"
+}
+
+variable "client_vpn_subnet_ids" {
+  type        = list(string)
+  default     = []
+  nullable    = false
+  description = "Private subnet IDs to associate (empty = first private subnet only, for cost control)"
+}
+
+variable "client_vpn_split_tunnel" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, only VPC-destined traffic uses the VPN"
+}
+
+variable "client_vpn_alb_security_group_ids" {
+  type        = list(string)
+  default     = []
+  nullable    = false
+  description = <<-EOT
+    Optional internal storefront ALB security group IDs. When set, Terraform adds
+    ingress TCP 80 from client_vpn_client_cidr_block so VPN clients can reach the ALB.
+    Discover with: aws elbv2 describe-load-balancers / describe-security-groups.
+    Do not take exclusive SG ownership via Ingress annotations (CloudFront VPC origin).
+  EOT
+}
+

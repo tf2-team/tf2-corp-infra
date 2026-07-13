@@ -593,6 +593,21 @@ terraform -chdir=environments/production output cloudfront_domain_name
 terraform -chdir=environments/production output cloudfront_vpc_origin_id
 ```
 
+### Client VPN (private admin paths on the same internal ALB)
+
+Admin/telemetry prefixes remain **403 on CloudFront**. Operators connect via **AWS Client VPN** and use the **internal ALB** DNS (no second ALB). Off by default (`client_vpn_enabled = false`) because of association hours.
+
+Full runbook: **[docs/client-vpn.md](./client-vpn.md)**.
+
+```cmd
+cd /d techx-corp-infra
+REM After ACM server + client CA certs and optional ALB SG ids in terraform.tfvars:
+terraform -chdir=environments/production plan -out=tfplan
+terraform -chdir=environments/production apply tfplan
+terraform -chdir=environments/production output client_vpn_endpoint_id
+terraform -chdir=environments/production output client_vpn_export_client_config_command
+```
+
 ---
 
 ## Phase 5–6: Verify & Rollback (tham chiếu chart)
@@ -612,6 +627,8 @@ Smoke test + `helm rollback` — xem `techx-corp-chart/docs/DEPLOYMENT.md`.
 | `modules/karpenter` | Karpenter IRSA, node role, SQS interruption, Helm, NodePool/EC2NodeClass |
 | `modules/secrets-manager` | ASM secret shells (metadata only; no secret values) |
 | `modules/external-secrets` | ESO IRSA + optional Helm/ClusterSecretStore |
+| `modules/cloudfront-alb` | CloudFront + VPC origin + optional path-block Function |
+| `modules/client-vpn` | Optional Client VPN for private admin access to internal ALB |
 
 ---
 

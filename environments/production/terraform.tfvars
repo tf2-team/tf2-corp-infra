@@ -203,3 +203,17 @@ cloudfront_block_sensitive_paths = true
 # PAYG: no WAF. Flat-rate plan was cancelled; leave unset so apply detaches CreatedByCloudFront-* ACL.
 # To attach your own WAFv2 later: set cloudfront_web_acl_id to a global web ACL ARN.
 # cloudfront_web_acl_id = null
+
+# ──────────────────────────────────────────────
+# Client VPN — private admin access to internal storefront ALB
+# Bypass CloudFront path blocks (/grafana, /jaeger, …). OFF by default (association cost).
+# See docs/client-vpn.md
+# ──────────────────────────────────────────────
+client_vpn_enabled           = false
+client_vpn_client_cidr_block = "10.100.0.0/22"
+# client_vpn_server_certificate_arn = "arn:aws:acm:us-east-1:ACCOUNT:certificate/SERVER-CERT-ID"
+# client_vpn_client_ca_arn          = "arn:aws:acm:us-east-1:ACCOUNT:certificate/CLIENT-CA-ID"
+# Optional: ALB SG so Terraform opens TCP 80 from client CIDR (recommended when enabling)
+# client_vpn_alb_security_group_ids = ["sg-xxxxxxxx"]
+# Optional: override default (first private subnet only)
+# client_vpn_subnet_ids = ["subnet-xxxxxxxx"]

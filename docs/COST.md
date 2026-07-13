@@ -44,6 +44,7 @@ Platform fixed costs (EKS + NAT + ALB) are large relative to this demo-sized wor
 - EKS control plane and managed node groups
 - VPC networking: NAT Gateway, public IPv4 on NAT EIP, cross-AZ transfer (estimated)
 - Storefront **internal ALB** (AWS Load Balancer Controller + chart Ingress) + optional CloudFront VPC origin
+- Optional **AWS Client VPN** for private admin access to that ALB (off by default; association + connection hours)
 - EBS for node root volumes and application PVCs
 - ECR nested repositories and image storage
 - AWS Secrets Manager secret *metadata* (SEC-05 shells)
@@ -119,6 +120,7 @@ Both **development** and **production** currently use the same compute shape:
 | Argo CD (`argocd_enabled`) | **true** | **false** |
 | Storefront internal ALB | Yes (Helm overlay) | Yes (Helm overlay) |
 | Path blocking | CloudFront Function (optional; off default in dev) | CloudFront Function (on when CF enabled) |
+| Client VPN (admin path) | Optional; **off** by default | Optional; **off** by default (association cost) |
 | Secrets Manager shells | 5 per env (prefix differs) | 5 per env |
 
 **Node capacity (desired):** 2 × `t3.large` = **4 vCPU / 16 GiB** raw (before kubelet / system reservation).
@@ -357,6 +359,9 @@ These figures exclude GitHub CI and any non-AWS tools.
 | Chart `docs/DEPLOYMENT.md` | Helm / GitOps / public ALB application deploy |
 | Chart `values.yaml` | Component enablement, resources, PVCs, HPA |
 | Chart `values-public-alb.yaml` | Internal storefront ALB (CloudFront VPC origin target) |
+| [client-vpn.md](./client-vpn.md) | Optional Client VPN for private admin paths (same internal ALB) |
+
+**Client VPN (when enabled):** ~$0.10/hour per associated subnet + ~$0.05/hour per active connection + data. Default **one** subnet association. Leave disabled when unused.
 
 ---
 
@@ -365,6 +370,7 @@ These figures exclude GitHub CI and any non-AWS tools.
 | Date | Change |
 |---|---|
 | 2026-07-10 | Initial estimate for full-component single env (~$280–320) and dual env (~$560–650) based on current tfvars and chart defaults. |
+| 2026-07-13 | Document optional Client VPN cost (off by default; association hours). |
 
 ---
 
