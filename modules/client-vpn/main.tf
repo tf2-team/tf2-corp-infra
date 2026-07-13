@@ -5,8 +5,9 @@
 #   1) Internal storefront ALB (frontend-proxy-public) for admin paths blocked at
 #      CloudFront (/grafana, /jaeger, …). Does not create a second ALB.
 #   2) EKS Kubernetes API on the private endpoint (TCP 443) when VPN DNS resolves
-#      the cluster hostname to VPC ENI IPs. Public EKS endpoint stays independent
-#      (dual-access: internet + VPN); this module only opens the private path.
+#      the cluster hostname to VPC ENI IPs. Opens target SGs from this module's
+#      association security group (SG-to-SG), not client CIDR alone — required for
+#      private EKS API ENIs. Public EKS endpoint stays independent (dual-access).
 #
 # Auth: mutual TLS (operator-managed CA → ACM). Split tunnel by default.
 # Cost: association hours per subnet — associate one AZ unless HA is required.
@@ -166,8 +167,9 @@ resource "aws_ec2_client_vpn_authorization_rule" "vpc" {
 }
 
 # ──────────────────────────────────────────────
-# Optional: allow VPN client CIDR to internal ALB SG (TCP 80)
-# Does not replace CloudFront VPC-origin rules on the same SG.
+# Optional: allow Client VPN ENI SG to internal ALB SG (TCP 80)
+# AWS evaluates association ENI membership (not client CIDR alone) for SG rules
+# on targets. Does not replace CloudFront VPC-origin rules on the same SG.
 # ──────────────────────────────────────────────
 
 resource "aws_vpc_security_group_ingress_rule" "alb_from_vpn_clients" {
@@ -175,26 +177,29 @@ resource "aws_vpc_security_group_ingress_rule" "alb_from_vpn_clients" {
 
   security_group_id = each.value
   # EC2 SG rule descriptions allow only ASCII from a fixed set (no Unicode).
-  description = "Client VPN clients to storefront internal ALB HTTP"
-  ip_protocol = "tcp"
-  from_port   = var.alb_ingress_port
-  to_port     = var.alb_ingress_port
-  cidr_ipv4   = var.client_cidr_block
+  description                  = "Client VPN ENI SG to storefront internal ALB HTTP"
+  ip_protocol                  = "tcp"
+  from_port                    = var.alb_ingress_port
+  to_port                      = var.alb_ingress_port
+  referenced_security_group_id = aws_security_group.client_vpn[0].id
 }
 
 # ──────────────────────────────────────────────
-# Optional: allow VPN client CIDR to EKS cluster SG (TCP 443)
-# Fixes: kubectl dial tcp 10.x.x.x:443 i/o timeout while on Client VPN when the
-# API hostname resolves to private ENI IPs. Does not change public endpoint.
+# Optional: allow Client VPN ENI SG to EKS cluster SG (TCP 443)
+# Client CIDR ingress alone is NOT enough for the private API path: while on VPN,
+# the API hostname resolves to private ENIs and traffic is authorized via the
+# association security group (AWS Client VPN authorization model). Without this
+# SG-to-SG rule, kubectl times out (dial tcp 10.x.x.x:443). Public endpoint
+# unchanged (dual access).
 # ──────────────────────────────────────────────
 
 resource "aws_vpc_security_group_ingress_rule" "eks_api_from_vpn_clients" {
   for_each = local.create ? toset(var.eks_cluster_security_group_ids) : toset([])
 
-  security_group_id = each.value
-  description       = "Client VPN clients to EKS Kubernetes API"
-  ip_protocol       = "tcp"
-  from_port         = var.eks_api_ingress_port
-  to_port           = var.eks_api_ingress_port
-  cidr_ipv4         = var.client_cidr_block
+  security_group_id            = each.value
+  description                  = "Client VPN ENI SG to EKS Kubernetes API"
+  ip_protocol                  = "tcp"
+  from_port                    = var.eks_api_ingress_port
+  to_port                      = var.eks_api_ingress_port
+  referenced_security_group_id = aws_security_group.client_vpn[0].id
 }

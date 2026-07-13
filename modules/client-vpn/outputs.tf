@@ -54,9 +54,9 @@ output "operator_note" {
     2) ACM Import (us-east-1), NOT Request public cert (both need --private-key):
          - server.crt+key (+ca chain) → client_vpn_server_certificate_arn
          - ca.crt+ca.key              → client_vpn_client_ca_arn  (two different ARNs)
-    3) Recommended: client_vpn_alb_security_group_ids from storefront ALB SGs (TCP 80).
-    4) EKS cluster SG TCP 443 from client CIDR is wired automatically when enabled
-         (eks_cluster_security_group_ids ← module.eks.cluster_security_group_id).
+    3) Recommended: client_vpn_alb_security_group_ids from storefront ALB SGs (TCP 80 from VPN ENI SG).
+    4) EKS cluster SG TCP 443 from Client VPN association SG is wired automatically
+         (eks_cluster_security_group_ids ← module.eks.cluster_security_group_id; SG-to-SG).
     5) client_vpn_enabled=true → terraform apply → wait association available.
     6) Local connect (docs/client-vpn.md "Client setup and connect"):
          export .ovpn → append client1 cert/key/ca → AWS VPN Client Connect.

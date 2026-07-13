@@ -136,9 +136,10 @@ variable "alb_security_group_ids" {
   type        = list(string)
   description = <<-EOT
     Optional security group IDs of the internal storefront ALB.
-    When non-empty and enabled, adds ingress TCP 80 from client_cidr_block
-    so VPN clients can reach the existing internal ALB without taking SG ownership
-    via Ingress annotations (avoids fighting CloudFront VPC-origin SG automation).
+    When non-empty and enabled, adds ingress TCP 80 from this module's Client VPN
+    association security group (SG-to-SG) so VPN clients can reach the existing
+    internal ALB without taking SG ownership via Ingress annotations (avoids
+    fighting CloudFront VPC-origin SG automation).
   EOT
   default     = []
   nullable    = false
@@ -155,8 +156,8 @@ variable "eks_cluster_security_group_ids" {
   type        = list(string)
   description = <<-EOT
     Optional EKS cluster security group ID(s). When non-empty and enabled, adds
-    ingress TCP 443 from client_cidr_block so VPN clients can reach the private
-    Kubernetes API endpoint (same dual-access model as public endpoint + VPN).
+    ingress TCP 443 from this module's Client VPN association security group
+    (SG-to-SG). Client CIDR alone is insufficient for private EKS API ENIs.
     Pass module.eks.cluster_security_group_id from the environment stack.
   EOT
   default     = []

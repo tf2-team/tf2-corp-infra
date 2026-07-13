@@ -13,7 +13,7 @@ Browser (public HTTPS)
 Operator laptop
     → AWS Client VPN (mutual TLS, split tunnel)
         → Internal ALB (same ALB; all paths open) → frontend-proxy
-        → EKS private API :443 (cluster SG allows client CIDR)
+        → EKS private API :443 (cluster SG allows Client VPN association SG)
 
 Operator laptop (no VPN)
     → EKS public API :443 (when endpoint_public_access=true; dual access)
@@ -25,7 +25,7 @@ Operator laptop (no VPN)
 | Internet → internal ALB | Not reachable (private) | Not reachable | N/A |
 | Client VPN → internal ALB DNS | Allowed | **Allowed** (Grafana/Jaeger app auth still applies) | N/A |
 | No VPN → EKS public endpoint | N/A | N/A | **Allowed** when public access is on |
-| Client VPN → EKS private API | N/A | N/A | **Allowed** (cluster SG TCP 443 from client CIDR) |
+| Client VPN → EKS private API | N/A | N/A | **Allowed** (cluster SG TCP 443 from Client VPN association SG) |
 
 Module: `modules/client-vpn`  
 Wired in: `environments/development` and `environments/production` as `module.client_vpn`  
@@ -305,8 +305,8 @@ Must **not** overlap the VPC CIDR. AWS Client VPN client CIDR is typically `/22`
 | `client_vpn_client_cidr_block` | No | Prod `10.100.0.0/22`; dev `10.101.0.0/22` |
 | `client_vpn_subnet_ids` | No | Empty = first private subnet only |
 | `client_vpn_split_tunnel` | No | Default `true` |
-| `client_vpn_alb_security_group_ids` | Recommended | Internal ALB SG(s); TCP 80 from client CIDR |
-| *(wired automatically)* `eks_cluster_security_group_ids` | Yes when enabled | Env stack passes `module.eks.cluster_security_group_id`; TCP **443** from client CIDR for private Kubernetes API |
+| `client_vpn_alb_security_group_ids` | Recommended | Internal ALB SG(s); TCP 80 from Client VPN association SG |
+| *(wired automatically)* `eks_cluster_security_group_ids` | Yes when enabled | Env stack passes `module.eks.cluster_security_group_id`; TCP **443** from Client VPN association SG (SG-to-SG; client CIDR alone is not enough) |
 
 ---
 
@@ -566,7 +566,7 @@ kubectl get ns
 Both should succeed when:
 
 * Public endpoint remains enabled (default), and
-* Terraform has applied the cluster SG ingress from the VPN **client CIDR** (prod `10.100.0.0/22`, dev `10.101.0.0/22`) to TCP **443**.
+* Terraform has applied cluster SG ingress TCP **443** from the **Client VPN association security group** (SG-to-SG). A rule that only allows the VPN client CIDR is **not** sufficient for private EKS API ENIs.
 
 ---
 
@@ -576,9 +576,9 @@ Both should succeed when:
 |---|---|---|
 | `Certificate ... does not have a domain` on create | Server ACM cert has empty `DomainName` (bare `CN=server`, or CA ARN used as server) | Re-generate **server** leaf with FQDN CN (e.g. `server.clientvpn.techx.local`) + SAN; re-import; set `client_vpn_server_certificate_arn` to the new ARN. Confirm with `describe-certificate` → `DomainName` non-empty. Never use `client_vpn_client_ca_arn` as the server ARN. |
 | `Invalid rule description` on ALB SG rule | Non-ASCII chars in rule description (e.g. Unicode arrow) | Module uses ASCII-only descriptions; pull latest `modules/client-vpn` and re-apply |
-| VPN connects but ALB times out | ALB SG missing client CIDR | Set `client_vpn_alb_security_group_ids` or add TCP 80 from client CIDR manually |
-| VPN connects but `kubectl` times out to `10.x.x.x:443` | Cluster SG missing client CIDR on TCP 443 | Ensure Client VPN module is applied with `eks_cluster_security_group_ids` (env stacks wire `module.eks.cluster_security_group_id` automatically). Confirm rule: client CIDR → cluster SG → TCP 443 |
-| `kubectl` works off VPN but not on VPN | Private API path blocked (above) or stale kubeconfig | Apply VPN→EKS SG rule; `aws eks update-kubeconfig`; retry on VPN |
+| VPN connects but ALB times out | ALB SG missing VPN association SG on TCP 80 | Set `client_vpn_alb_security_group_ids` and apply; confirm ingress from Client VPN SG (not only client CIDR). Note: an open `0.0.0.0/0` rule on another ALB SG can mask a missing VPN rule |
+| VPN connects but `kubectl` times out to `10.x.x.x:443` | Cluster SG allows only client CIDR, not association SG | Private API needs **SG-to-SG**: Client VPN association SG → cluster SG → TCP 443. Apply module with `eks_cluster_security_group_ids` (env stacks wire `module.eks.cluster_security_group_id`). Client CIDR alone is insufficient |
+| `kubectl` works off VPN but not on VPN | Private DNS + private path blocked (above) | On VPN, API hostname resolves to `10.x` ENIs; fix SG-to-SG rule; optional `aws eks update-kubeconfig` |
 | Association pending long time | First association cold start | Wait 5–15 minutes; check target network status |
 | Auth / TLS handshake fails | Wrong cert in `.ovpn` (server cert used, or client not signed by imported CA) | Re-export; embed **client1** cert/key signed by the CA used for `client_vpn_client_ca_arn` |
 | `Certificate does not have key usage extension` / `VERIFY KU ERROR` in AWS VPN Client log | Server leaf missing Key Usage + `serverAuth` EKU (OpenVPN `remote-cert-tls server`) | Re-issue **server** cert with KU/EKU+SAN; re-import ACM; update `client_vpn_server_certificate_arn` and apply. Re-issue client with `clientAuth` and rebuild `.ovpn`. |
