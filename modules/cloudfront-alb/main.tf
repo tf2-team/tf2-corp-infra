@@ -52,6 +52,11 @@ data "aws_cloudfront_origin_request_policy" "all_viewer_except_host_header" {
   name  = "Managed-AllViewerExceptHostHeader"
 }
 
+data "aws_cloudfront_response_headers_policy" "security_headers" {
+  count = var.enabled ? 1 : 0
+  name  = "Managed-SecurityHeadersPolicy"
+}
+
 # VPC origin — private path from CloudFront edge into the internal ALB.
 # Same-account: CloudFront manages ALB security-group ingress for the VPC origin ENIs.
 resource "aws_cloudfront_vpc_origin" "storefront" {
@@ -87,9 +92,12 @@ resource "aws_cloudfront_function" "block_sensitive_paths" {
   code    = local.block_function_code
 }
 
-# checkov:skip=CKV_AWS_86:Access logging deferred — optional S3 log bucket adds cost; free-tier posture
-# checkov:skip=CKV2_AWS_32:Response headers policy optional; not required for storefront edge TLS
-# checkov:skip=CKV2_AWS_47:WAF optional (web_acl_id); disabled by default for free-tier cost
+# Access logging / WAF / origin http-only / single-origin failover: free-tier exceptions
+# (also listed in .checkov.yaml). Response headers: Managed-SecurityHeadersPolicy (CKV2_AWS_32).
+# checkov:skip=CKV_AWS_86:Access logging deferred — S3 log bucket cost outside free-tier posture
+# checkov:skip=CKV2_AWS_47:WAF optional (web_acl_id); Log4j AMR requires paid WAFv2 WebACL
+# checkov:skip=CKV2_AWS_72:Origin is http-only to storefront ALB listenPorts HTTP:80; viewer HTTPS enforced
+# checkov:skip=CKV_AWS_310:Single ALB VPC origin; origin-group failover not in free-tier design
 resource "aws_cloudfront_distribution" "storefront" {
   count = var.enabled ? 1 : 0
 
@@ -122,8 +130,9 @@ resource "aws_cloudfront_distribution" "storefront" {
     compress               = true
 
     # Dynamic storefront / cart / APIs — do not cache at edge by default.
-    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled[0].id
-    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header[0].id
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_disabled[0].id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header[0].id
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers[0].id
 
     dynamic "function_association" {
       for_each = var.block_sensitive_paths ? [1] : []
