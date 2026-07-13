@@ -562,3 +562,42 @@ variable "access_entries" {
   default     = {}
   description = "Bản đồ các EKS Access Entries bổ sung cần cấu hình"
 }
+
+# ──────────────────────────────────────────────
+# Cost budgets — weekly TF ceiling (~$300/week)
+# ──────────────────────────────────────────────
+
+variable "cost_budgets_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, create SNS (email-json) + weekly/daily AWS Budgets for the TF spend ceiling"
+}
+
+variable "cost_budgets_alert_email" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Email for cost budget SNS email-json alerts (required when cost_budgets_enabled=true; Confirm after apply)"
+}
+
+variable "cost_budgets_weekly_limit_usd" {
+  type        = string
+  default     = "300"
+  nullable    = false
+  description = "Weekly COST budget limit in USD (onboarding BUDGET.md ~$300/week/TF)"
+}
+
+variable "cost_budgets_daily_limit_usd" {
+  type        = string
+  default     = "45"
+  nullable    = false
+  description = "Daily COST budget limit in USD (early warning ≈ weekly/7)"
+}
+
+variable "cost_budgets_create_daily" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, also create the daily budget"
+}
