@@ -49,11 +49,14 @@ output "operator_note" {
   description = "Short operator reminder for enablement and admin path access"
   value       = <<-EOT
     Client VPN (private admin path to internal storefront ALB):
-    1) Generate CA + server + client certs; import server + client CA into ACM (same region as VPC).
-    2) Set client_vpn_enabled=true, certificate ARNs, optional alb_security_group_ids (ALB SG for TCP 80).
-    3) terraform apply → export .ovpn, embed client cert/key, connect.
-    4) curl http://<INTERNAL_ALB_DNS>/grafana/  (expect not CF 403).
-    5) curl https://<CloudFront_alias>/grafana/ still 403 when edge blocking is on.
-    6) See docs/client-vpn.md. Disable with client_vpn_enabled=false to stop association charges.
+    Prerequisites setup (docs/client-vpn.md):
+    1) Generate CA + server + per-user client certs (outside git).
+    2) ACM Import (us-east-1), NOT Request public cert (both need --private-key):
+         - server.crt+key (+ca chain) → client_vpn_server_certificate_arn
+         - ca.crt+ca.key              → client_vpn_client_ca_arn  (two different ARNs)
+    3) Recommended: client_vpn_alb_security_group_ids from storefront ALB SGs (TCP 80).
+    4) client_vpn_enabled=true → terraform apply → export .ovpn, embed client cert/key, connect.
+    5) curl http://<INTERNAL_ALB_DNS>/grafana/ (not CF 403); CloudFront alias still 403 when blocking on.
+    6) Disable with client_vpn_enabled=false to stop association charges.
   EOT
 }

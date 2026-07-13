@@ -202,12 +202,13 @@ cloudfront_enabled = false
 # ──────────────────────────────────────────────
 # Client VPN — private admin access to internal storefront ALB
 # OFF by default (association cost). Client CIDR must not overlap VPC 10.1.0.0/16.
-# See docs/client-vpn.md
+# Prerequisites setup (Import both ACM certs): docs/client-vpn.md → "Prerequisites setup"
+#   ACM always needs --private-key: server.crt+key; ca.crt+ca.key (two different ARNs)
 # ──────────────────────────────────────────────
 client_vpn_enabled           = false
 client_vpn_client_cidr_block = "10.101.0.0/22"
-# client_vpn_server_certificate_arn = "arn:aws:acm:us-east-1:ACCOUNT:certificate/SERVER-CERT-ID"
-# client_vpn_client_ca_arn          = "arn:aws:acm:us-east-1:ACCOUNT:certificate/CLIENT-CA-ID"
+# client_vpn_server_certificate_arn = "arn:aws:acm:us-east-1:ACCOUNT:certificate/<SERVER-ID>"
+# client_vpn_client_ca_arn          = "arn:aws:acm:us-east-1:ACCOUNT:certificate/<CA-ID>"
 # client_vpn_alb_security_group_ids = ["sg-xxxxxxxx"]
 
 # -----------------------------------------------

@@ -597,11 +597,20 @@ terraform -chdir=environments/production output cloudfront_vpc_origin_id
 
 Admin/telemetry prefixes remain **403 on CloudFront**. Operators connect via **AWS Client VPN** and use the **internal ALB** DNS (no second ALB). Off by default (`client_vpn_enabled = false`) because of association hours.
 
-Full runbook: **[docs/client-vpn.md](./client-vpn.md)**.
+Full runbook (including **prerequisites setup for both ACM certs**): **[docs/client-vpn.md](./client-vpn.md)**.
+
+**Prerequisites before enable (summary):**
+
+1. **Import** (not Request) two certs into ACM `us-east-1` — ACM always needs `--private-key`:
+   - Server leaf + key (+ chain) → `client_vpn_server_certificate_arn`
+   - Client CA cert + CA key → `client_vpn_client_ca_arn`
+2. Keep per-operator client cert/key for the `.ovpn` file (not imported to ACM).
+3. Recommended: set `client_vpn_alb_security_group_ids` from the storefront ALB SGs (TCP 80 from client CIDR).
+4. Optional: leave `client_vpn_subnet_ids` empty for one-AZ association (cost).
 
 ```cmd
 cd /d techx-corp-infra
-REM After ACM server + client CA certs and optional ALB SG ids in terraform.tfvars:
+REM After prerequisites setup in docs/client-vpn.md and real ARNs in terraform.tfvars:
 terraform -chdir=environments/production plan -out=tfplan
 terraform -chdir=environments/production apply tfplan
 terraform -chdir=environments/production output client_vpn_endpoint_id
