@@ -427,3 +427,18 @@ output "cost_budgets_operator_note" {
   description = "Post-apply steps for cost budgets (confirm email-json subscription)"
 }
 
+output "cost_anomaly_monitor_arn" {
+  value       = module.cost_anomaly.monitor_arn
+  description = "Cost Anomaly monitor ARN (null when disabled)"
+}
+
+output "cost_anomaly_subscription_arn" {
+  value       = module.cost_anomaly.subscription_arn
+  description = "Cost Anomaly subscription ARN (null when disabled)"
+}
+
+output "cost_anomaly_operator_note" {
+  value       = module.cost_anomaly.operator_note
+  description = "Post-apply steps for Cost Anomaly Detection"
+}
+

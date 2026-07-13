@@ -601,3 +601,42 @@ variable "cost_budgets_create_daily" {
   nullable    = false
   description = "When true, also create the daily budget"
 }
+
+# ──────────────────────────────────────────────
+# Cost Anomaly Detection — account-level; production only
+# ──────────────────────────────────────────────
+
+variable "cost_anomaly_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, create Cost Explorer anomaly monitor + email subscription"
+}
+
+variable "cost_anomaly_alert_email" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Email for Cost Anomaly alerts (required when cost_anomaly_enabled=true; Confirm if AWS asks)"
+}
+
+variable "cost_anomaly_frequency" {
+  type        = string
+  default     = "DAILY"
+  nullable    = false
+  description = "Anomaly notification frequency: DAILY | IMMEDIATE | WEEKLY"
+}
+
+variable "cost_anomaly_impact_absolute_usd" {
+  type        = string
+  default     = "25"
+  nullable    = false
+  description = "Alert when anomaly impact >= this USD (AND with percentage)"
+}
+
+variable "cost_anomaly_impact_percentage" {
+  type        = string
+  default     = "40"
+  nullable    = false
+  description = "Alert when anomaly impact >= this percent vs expected (AND with absolute USD)"
+}

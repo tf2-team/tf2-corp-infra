@@ -50,7 +50,7 @@ TechX cấp mỗi TF trần **~$300/tuần** cho toàn bộ hạ tầng AWS. BTC
 | NAT 2→1 / NAT Instance | VPC topology; trade HA |
 | Schedule scale node group ngoài giờ | **Chỉ dev/test** — không production storefront 24/7 |
 | ECR lifecycle keep-N | Đã có một phần lifecycle trên ECR module; review/tighten riêng |
-| Cost Anomaly Detection | Optional; Console hoặc resource CE riêng |
+| Cost Anomaly Detection | Slice riêng: `2026-07-13-cos-01-cost-anomaly-detection.md` + ADR `docs/adr/cost-anomaly-detection-with-budgets.md` |
 | Client VPN schedule off | Vận hành / tfvars session — không nằm trong module budgets |
 
 ## Acceptance Criteria
