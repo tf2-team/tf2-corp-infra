@@ -134,7 +134,7 @@ argocd_chart_repo_url = "https://github.com/tf2-team/tf2-corp-chart/tree/main"
 # Storefront public ALB path blocking (Helm)
 # Aligned with development: allow all paths through to frontend-proxy
 # ──────────────────────────────────────────────
-storefront_alb_block_sensitive_paths = false
+storefront_alb_block_sensitive_paths = true
 
 # Force-delete secret shells (same as development) for faster tear-down / re-bootstrap
 secrets_manager_recovery_window_in_days = 0
