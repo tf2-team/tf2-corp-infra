@@ -38,6 +38,7 @@ After the internal-ALB + CloudFront VPC origin cutover, sensitive prefixes (`/gr
 2. Wired `module "client_vpn"` in production and development `main.tf`.
 3. Added env variables/outputs/tfvars defaults and commented enable examples.
 4. Documented PKI, enable sequence, dual-path verification, teardown, and cost.
+5. Expanded **Prerequisites setup** for both ACM certs (Import vs Request, server vs client CA, ALB SG/subnet discovery).
 
 ## Files Changed
 
@@ -55,7 +56,7 @@ After the internal-ALB + CloudFront VPC origin cutover, sensitive prefixes (`/gr
 
 **Documentation:**
 
-* `docs/client-vpn.md` — Operator runbook.
+* `docs/client-vpn.md` — Operator runbook with full prerequisites setup for both ACM certs.
 * `docs/cloudfront.md` — Admin access section + related link.
 * `docs/adr/storefront-edge-internal-alb.md` — Client VPN role in security split table.
 * `docs/DEPLOYMENT.md` — Phase pointer.

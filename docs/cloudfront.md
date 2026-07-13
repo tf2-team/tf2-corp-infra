@@ -251,7 +251,7 @@ Prefer CloudFront for production edge posture.
 
 CloudFront **must** keep blocking admin prefixes for public users. Operators open those paths by connecting to **AWS Client VPN** and calling the **internal ALB** hostname (bypass CloudFront). There is no second admin ALB.
 
-Full runbook: **[docs/client-vpn.md](./client-vpn.md)**.
+Full runbook (including prerequisites setup for **both** ACM certs — Import server + Import client CA): **[docs/client-vpn.md](./client-vpn.md)**.
 
 ```cmd
 REM Public edge — expect 403

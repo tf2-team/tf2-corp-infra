@@ -42,3 +42,5 @@ node_modules/
 *.log
 
 .antigravity/
+
+client-vpn-pki
