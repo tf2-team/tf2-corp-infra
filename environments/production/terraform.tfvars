@@ -139,6 +139,9 @@ storefront_alb_block_sensitive_paths = false
 # Force-delete secret shells (same as development) for faster tear-down / re-bootstrap
 secrets_manager_recovery_window_in_days = 0
 
+# Force-delete secret shells (same as development) for faster tear-down / re-bootstrap
+secrets_manager_recovery_window_in_days = 0
+
 # ──────────────────────────────────────────────
 # Karpenter (node autoscaling) — Spot preferred (same as development)
 # Requires: cluster API reachable when install_helm / create_node_resources are true
