@@ -173,6 +173,15 @@ variable "web_acl_id" {
       aws cloudfront get-distribution --id <ID> --query Distribution.DistributionConfig.WebACLId
   EOT
   default     = null
+
+  validation {
+    condition = (
+      var.web_acl_id == null ||
+      var.web_acl_id == "" ||
+      can(regex("^arn:aws:wafv2:us-east-1:[0-9]{12}:global/webacl/.+", var.web_acl_id))
+    )
+    error_message = "web_acl_id must be null/empty or a us-east-1 global WAFv2 web ACL ARN (arn:aws:wafv2:us-east-1:ACCOUNT:global/webacl/…)."
+  }
 }
 
 variable "tags" {
