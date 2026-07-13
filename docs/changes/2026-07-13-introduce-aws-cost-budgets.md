@@ -11,7 +11,7 @@ Added Terraform module **`modules/cost-budgets`** and **production-only** wiring
 | **Backlog** | COS-01 (Cost Guardrails) — **Budget alert slice only** |
 | **TF2** | TF2-12 |
 | **Pillar** | Cost Optimization |
-| **Not in this change** | NAT reduction, node schedule, ECR lifecycle tighten, Cost Anomaly |
+| **Not in this change** | NAT reduction, node schedule, ECR lifecycle tighten; **Cost Anomaly** → follow-up `2026-07-13-introduce-cost-anomaly-detection.md` |
 
 ## Context
 

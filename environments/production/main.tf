@@ -237,3 +237,20 @@ module "cost_budgets" {
   create_daily_budget = var.cost_budgets_create_daily
   tags                = var.tags
 }
+
+# ──────────────────────────────────────────────
+# Cost Anomaly Detection — spike vs baseline (per SERVICE)
+# Complements budgets (ceiling). Account-level; production only.
+# ──────────────────────────────────────────────
+
+module "cost_anomaly" {
+  source = "../../modules/cost-anomaly"
+
+  enabled             = var.cost_anomaly_enabled
+  name_prefix         = var.project_name
+  alert_email         = var.cost_anomaly_alert_email
+  frequency           = var.cost_anomaly_frequency
+  impact_absolute_usd = var.cost_anomaly_impact_absolute_usd
+  impact_percentage   = var.cost_anomaly_impact_percentage
+  tags                = var.tags
+}

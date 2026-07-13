@@ -244,3 +244,13 @@ cost_budgets_alert_email       = "ctran13904@gmail.com"
 cost_budgets_monthly_limit_usd = "900"
 cost_budgets_daily_limit_usd   = "45"
 cost_budgets_create_daily      = true
+
+# ──────────────────────────────────────────────
+# Cost Anomaly Detection — spikes vs baseline (per SERVICE)
+# Account-level; production only. Confirm email if AWS sends one.
+# ──────────────────────────────────────────────
+cost_anomaly_enabled             = true
+cost_anomaly_alert_email         = "ctran13904@gmail.com"
+cost_anomaly_frequency           = "DAILY"
+cost_anomaly_impact_absolute_usd = "25"
+cost_anomaly_impact_percentage   = "40"
