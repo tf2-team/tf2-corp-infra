@@ -11,22 +11,6 @@ module "ecr" {
   repositories           = var.ecr_repository_overrides
 }
 
-module "github_actions_ecr" {
-  source = "../../modules/github-actions-ecr"
-
-  name                = var.github_actions_ecr_role_name
-  github_repository   = var.github_repository
-  github_environments = var.github_actions_environments
-  allowed_refs        = var.github_actions_allowed_refs
-  ecr_repository_arns = values(module.ecr.repository_arns)
-
-  # Account-level OIDC provider: create in production; development looks it up.
-  create_oidc_provider       = var.create_github_oidc_provider
-  existing_oidc_provider_arn = var.existing_github_oidc_provider_arn
-
-  tags = var.tags
-}
-
 module "vpc" {
   source = "../../modules/vpc"
 
@@ -83,7 +67,7 @@ module "eks" {
   enable_cluster_autoscaler_asg_tags = var.cluster_autoscaler_enabled
 }
 
-# GitOps control plane (REL-09). Prefer enable on development first; keep prod off until cutover.
+# GitOps control plane (REL-09). Same enablement model as development (API access required at apply).
 module "argocd" {
   source = "../../modules/argocd"
 
@@ -120,7 +104,7 @@ module "external_secrets" {
 }
 
 # ──────────────────────────────────────────────
-# Karpenter — node autoscaling (On-Demand preferred in production)
+# Karpenter — node autoscaling (Spot-preferred; same model as development)
 # ──────────────────────────────────────────────
 
 module "karpenter" {
@@ -140,6 +124,7 @@ module "karpenter" {
   node_taints             = var.karpenter_node_taints
   nodepool_weights        = var.karpenter_nodepool_weights
   disruption_budget_nodes = var.karpenter_disruption_budget_nodes
+  consolidate_after       = var.karpenter_consolidate_after
   nodepool_cpu_limit      = var.karpenter_nodepool_cpu_limit
   nodepool_memory_limit   = var.karpenter_nodepool_memory_limit
   availability_zones      = var.karpenter_availability_zones

@@ -1,0 +1,16 @@
+{
+  "format_version": "1.2",
+  "resource_changes": [
+    {
+      "address": "aws_instance.app",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "ami": "ami-SECRETCREATE",
+          "password": "SHOULD_NEVER_APPEAR_CREATE"
+        }
+      }
+    }
+  ]
+}

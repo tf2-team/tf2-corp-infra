@@ -27,8 +27,8 @@ variable "ecr_naming_mode" {
 
 variable "ecr_keep_last_n_images" {
   type        = number
-  description = "Lifecycle: keep N most recent non-buildcache images per service repo"
-  default     = 20
+  description = "Lifecycle: keep N most recent non-buildcache images per service repo (aligned with development: 5)"
+  default     = 5
 }
 
 variable "ecr_keep_last_n_buildcache" {
@@ -167,52 +167,6 @@ variable "existing_oidc_provider_arn" {
 }
 
 # ──────────────────────────────────────────────
-# GitHub Actions → ECR push (OIDC)
-# ──────────────────────────────────────────────
-
-variable "github_repository" {
-  type        = string
-  description = "GitHub repository (owner/name) allowed to assume the ECR push role"
-  default     = "tmcmanhcuong/tf2-corp-platform"
-}
-
-variable "github_actions_ecr_role_name" {
-  type        = string
-  description = "IAM role name for GitHub Actions ECR push"
-  default     = "techx-gha-platform-prod"
-}
-
-variable "github_actions_environments" {
-  type        = list(string)
-  description = "GitHub Environments allowed to assume this role"
-  default     = ["production"]
-}
-
-variable "github_actions_allowed_refs" {
-  type        = list(string)
-  description = "Optional extra git refs allowed (OIDC sub repo:...:ref:...)"
-  default     = ["refs/heads/main", "refs/tags/v*"]
-}
-
-variable "create_github_oidc_provider" {
-  type        = bool
-  default     = true
-  nullable    = false
-  description = "Create the account-level GitHub Actions OIDC provider (only one per account)"
-}
-
-variable "existing_github_oidc_provider_arn" {
-  type        = string
-  default     = null
-  description = "ARN of an existing GitHub OIDC provider when create_github_oidc_provider is false"
-
-  validation {
-    condition     = var.existing_github_oidc_provider_arn == null ? true : can(regex("^arn:[a-z0-9-]+:iam::[0-9]{12}:oidc-provider/.+$", var.existing_github_oidc_provider_arn))
-    error_message = "existing_github_oidc_provider_arn must be a valid IAM OIDC provider ARN."
-  }
-}
-
-# ──────────────────────────────────────────────
 # Argo CD (GitOps control plane — REL-09)
 # ──────────────────────────────────────────────
 
@@ -220,7 +174,7 @@ variable "argocd_enabled" {
   type        = bool
   default     = false
   nullable    = false
-  description = "Install Argo CD via Helm. Prefer enable on development first; keep false until prod cutover."
+  description = "Install Argo CD via Helm into the cluster. Requires API access at terraform apply time."
 }
 
 variable "argocd_chart_version" {
@@ -284,7 +238,7 @@ variable "secrets_manager_name_prefix" {
 variable "secrets_manager_recovery_window_in_days" {
   type        = number
   description = "ASM recovery window for secret shells (0 = force delete; else 7–30)"
-  default     = 30
+  default     = 0
 }
 
 variable "secrets_manager_kms_key_id" {
@@ -353,9 +307,9 @@ variable "karpenter_chart_version" {
 
 variable "karpenter_spot_preferred" {
   type        = bool
-  default     = false
+  default     = true
   nullable    = false
-  description = "Prefer Spot NodePool (false = On-Demand only; recommended for production initial placement)"
+  description = "Prefer Spot NodePool with On-Demand fallback (aligned with development)"
 }
 
 variable "karpenter_node_taints" {
@@ -386,21 +340,32 @@ variable "karpenter_disruption_budget_nodes" {
     on_demand = string
   })
   default = {
-    spot      = "0"
-    on_demand = "0"
+    spot      = "1"
+    on_demand = "1"
   }
-  description = "Per-NodePool voluntary disruption limits during/after migration (not a global cluster budget)"
+  description = <<-EOT
+    Per-NodePool voluntary disruption limits (not a global cluster budget).
+    Steady state "1"/"1" allows consolidation under WhenEmptyOrUnderutilized.
+    Use "0"/"0" only to freeze voluntary disruption during upgrades/migrations.
+  EOT
+}
+
+variable "karpenter_consolidate_after" {
+  type        = string
+  default     = "1m"
+  nullable    = false
+  description = "NodePool disruption consolidateAfter (how long underutilized/empty nodes wait before reclaim)."
 }
 
 variable "karpenter_nodepool_cpu_limit" {
   type        = string
-  default     = "64"
+  default     = "32"
   description = "NodePool CPU limit to cap spend"
 }
 
 variable "karpenter_nodepool_memory_limit" {
   type        = string
-  default     = "128Gi"
+  default     = "64Gi"
   description = "NodePool memory limit to cap spend"
 }
 

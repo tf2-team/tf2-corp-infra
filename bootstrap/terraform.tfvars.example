@@ -6,3 +6,50 @@ tags = {
   ManagedBy   = "Terraform"
   Project     = "techx-platform"
 }
+
+# GitHub Actions OIDC + platform ECR push roles (account-level).
+# ECR repos themselves are still created by environment stacks.
+github_actions_ecr_production = {
+  role_name           = "techx-gha-platform-prod"
+  github_repository   = "OWNER/tf2-corp-platform"
+  github_environments = ["production"]
+  allowed_refs        = ["refs/heads/main", "refs/tags/v*"]
+  ecr_project_name    = "techx-prod-corp"
+}
+
+github_actions_ecr_development = {
+  role_name           = "techx-gha-platform-dev"
+  github_repository   = "OWNER/tf2-corp-platform"
+  github_environments = ["development"]
+  allowed_refs        = ["refs/heads/techx-dev-corp"]
+  ecr_project_name    = "techx-dev-corp"
+}
+
+# GitHub Actions OIDC → Terraform plan/apply roles (infra repository).
+# github_repository must be the infra repo that runs terraform-*.yml workflows.
+# Apply roles trust GitHub Environments "dev" and "production" (exact workflow names).
+github_actions_terraform_development = {
+  github_repository        = "OWNER/tf2-corp-infra"
+  plan_role_name           = "GitHubTerraformDevPlanRole"
+  apply_role_name          = "GitHubTerraformDevApplyRole"
+  apply_github_environment = "dev"
+  # Dev integration branch (not main)
+  plan_allowed_refs       = ["refs/heads/techx-dev-corp"]
+  plan_allow_pull_request = true
+  state_key_prefix        = "development/"
+  # Must cover IAM names created by environments/development (cluster_name-based)
+  iam_name_prefixes = ["techx-dev"]
+}
+
+github_actions_terraform_production = {
+  github_repository        = "OWNER/tf2-corp-infra"
+  plan_role_name           = "GitHubTerraformProdPlanRole"
+  apply_role_name          = "GitHubTerraformProdApplyRole"
+  apply_github_environment = "production"
+  # Include techx-dev-corp so Terraform CI can plan production from the dev branch
+  plan_allowed_refs       = ["refs/heads/main", "refs/heads/techx-dev-corp"]
+  plan_allow_pull_request = true
+  state_key_prefix        = "production/"
+  # Must cover IAM names created by environments/production (cluster_name-based)
+  iam_name_prefixes = ["techx-tf2-prod"]
+}
