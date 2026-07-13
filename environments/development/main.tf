@@ -170,19 +170,23 @@ module "cluster_autoscaler" {
 }
 
 # ──────────────────────────────────────────────
-# CloudFront free-tier edge (storefront ALB origin)
-# Off by default until ACM ARN + ALB DNS + aliases are set.
-# See docs/cloudfront.md
+# CloudFront edge → internal storefront ALB (VPC origin)
+# Path blocking lives here (not on the ALB). See docs/cloudfront.md
 # ──────────────────────────────────────────────
 
 module "cloudfront_storefront" {
   source = "../../modules/cloudfront-alb"
 
-  enabled             = var.cloudfront_enabled
-  acm_certificate_arn = var.cloudfront_acm_certificate_arn
-  origin_domain_name  = var.cloudfront_origin_domain_name
-  aliases             = var.cloudfront_aliases
-  comment             = "${var.project_name} storefront"
-  price_class         = var.cloudfront_price_class
-  tags                = var.tags
+  enabled               = var.cloudfront_enabled
+  acm_certificate_arn   = var.cloudfront_acm_certificate_arn
+  origin_domain_name    = var.cloudfront_origin_domain_name
+  origin_alb_arn        = var.cloudfront_origin_alb_arn
+  aliases               = var.cloudfront_aliases
+  comment               = "${var.project_name} storefront"
+  price_class           = var.cloudfront_price_class
+  block_sensitive_paths = var.cloudfront_block_sensitive_paths
+  blocked_prefixes      = var.cloudfront_blocked_prefixes
+  block_function_name   = "${var.project_name}-block-sensitive-paths"
+  vpc_origin_name       = "${var.project_name}-storefront-alb"
+  tags                  = var.tags
 }

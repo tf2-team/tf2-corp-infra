@@ -43,7 +43,7 @@ Platform fixed costs (EKS + NAT + ALB) are large relative to this demo-sized wor
 
 - EKS control plane and managed node groups
 - VPC networking: NAT Gateway, public IPv4 on NAT EIP, cross-AZ transfer (estimated)
-- Storefront **internet-facing ALB** (AWS Load Balancer Controller + chart Ingress)
+- Storefront **internal ALB** (AWS Load Balancer Controller + chart Ingress) + optional CloudFront VPC origin
 - EBS for node root volumes and application PVCs
 - ECR nested repositories and image storage
 - AWS Secrets Manager secret *metadata* (SEC-05 shells)
@@ -117,8 +117,8 @@ Both **development** and **production** currently use the same compute shape:
 | Node disk | 30 GB | 30 GB |
 | ECR project | `techx-dev-corp/*` (keep last **5** runtime + **1** `buildcache`) | `techx-corp/*` (keep last **20** runtime + **1** `buildcache`) |
 | Argo CD (`argocd_enabled`) | **true** | **false** |
-| Storefront public ALB | Yes (Helm overlay) | Yes (Helm overlay) |
-| Path blocking on ALB | `false` (dev open for demo) | `true` (block sensitive paths) |
+| Storefront internal ALB | Yes (Helm overlay) | Yes (Helm overlay) |
+| Path blocking | CloudFront Function (optional; off default in dev) | CloudFront Function (on when CF enabled) |
 | Secrets Manager shells | 5 per env (prefix differs) | 5 per env |
 
 **Node capacity (desired):** 2 × `t3.large` = **4 vCPU / 16 GiB** raw (before kubelet / system reservation).
@@ -356,7 +356,7 @@ These figures exclude GitHub CI and any non-AWS tools.
 | [USAGE_GUIDE.md](./USAGE_GUIDE.md) | Terraform remote state / S3 bootstrap |
 | Chart `docs/DEPLOYMENT.md` | Helm / GitOps / public ALB application deploy |
 | Chart `values.yaml` | Component enablement, resources, PVCs, HPA |
-| Chart `values-public-alb.yaml` | Internet-facing storefront ALB |
+| Chart `values-public-alb.yaml` | Internal storefront ALB (CloudFront VPC origin target) |
 
 ---
 

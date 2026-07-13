@@ -110,42 +110,41 @@ output "aws_load_balancer_controller_helm_command" {
 }
 
 # ──────────────────────────────────────────────
-# Storefront public ALB path blocking
+# Storefront internal ALB (no path blocking; edge blocks at CloudFront)
 # ──────────────────────────────────────────────
 
-output "storefront_alb_block_sensitive_paths" {
-  value       = var.storefront_alb_block_sensitive_paths
-  description = "Whether public ALB should return 403 on sensitive paths (Helm-applied)"
-}
-
-output "storefront_alb_blocked_prefixes" {
-  value       = var.storefront_alb_blocked_prefixes
-  description = "Path prefixes blocked when storefront_alb_block_sensitive_paths is true"
+output "storefront_alb_scheme" {
+  value       = var.storefront_alb_scheme
+  description = "Expected ALB scheme for frontend-proxy-public Ingress (internal with CloudFront VPC origin)"
 }
 
 output "storefront_alb_security_posture" {
   value = {
-    block_sensitive_paths = var.storefront_alb_block_sensitive_paths
-    allowed               = ["/", "/api/*", "/images/*"]
-    blocked               = var.storefront_alb_block_sensitive_paths ? var.storefront_alb_blocked_prefixes : []
+    scheme                 = var.storefront_alb_scheme
+    alb_path_blocking      = false
+    path_blocking_at       = "cloudfront"
+    cloudfront_block_paths = var.cloudfront_block_sensitive_paths
+    cloudfront_blocked     = var.cloudfront_block_sensitive_paths ? var.cloudfront_blocked_prefixes : []
+    allowed_via_edge       = ["/", "/api/*", "/images/*"]
   }
-  description = "Storefront-only ALB posture summary"
+  description = "Storefront edge posture: internal ALB + CloudFront path rules"
 }
 
 output "storefront_alb_helm_set_flags" {
-  value       = "--set components.frontend-proxy.publicAlb.blockSensitivePaths=${var.storefront_alb_block_sensitive_paths}"
-  description = "Helm --set fragment to apply the path-block toggle"
+  value       = "--set components.frontend-proxy.publicAlb.scheme=${var.storefront_alb_scheme} --set components.frontend-proxy.publicAlb.blockSensitivePaths=false"
+  description = "Helm --set fragment for internal ALB with no path blocks"
 }
 
 output "storefront_alb_helm_deploy_command" {
   value       = <<-EOT
-    # Preferred after GitOps cutover: commit tag in values-prod.yaml + Argo CD sync.
+    # Preferred after GitOps cutover: commit values + Argo CD sync.
     # Break-glass only (disable Argo auto-sync first):
     helm upgrade --install techx-corp techx-corp-chart \
       -n techx-corp --create-namespace \
       -f techx-corp-chart/values-public-alb.yaml \
       -f techx-corp-chart/values-prod.yaml \
-      --set components.frontend-proxy.publicAlb.blockSensitivePaths=${var.storefront_alb_block_sensitive_paths} \
+      --set components.frontend-proxy.publicAlb.scheme=${var.storefront_alb_scheme} \
+      --set components.frontend-proxy.publicAlb.blockSensitivePaths=false \
       --wait --atomic --timeout 10m --history-max 10
   EOT
   description = "Break-glass Helm deploy (prefer Argo CD GitOps after REL-09 cutover)"
@@ -295,7 +294,7 @@ output "cluster_autoscaler_bootstrap_note" {
 }
 
 # ──────────────────────────────────────────────
-# CloudFront (storefront ALB origin)
+# CloudFront (internal ALB VPC origin + path blocking)
 # ──────────────────────────────────────────────
 
 output "cloudfront_enabled" {
@@ -333,16 +332,32 @@ output "cloudfront_aliases" {
   description = "Configured alternate domain names"
 }
 
+output "cloudfront_vpc_origin_id" {
+  value       = module.cloudfront_storefront.vpc_origin_id
+  description = "CloudFront VPC origin ID (null when disabled)"
+}
+
+output "cloudfront_block_sensitive_paths" {
+  value       = module.cloudfront_storefront.block_sensitive_paths
+  description = "Whether CloudFront path-block function is attached"
+}
+
+output "cloudfront_blocked_prefixes" {
+  value       = module.cloudfront_storefront.blocked_prefixes
+  description = "Path prefixes blocked at CloudFront when path blocking is on"
+}
+
 output "cloudfront_bootstrap_note" {
   value       = <<-EOT
-    CloudFront storefront (ALB origin):
-    1) Ensure public ALB is healthy (frontend-proxy-public Ingress).
-    2) Issue ACM cert in us-east-1 covering your domain(s).
-    3) Set terraform.tfvars: cloudfront_enabled=true, cloudfront_acm_certificate_arn,
-       cloudfront_origin_domain_name (ALB DNS), cloudfront_aliases.
-    4) terraform apply → point DNS CNAME/ALIAS to cloudfront_domain_name output.
-    5) See docs/cloudfront.md for free-tier notes and rollback.
+    CloudFront storefront (internal ALB VPC origin):
+    1) Deploy chart with values-public-alb.yaml (scheme=internal, no ALB path blocks).
+    2) Wait for internal ALB DNS on Ingress frontend-proxy-public.
+    3) Resolve ALB ARN from DNS; set cloudfront_origin_domain_name + cloudfront_origin_alb_arn.
+    4) Issue ACM cert in us-east-1; set cloudfront_acm_certificate_arn + cloudfront_aliases.
+    5) terraform apply → point DNS CNAME/ALIAS to cloudfront_domain_name.
+    6) Verify storefront HTTPS and 403 on blocked prefixes (when cloudfront_block_sensitive_paths=true).
+    7) See docs/cloudfront.md for cutover/rollback.
   EOT
-  description = "Operator enable sequence for CloudFront"
+  description = "Operator enable sequence for CloudFront + VPC origin"
 }
 
