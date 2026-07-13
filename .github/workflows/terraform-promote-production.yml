@@ -1,13 +1,8 @@
 name: Promote Production
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "environments/production/**"
-      - "modules/**"
-      - ".github/workflows/**"
+  # Manual only: never auto-apply production on push (including modules/**).
+  # Test on development first, then run this workflow when ready to promote.
   workflow_dispatch:
     inputs:
       plan_only:
