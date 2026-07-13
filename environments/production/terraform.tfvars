@@ -216,7 +216,7 @@ cloudfront_block_sensitive_paths = true
 # ──────────────────────────────────────────────
 client_vpn_enabled           = true
 client_vpn_client_cidr_block = "10.100.0.0/22"
-client_vpn_server_certificate_arn = "arn:aws:acm:us-east-1:493499579600:certificate/51fe6ce2-0aaa-4b3a-b9b9-28546bb0fa9e"
+client_vpn_server_certificate_arn = "arn:aws:acm:us-east-1:493499579600:certificate/b168c7b6-ba79-41f7-94aa-48398cead778"
 client_vpn_client_ca_arn          = "arn:aws:acm:us-east-1:493499579600:certificate/9952f4c6-0e3d-4251-93a9-669b58432310"
 # Recommended: all SGs on the storefront ALB (TCP 80 from client CIDR)
 client_vpn_alb_security_group_ids = ["sg-085f3775c0408abb0", "sg-0bd7e89c21dffcd55"]

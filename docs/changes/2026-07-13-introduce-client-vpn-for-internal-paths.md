@@ -39,6 +39,7 @@ After the internal-ALB + CloudFront VPC origin cutover, sensitive prefixes (`/gr
 3. Added env variables/outputs/tfvars defaults and commented enable examples.
 4. Documented PKI, enable sequence, dual-path verification, teardown, and cost.
 5. Expanded **Prerequisites setup** for both ACM certs (Import vs Request, server vs client CA, ALB SG/subnet discovery).
+6. Added **Client setup and connect (local)** (export `.ovpn`, embed client certs, AWS VPN Client, dual-path verify).
 
 ## Files Changed
 

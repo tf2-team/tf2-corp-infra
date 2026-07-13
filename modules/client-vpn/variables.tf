@@ -50,7 +50,12 @@ variable "client_cidr_block" {
 
 variable "server_certificate_arn" {
   type        = string
-  description = "ACM certificate ARN for the Client VPN server (same region as the VPC)"
+  description = <<-EOT
+    ACM certificate ARN for the Client VPN server (same region as the VPC).
+    The imported leaf must have a non-empty DomainName (FQDN CN/SAN such as
+    server.clientvpn.techx.local). Bare CN=server or a CA-only cert fails with
+    CreateClientVpnEndpoint "Certificate ... does not have a domain".
+  EOT
   default     = ""
   nullable    = false
 }
