@@ -69,6 +69,8 @@ resource "aws_vpc_security_group_egress_rule" "to_vpc" {
 # ──────────────────────────────────────────────
 
 resource "aws_cloudwatch_log_group" "client_vpn" {
+  #checkov:skip=CKV_AWS_158:Cost optimization - avoid KMS key costs for connection logs
+  #checkov:skip=CKV_AWS_338:Cost optimization - retain logs for shorter duration to save storage cost
   count = local.create && var.connection_log_enabled ? 1 : 0
 
   name              = "/aws/client-vpn/${var.name}"
@@ -173,6 +175,7 @@ resource "aws_ec2_client_vpn_authorization_rule" "vpc" {
 # ──────────────────────────────────────────────
 
 resource "aws_vpc_security_group_ingress_rule" "alb_from_vpn_clients" {
+  #checkov:skip=CKV_AWS_260:False positive - source is referenced security group (client VPN SG), not 0.0.0.0/0
   for_each = local.create ? toset(var.alb_security_group_ids) : toset([])
 
   security_group_id = each.value
