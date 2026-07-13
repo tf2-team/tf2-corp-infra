@@ -168,3 +168,21 @@ module "cluster_autoscaler" {
   chart_version     = var.cluster_autoscaler_chart_version
   tags              = var.tags
 }
+
+# ──────────────────────────────────────────────
+# CloudFront free-tier edge (storefront ALB origin)
+# Off by default until ACM ARN + ALB DNS + aliases are set.
+# See docs/cloudfront.md
+# ──────────────────────────────────────────────
+
+module "cloudfront_storefront" {
+  source = "../../modules/cloudfront-alb"
+
+  enabled             = var.cloudfront_enabled
+  acm_certificate_arn = var.cloudfront_acm_certificate_arn
+  origin_domain_name  = var.cloudfront_origin_domain_name
+  aliases             = var.cloudfront_aliases
+  comment             = "${var.project_name} storefront"
+  price_class         = var.cloudfront_price_class
+  tags                = var.tags
+}

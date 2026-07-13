@@ -294,3 +294,55 @@ output "cluster_autoscaler_bootstrap_note" {
   description = "Operator notes for Cluster Autoscaler"
 }
 
+# ──────────────────────────────────────────────
+# CloudFront (storefront ALB origin)
+# ──────────────────────────────────────────────
+
+output "cloudfront_enabled" {
+  value       = module.cloudfront_storefront.enabled
+  description = "Whether CloudFront storefront distribution is enabled"
+}
+
+output "cloudfront_distribution_id" {
+  value       = module.cloudfront_storefront.distribution_id
+  description = "CloudFront distribution ID (null when disabled)"
+}
+
+output "cloudfront_domain_name" {
+  value       = module.cloudfront_storefront.domain_name
+  description = "CloudFront domain name for DNS CNAME/ALIAS (null when disabled)"
+}
+
+output "cloudfront_hosted_zone_id" {
+  value       = module.cloudfront_storefront.hosted_zone_id
+  description = "CloudFront Route53 hosted zone ID (null when disabled)"
+}
+
+output "cloudfront_arn" {
+  value       = module.cloudfront_storefront.arn
+  description = "CloudFront distribution ARN (null when disabled)"
+}
+
+output "cloudfront_status" {
+  value       = module.cloudfront_storefront.status
+  description = "Distribution status when enabled (e.g. Deployed)"
+}
+
+output "cloudfront_aliases" {
+  value       = module.cloudfront_storefront.aliases
+  description = "Configured alternate domain names"
+}
+
+output "cloudfront_bootstrap_note" {
+  value       = <<-EOT
+    CloudFront storefront (ALB origin):
+    1) Ensure public ALB is healthy (frontend-proxy-public Ingress).
+    2) Issue ACM cert in us-east-1 covering your domain(s).
+    3) Set terraform.tfvars: cloudfront_enabled=true, cloudfront_acm_certificate_arn,
+       cloudfront_origin_domain_name (ALB DNS), cloudfront_aliases.
+    4) terraform apply → point DNS CNAME/ALIAS to cloudfront_domain_name output.
+    5) See docs/cloudfront.md for free-tier notes and rollback.
+  EOT
+  description = "Operator enable sequence for CloudFront"
+}
+
