@@ -1,5 +1,7 @@
 # Change: Keep CloudFront flat-rate plan web ACL in Terraform
 
+> **Superseded for production association:** Pricing plan was cancelled; production no longer pins the plan ACL. See `docs/changes/2026-07-13-cloudfront-detach-plan-web-acl-payg.md`. Optional `cloudfront_web_acl_id` wiring from this change remains.
+
 ## Summary
 
 Wired an optional `cloudfront_web_acl_id` input through the storefront CloudFront module and both environments, and set production to the live plan-created WAFv2 ACL ARN so Terraform no longer attempts to clear the web ACL on distributions subscribed to a CloudFront flat-rate pricing plan.

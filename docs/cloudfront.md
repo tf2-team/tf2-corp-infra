@@ -42,10 +42,10 @@ InvalidArgument: You can't remove or replace the web ACL for your distribution.
 Distributions with a pricing plan subscription must have a web ACL resource.
 ```
 
-**Keep the plan:** set `cloudfront_web_acl_id` to the existing ACL ARN (do not leave it null/empty).
+**Path A — keep the plan:** set `cloudfront_web_acl_id` to the existing ACL ARN (do not leave it null/empty).
 
 ```cmd
-aws cloudfront get-distribution --id ELZ9H0XX23S27 ^
+aws cloudfront get-distribution --id <DISTRIBUTION_ID> ^
   --query Distribution.DistributionConfig.WebACLId --output text
 ```
 
@@ -53,7 +53,9 @@ aws cloudfront get-distribution --id ELZ9H0XX23S27 ^
 cloudfront_web_acl_id = "arn:aws:wafv2:us-east-1:ACCOUNT:global/webacl/CreatedByCloudFront-…/…"
 ```
 
-Terraform manages association only; it does **not** create or own the plan-created web ACL. To drop WAF entirely, cancel the pricing plan first (console), then clear `cloudfront_web_acl_id`.
+**Path B — drop plan WAF (PAYG):** cancel the pricing plan in the CloudFront console first. After the distribution is pay-as-you-go, leave `cloudfront_web_acl_id` unset (or `null`) and apply so Terraform detaches the plan-created ACL. Optionally delete the orphaned `CreatedByCloudFront-*` web ACL in the WAFv2 console afterward.
+
+Terraform manages association only; it does **not** create or own plan-created web ACLs. Production currently uses **path B** (PAYG, no WAF).
 
 ---
 
