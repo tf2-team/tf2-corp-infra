@@ -22,18 +22,21 @@ variable "alert_email" {
   }
 }
 
-variable "weekly_limit_usd" {
+variable "monthly_limit_usd" {
   type        = string
-  default     = "300"
+  default     = "900"
   nullable    = false
-  description = "Weekly cost budget limit in USD (TF ceiling ~$300/week)"
+  description = <<-EOT
+    Monthly COST budget limit in USD. AWS Budgets has no WEEKLY time_unit; map the
+    onboarding ~$300/week ceiling for a ~3-week capstone as 3×300 = $900/month.
+  EOT
 }
 
 variable "daily_limit_usd" {
   type        = string
   default     = "45"
   nullable    = false
-  description = "Daily cost budget limit in USD (~weekly/7 early warning)"
+  description = "Daily cost budget limit in USD (~300/week ÷ 7 early warning)"
 }
 
 variable "create_daily_budget" {
@@ -43,18 +46,18 @@ variable "create_daily_budget" {
   description = "When true, also create a daily budget"
 }
 
-variable "weekly_actual_thresholds" {
+variable "monthly_actual_thresholds" {
   type        = list(number)
   default     = [50, 80, 100]
   nullable    = false
-  description = "ACTUAL % thresholds for the weekly budget"
+  description = "ACTUAL % thresholds for the monthly budget"
 }
 
-variable "weekly_forecasted_thresholds" {
+variable "monthly_forecasted_thresholds" {
   type        = list(number)
   default     = [100]
   nullable    = false
-  description = "FORECASTED % thresholds for the weekly budget"
+  description = "FORECASTED % thresholds for the monthly budget"
 }
 
 variable "daily_actual_thresholds" {
@@ -68,7 +71,7 @@ variable "time_period_start" {
   type        = string
   default     = "2026-07-13_00:00"
   nullable    = false
-  description = "Budget period start (AWS format YYYY-MM-DD_HH:MM). Use deploy-day; recurring weekly/daily periods continue from here."
+  description = "Budget period start (AWS format YYYY-MM-DD_HH:MM). Deploy-day; monthly/daily periods continue from here."
 
   validation {
     condition     = can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}:[0-9]{2}$", var.time_period_start))

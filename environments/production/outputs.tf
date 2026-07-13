@@ -412,9 +412,9 @@ output "cost_budgets_sns_topic_arn" {
   description = "SNS topic ARN for cost budget alerts (null when disabled)"
 }
 
-output "cost_budgets_weekly_budget_name" {
-  value       = module.cost_budgets.weekly_budget_name
-  description = "Weekly AWS Budget name (null when disabled)"
+output "cost_budgets_monthly_budget_name" {
+  value       = module.cost_budgets.monthly_budget_name
+  description = "Monthly AWS Budget name (null when disabled)"
 }
 
 output "cost_budgets_daily_budget_name" {

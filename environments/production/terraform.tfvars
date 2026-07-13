@@ -233,13 +233,14 @@ access_entries = {
 }
 
 # ──────────────────────────────────────────────
-# Cost budgets — ~$300/week TF ceiling (onboarding/BUDGET.md)
+# Cost budgets — onboarding ~$300/week × 3 weeks → monthly $900
+# AWS Budgets: no WEEKLY time_unit (use MONTHLY + DAILY).
 # SNS protocol: email-json. After apply: Confirm subscription in inbox.
 # Account-level — only wire production (not development).
 # ──────────────────────────────────────────────
 cost_budgets_enabled = true
 # Required when enabled — SNS email-json; Confirm subscription after apply.
-cost_budgets_alert_email      = "ctran13904@gmail.com"
-cost_budgets_weekly_limit_usd = "300"
-cost_budgets_daily_limit_usd  = "45"
-cost_budgets_create_daily     = true
+cost_budgets_alert_email       = "ctran13904@gmail.com"
+cost_budgets_monthly_limit_usd = "900"
+cost_budgets_daily_limit_usd   = "45"
+cost_budgets_create_daily      = true

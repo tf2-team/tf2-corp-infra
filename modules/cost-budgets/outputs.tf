@@ -18,9 +18,9 @@ output "sns_subscription_arn" {
   value       = var.enabled ? aws_sns_topic_subscription.cost_email_json[0].arn : null
 }
 
-output "weekly_budget_name" {
-  description = "Weekly budget name (null when disabled)"
-  value       = var.enabled ? aws_budgets_budget.weekly[0].name : null
+output "monthly_budget_name" {
+  description = "Monthly budget name (null when disabled)"
+  value       = var.enabled ? aws_budgets_budget.monthly[0].name : null
 }
 
 output "daily_budget_name" {
@@ -32,7 +32,8 @@ output "operator_note" {
   description = "Post-apply steps for cost budgets"
   value = var.enabled ? join("\n", [
     "1) Confirm SNS email-json subscription for ${var.alert_email} (inbox / spam).",
-    "2) Billing → Budgets: weekly ${var.weekly_limit_usd} USD + daily ${var.daily_limit_usd} USD.",
-    "3) Budgets only alert — they do not stop spend; cut idle VPN/load-gen/Spot when warned.",
+    "2) Billing → Budgets: monthly ${var.monthly_limit_usd} USD (≈ $300/week × 3) + daily ${var.daily_limit_usd} USD.",
+    "3) AWS has no WEEKLY time_unit; monthly $900 maps the capstone weekly ceiling.",
+    "4) Budgets only alert — they do not stop spend; cut idle VPN/load-gen/Spot when warned.",
   ]) : "cost budgets disabled"
 }

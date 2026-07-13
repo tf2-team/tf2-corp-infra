@@ -1,7 +1,10 @@
 # ──────────────────────────────────────────────
 # AWS Budgets + SNS (email-json) — TF spend ceiling
 #
-# Weekly budget aligns with onboarding/BUDGET.md (~$300/week/TF).
+# AWS Budgets time_unit supports only: DAILY | MONTHLY | QUARTERLY | ANNUALLY
+# (WEEKLY is invalid — provider/API reject).
+#
+# Capstone onboarding/BUDGET.md: ~$300/week/TF × ~3 weeks → monthly ceiling $900.
 # Daily budget is early-warning (~$45 ≈ 300/7).
 # SNS subscription protocol is email-json (structured payload).
 # Operator must Confirm the SNS email after apply.
@@ -17,21 +20,21 @@ locals {
 
   topic_name = "${var.name_prefix}-cost-alerts"
 
-  weekly_actual_notifications = {
-    for t in var.weekly_actual_thresholds : "actual-${t}" => {
+  monthly_actual_notifications = {
+    for t in var.monthly_actual_thresholds : "actual-${t}" => {
       threshold         = t
       notification_type = "ACTUAL"
     }
   }
 
-  weekly_forecasted_notifications = {
-    for t in var.weekly_forecasted_thresholds : "forecasted-${t}" => {
+  monthly_forecasted_notifications = {
+    for t in var.monthly_forecasted_thresholds : "forecasted-${t}" => {
       threshold         = t
       notification_type = "FORECASTED"
     }
   }
 
-  weekly_notifications = merge(local.weekly_actual_notifications, local.weekly_forecasted_notifications)
+  monthly_notifications = merge(local.monthly_actual_notifications, local.monthly_forecasted_notifications)
 
   daily_notifications = {
     for t in var.daily_actual_thresholds : "actual-${t}" => {
@@ -90,14 +93,14 @@ resource "aws_sns_topic_subscription" "cost_email_json" {
   endpoint  = var.alert_email
 }
 
-resource "aws_budgets_budget" "weekly" {
+resource "aws_budgets_budget" "monthly" {
   count = local.create ? 1 : 0
 
-  name              = "${var.name_prefix}-weekly-${var.weekly_limit_usd}"
+  name              = "${var.name_prefix}-monthly-${var.monthly_limit_usd}"
   budget_type       = "COST"
-  limit_amount      = var.weekly_limit_usd
+  limit_amount      = var.monthly_limit_usd
   limit_unit        = "USD"
-  time_unit         = "WEEKLY"
+  time_unit         = "MONTHLY"
   time_period_start = var.time_period_start
 
   cost_types {
@@ -115,7 +118,7 @@ resource "aws_budgets_budget" "weekly" {
   }
 
   dynamic "notification" {
-    for_each = local.weekly_notifications
+    for_each = local.monthly_notifications
     content {
       comparison_operator       = "GREATER_THAN"
       threshold                 = notification.value.threshold

@@ -11,6 +11,7 @@
 | **Priority** | P1 (guardrail Budget làm sớm trong wave cost) |
 | **Mandate** | `phase3/onboarding/BUDGET.md` — ~**$300 / tuần / TF** |
 | **Scope this slice** | **AWS Budgets + SNS only** (production account-level). NAT / node schedule / ECR lifecycle are **out of this change** (remain on COS-01 backlog). |
+| **API note** | AWS Budgets **`time_unit` has no WEEKLY** — only DAILY / MONTHLY / QUARTERLY / ANNUALLY. Capstone ~$300/week × **3 weeks** → **monthly $900**. Daily **$45** ≈ 300/7. |
 
 ## Bối cảnh
 
@@ -29,8 +30,8 @@ TechX cấp mỗi TF trần **~$300/tuần** cho toàn bộ hạ tầng AWS. BTC
    - SNS topic `{name_prefix}-cost-alerts`
    - Topic policy cho phép `budgets.amazonaws.com` Publish (scoped SourceAccount / SourceArn)
    - Subscription protocol **`email-json`** (structured payload) tới `alert_email`
-   - **Weekly** COST budget default **$300** — ACTUAL 50% / 80% / 100% + FORECASTED 100%
-   - **Daily** COST budget default **$45** (~300/7) — ACTUAL 80% / 100% (early spike)
+   - **Monthly** COST budget default **$900** (`time_unit = MONTHLY`) — map ~$300/week × 3 weeks; ACTUAL 50/80/100% + FORECASTED 100%
+   - **Daily** COST budget default **$45** — ACTUAL 80% / 100% (early spike)
    - `time_period_start` mặc định **2026-07-13_00:00** (ngày bắt đầu giữ hệ thống trên AWS / deploy day)
    - `enabled` toggle; validation email khi enabled
 
@@ -54,10 +55,11 @@ TechX cấp mỗi TF trần **~$300/tuần** cho toàn bộ hạ tầng AWS. BTC
 
 ## Acceptance Criteria
 
-- [ ] Module `cost-budgets` tạo SNS + weekly (+ optional daily) budgets khi `enabled=true`
+- [ ] Module `cost-budgets` tạo SNS + monthly (+ optional daily) budgets khi `enabled=true`
 - [ ] SNS subscription protocol = **`email-json`**
-- [ ] Weekly limit mặc định **300 USD**; daily **45 USD** (có thể override tfvars)
-- [ ] Notifications: weekly ACTUAL 50/80/100 + FORECASTED 100; daily ACTUAL 80/100
+- [ ] Monthly limit mặc định **900 USD**; daily **45 USD** (có thể override tfvars)
+- [ ] `time_unit` chỉ dùng giá trị AWS hỗ trợ (**MONTHLY** / **DAILY** — không WEEKLY)
+- [ ] Notifications: monthly ACTUAL 50/80/100 + FORECASTED 100; daily ACTUAL 80/100
 - [ ] Production wire only; development **không** tạo budget trùng account
 - [ ] `cost_budgets_alert_email` bắt buộc khi enable (validation)
 - [ ] Topic policy cho Budgets publish
@@ -74,7 +76,7 @@ terraform -chdir=environments/production validate
 # Sau apply (với email thật trong tfvars):
 aws sns list-subscriptions-by-topic --topic-arn <topic-arn>
 aws budgets describe-budgets --account-id <account-id> \
-  --query "Budgets[?contains(BudgetName, 'weekly') || contains(BudgetName, 'daily')].[BudgetName,BudgetLimit,TimeUnit]"
+  --query "Budgets[?contains(BudgetName, 'monthly') || contains(BudgetName, 'daily')].[BudgetName,BudgetLimit,TimeUnit]"
 ```
 
 Manual:
@@ -82,7 +84,7 @@ Manual:
 1. Set `cost_budgets_alert_email` trong production tfvars.
 2. Apply production.
 3. Confirm SNS email-json.
-4. Billing → Budgets: thấy weekly $300 + daily $45.
+4. Billing → Budgets: thấy monthly $900 + daily $45.
 
 ## Rủi ro & rollback
 
@@ -98,4 +100,4 @@ Manual:
 
 ## English Summary
 
-Infra slice of **COS-01 / TF2-12**: Terraform module for AWS Cost Budgets (weekly $300, optional daily $45) and SNS **email-json** alerts, wired on **production only**. Does not implement NAT/node schedule/ECR items of the full cost backlog. Operators must confirm the SNS subscription after apply; budgets warn but do not stop spend.
+Infra slice of **COS-01 / TF2-12**: Terraform module for AWS Cost Budgets (**monthly $900** ≈ $300/week × 3, optional **daily $45**) and SNS **email-json** alerts, wired on **production only**. AWS Budgets has no WEEKLY period. Does not implement NAT/node schedule/ECR items of the full cost backlog. Operators must confirm the SNS subscription after apply; budgets warn but do not stop spend.

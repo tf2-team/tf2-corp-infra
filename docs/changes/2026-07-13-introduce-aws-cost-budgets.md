@@ -2,7 +2,7 @@
 
 ## Summary
 
-Added Terraform module **`modules/cost-budgets`** and **production-only** wiring for AWS **weekly ($300)** and **daily ($45)** cost budgets with SNS alerts using protocol **`email-json`**. Aligns with TF ceiling in `phase3/onboarding/BUDGET.md` and backlog **COS-01** (`docs/BACKLOG_CDO_03.md`) / **TF2-12** (`docs/BACKLOG_TF2.md`).
+Added Terraform module **`modules/cost-budgets`** and **production-only** wiring for AWS **monthly ($900)** and **daily ($45)** cost budgets with SNS alerts using protocol **`email-json`**. Maps onboarding ~$300/week × **3-week** capstone (AWS Budgets has **no WEEKLY** `time_unit`). Aligns with `phase3/onboarding/BUDGET.md` and backlog **COS-01** / **TF2-12**.
 
 ## Mapping
 
@@ -32,7 +32,7 @@ Added Terraform module **`modules/cost-budgets`** and **production-only** wiring
   * SNS topic `{project_name}-cost-alerts`
   * SNS topic policy for `budgets.amazonaws.com` → `SNS:Publish`
   * Subscription **`email-json`** → `alert_email` (Confirm required)
-  * Weekly COST budget **$300** — ACTUAL 50/80/100% + FORECASTED 100%
+  * Monthly COST budget **$900** (`MONTHLY`) — ACTUAL 50/80/100% + FORECASTED 100%
   * Daily COST budget **$45** — ACTUAL 80/100% (optional via `create_daily_budget`)
 * `time_period_start` default **`2026-07-13_00:00`** (deploy / keep-alive start day on AWS)
 * Production: `module.cost_budgets` + variables/outputs/tfvars
@@ -40,13 +40,15 @@ Added Terraform module **`modules/cost-budgets`** and **production-only** wiring
 
 ## Technical Design Decisions
 
+* **No WEEKLY time_unit:** AWS Budgets API / Terraform provider only allow DAILY, MONTHLY, QUARTERLY, ANNUALLY. Plan failed on `WEEKLY`.
+* **Monthly $900 = $300/week × 3:** Capstone window ~3 weeks; preserves onboarding weekly narrative without inventing unsupported period.
 * **email-json (not email):** Operator requested structured JSON notification body via SNS protocol.
-* **Production only:** Avoid double weekly $300 budgets on the same account.
-* **Weekly + daily:** Weekly matches mandate; daily catches load-gen/VPN/Spot spikes same day.
+* **Production only:** Avoid double monthly budgets on the same account.
+* **Monthly + daily:** Monthly holds the ceiling; daily catches load-gen/VPN/Spot spikes same day.
 * **SNS topic policy:** Required for Budgets to publish; scoped with SourceAccount + SourceArn.
 * **Fixed `time_period_start`:** Deploy-day string; avoid `timestamp()` thrash on every plan.
 * **Alert only:** AWS Budgets do not hard-stop resources; ops still cut VPN/load-gen/Spot manually.
-* **Thresholds:** Weekly includes 50% for mid-week signal; daily omits 50% to reduce noise.
+* **Thresholds:** Monthly includes 50% mid-period signal; daily omits 50% to reduce noise.
 
 ## Implementation Details
 
@@ -59,7 +61,7 @@ Added Terraform module **`modules/cost-budgets`** and **production-only** wiring
 
 **Module:**
 
-* `modules/cost-budgets/main.tf` — SNS, topic policy, email-json subscription, weekly/daily budgets
+* `modules/cost-budgets/main.tf` — SNS, topic policy, email-json subscription, monthly/daily budgets
 * `modules/cost-budgets/variables.tf` — limits, thresholds, `time_period_start`, email validation
 * `modules/cost-budgets/outputs.tf` — topic ARN, budget names, operator note
 * `modules/cost-budgets/versions.tf` — Terraform/AWS provider constraints
@@ -67,9 +69,9 @@ Added Terraform module **`modules/cost-budgets`** and **production-only** wiring
 **Environments (production only):**
 
 * `environments/production/main.tf` — `module.cost_budgets`
-* `environments/production/variables.tf` — `cost_budgets_*`
+* `environments/production/variables.tf` — `cost_budgets_*` (monthly limit, not weekly)
 * `environments/production/outputs.tf` — cost budget outputs
-* `environments/production/terraform.tfvars` — enable + limits; **set real `cost_budgets_alert_email` before apply**
+* `environments/production/terraform.tfvars` — enable + monthly $900 / daily $45
 
 **Documentation:**
 
@@ -110,7 +112,7 @@ Added Terraform module **`modules/cost-budgets`** and **production-only** wiring
 1. Set `cost_budgets_alert_email` to a real mailbox.
 2. `terraform apply` production.
 3. Confirm SNS **email-json** subscription.
-4. Billing → Budgets: `*-weekly-300`, `*-daily-45`.
+4. Billing → Budgets: `*-monthly-900`, `*-daily-45`.
 5. Optional: SNS **Publish** test message to verify delivery format.
 
 ## Migration or Deployment Notes
