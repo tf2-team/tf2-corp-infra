@@ -27,7 +27,7 @@ variable "ecr_naming_mode" {
 
 variable "ecr_keep_last_n_images" {
   type        = number
-  description = "Lifecycle: keep N most recent non-buildcache images per service repo (development: 5)"
+  description = "Lifecycle: keep N most recent non-buildcache images per service repo (aligned with production: 5)"
   default     = 5
 }
 
@@ -185,13 +185,16 @@ variable "argocd_chart_version" {
 
 variable "argocd_chart_repo_url" {
   type        = string
-  default     = "https://github.com/tmcmanhcuong/techx-corp-chart.git"
-  description = "Git URL of the Helm chart repo used by Argo CD Applications (document only; apps live in chart gitops/)"
+  default     = "https://github.com/tf2-team/tf2-corp-chart.git"
+  description = "Git URL of the Helm chart repo used by Argo CD Applications"
 }
 
 # ──────────────────────────────────────────────
 # Storefront public ALB path blocking (Helm-applied)
 # ──────────────────────────────────────────────
+# Path rules are enforced by techx-corp-chart Ingress annotations (ALB Controller),
+# not by raw AWS Terraform resources. These variables are the IaC source of truth
+# for operators / deploy scripts.
 
 variable "storefront_alb_block_sensitive_paths" {
   type        = bool
@@ -200,10 +203,14 @@ variable "storefront_alb_block_sensitive_paths" {
   description = <<-EOT
     Toggle ALB fixed-response 403 for sensitive paths on the public storefront Ingress.
     true  → BLOCK: /grafana, /jaeger, /loadgen, /feature, /flagservice, /otlp-http
-            ALLOW: / , /api/* , /images/* (via catch-all /)
-    false → no path blocks
+            ALLOW: / , /api/* , /images/* (and other non-blocked prefixes via catch-all /)
+    false → no path blocks; all prefixes forward to frontend-proxy
 
-    Applied via Helm --set components.frontend-proxy.publicAlb.blockSensitivePaths=<bool>
+    Applied via Helm:
+      --set components.frontend-proxy.publicAlb.blockSensitivePaths=<true|false>
+    See outputs storefront_alb_helm_set_flags and storefront_alb_helm_deploy_command.
+
+    Both environments override this to false in terraform.tfvars (open storefront paths).
   EOT
 }
 
@@ -217,7 +224,7 @@ variable "storefront_alb_blocked_prefixes" {
     "/flagservice",
     "/otlp-http",
   ]
-  description = "Sensitive path prefixes blocked when storefront_alb_block_sensitive_paths is true"
+  description = "Sensitive path prefixes blocked when storefront_alb_block_sensitive_paths is true (must match chart values)"
 }
 
 # ──────────────────────────────────────────────
@@ -233,7 +240,7 @@ variable "secrets_manager_name_prefix" {
 variable "secrets_manager_recovery_window_in_days" {
   type        = number
   description = "ASM recovery window for secret shells (0 = force delete; else 7–30)"
-  default     = 7
+  default     = 0
 }
 
 variable "secrets_manager_kms_key_id" {
@@ -304,7 +311,7 @@ variable "karpenter_spot_preferred" {
   type        = bool
   default     = true
   nullable    = false
-  description = "Prefer Spot NodePool with On-Demand fallback (recommended for development)"
+  description = "Prefer Spot NodePool with On-Demand fallback (aligned with production)"
 }
 
 variable "karpenter_node_taints" {
