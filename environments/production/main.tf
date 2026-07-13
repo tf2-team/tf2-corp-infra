@@ -188,5 +188,6 @@ module "cloudfront_storefront" {
   blocked_prefixes      = var.cloudfront_blocked_prefixes
   block_function_name   = "${var.project_name}-block-sensitive-paths"
   vpc_origin_name       = "${var.project_name}-storefront-alb"
+  web_acl_id            = var.cloudfront_web_acl_id
   tags                  = var.tags
 }

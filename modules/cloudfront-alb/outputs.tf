@@ -57,3 +57,12 @@ output "block_function_arn" {
   description = "CloudFront Function ARN for path blocking (null when not created)"
   value       = var.enabled && var.block_sensitive_paths ? aws_cloudfront_function.block_sensitive_paths[0].arn : null
 }
+
+output "web_acl_id" {
+  description = "WAFv2 web ACL ARN attached to the distribution (null when disabled or unset)"
+  value = (
+    var.enabled && var.web_acl_id != null && var.web_acl_id != ""
+    ? var.web_acl_id
+    : null
+  )
+}

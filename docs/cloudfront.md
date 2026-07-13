@@ -27,11 +27,33 @@ Default: **`cloudfront_enabled = false`** (no resources until you opt in)
 | Viewer cert | ACM + SNI-only | No dedicated IP charge |
 | Cache | Managed **CachingDisabled** | Dynamic cart/API correctness |
 | Path block | CloudFront Function | No WAF cost for simple prefix 403s |
-| WAF | Off by default | Extra cost |
+| WAF | Off by default (`cloudfront_web_acl_id` unset) | Extra cost on classic PAYG; **required** on flat-rate pricing plans |
 | Access logging | Off by default | Avoid S3 log bucket cost |
 | Origin Shield / Lambda@Edge | Not used | Extra cost |
 
 Account Free Tier request/data transfer quotas still apply; heavy load-generator traffic can exceed them.
+
+### Flat-rate pricing plan + web ACL
+
+If the distribution is subscribed to a CloudFront **flat-rate pricing plan** (Free / Pro / Business / Premium), AWS attaches a plan-managed WAFv2 web ACL and **rejects** any `UpdateDistribution` that removes or replaces it:
+
+```text
+InvalidArgument: You can't remove or replace the web ACL for your distribution.
+Distributions with a pricing plan subscription must have a web ACL resource.
+```
+
+**Keep the plan:** set `cloudfront_web_acl_id` to the existing ACL ARN (do not leave it null/empty).
+
+```cmd
+aws cloudfront get-distribution --id ELZ9H0XX23S27 ^
+  --query Distribution.DistributionConfig.WebACLId --output text
+```
+
+```hcl
+cloudfront_web_acl_id = "arn:aws:wafv2:us-east-1:ACCOUNT:global/webacl/CreatedByCloudFront-…/…"
+```
+
+Terraform manages association only; it does **not** create or own the plan-created web ACL. To drop WAF entirely, cancel the pricing plan first (console), then clear `cloudfront_web_acl_id`.
 
 ---
 
@@ -58,6 +80,7 @@ Terraform does **not** create Route53 records or ACM certificates.
 | `cloudfront_price_class` | No | Default `PriceClass_100` |
 | `cloudfront_block_sensitive_paths` | No | Default **true** (prod) / **false** (dev) |
 | `cloudfront_blocked_prefixes` | No | Default admin/telemetry prefixes |
+| `cloudfront_web_acl_id` | When on flat-rate plan | WAFv2 global web ACL ARN; keep plan-created ACL |
 
 ---
 
@@ -120,6 +143,8 @@ cloudfront_origin_alb_arn        = "arn:aws:elasticloadbalancing:us-east-1:ACCOU
 cloudfront_aliases               = ["shop.example.com"]
 cloudfront_block_sensitive_paths = true
 # cloudfront_price_class         = "PriceClass_100"
+# Required if distribution is on a flat-rate pricing plan (keep plan-created ACL):
+# cloudfront_web_acl_id          = "arn:aws:wafv2:us-east-1:ACCOUNT:global/webacl/CreatedByCloudFront-…/…"
 ```
 
 ### 5. Plan and apply
@@ -196,6 +221,7 @@ Prefer CloudFront for production edge posture.
 | `cloudfront_vpc_origin_id` | VPC origin resource ID |
 | `cloudfront_block_sensitive_paths` | Whether Function is attached |
 | `cloudfront_blocked_prefixes` | Active block list |
+| `cloudfront_web_acl_id` | Attached WAFv2 ACL ARN (if set) |
 | `cloudfront_bootstrap_note` | Short operator reminder |
 
 ---
@@ -207,6 +233,7 @@ Prefer CloudFront for production edge posture.
 * **Cache policy** is managed **CachingDisabled** so session cookies and POSTs are not edge-cached incorrectly.
 * **Origin request policy** is managed **AllViewerExceptHostHeader** so the origin Host header is the ALB DNS (empty Ingress `host`).
 * **Path blocking** is a lightweight CloudFront Function (not WAF) for free-tier-friendly 403s.
+* **WAF** stays optional for classic PAYG; when a flat-rate pricing plan is active, pass the plan web ACL via `cloudfront_web_acl_id` so Terraform does not clear it.
 
 ---
 

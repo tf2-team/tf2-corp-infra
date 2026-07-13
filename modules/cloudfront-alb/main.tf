@@ -5,6 +5,7 @@
 # Origin: internal ALB via CloudFront VPC origin (not internet-facing).
 # Path blocking: CloudFront Function (viewer-request) → 403 for sensitive prefixes.
 # Cost posture: PriceClass_100 default, SNI-only, no WAF/logging by default.
+# Flat-rate pricing plan distributions must keep web_acl_id set (plan-managed WAF).
 # App correctness: CachingDisabled + AllViewerExceptHostHeader.
 # ──────────────────────────────────────────────
 
@@ -108,8 +109,9 @@ resource "aws_cloudfront_distribution" "storefront" {
   price_class         = var.price_class
   http_version        = "http2and3"
   wait_for_deployment = true
-  web_acl_id          = var.web_acl_id
-  default_root_object = var.default_root_object
+  # Empty string → no WAF; null coalesced so PAYG stays unattached.
+  # Flat-rate plan subscriptions require a non-empty ARN (do not clear).
+  web_acl_id = var.web_acl_id != null ? var.web_acl_id : ""
 
   origin {
     domain_name = var.origin_domain_name

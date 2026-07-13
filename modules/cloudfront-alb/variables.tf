@@ -164,8 +164,24 @@ variable "ipv6_enabled" {
 
 variable "web_acl_id" {
   type        = string
-  description = "Optional WAFv2 web ACL ARN (null/empty = no WAF; keeps free-tier cost posture)"
+  description = <<-EOT
+    WAFv2 web ACL ARN associated with the distribution (scope CLOUDFRONT / global).
+    null or empty = no WAF (classic pay-as-you-go only).
+    Required when the distribution is on a CloudFront flat-rate pricing plan subscription
+    (Free/Pro/Business/Premium): those plans mandate a web ACL and reject updates that
+    clear or replace it. Pass the existing plan-created ACL ARN from:
+      aws cloudfront get-distribution --id <ID> --query Distribution.DistributionConfig.WebACLId
+  EOT
   default     = null
+
+  validation {
+    condition = (
+      var.web_acl_id == null ||
+      var.web_acl_id == "" ||
+      can(regex("^arn:aws:wafv2:us-east-1:[0-9]{12}:global/webacl/.+", var.web_acl_id))
+    )
+    error_message = "web_acl_id must be null/empty or a us-east-1 global WAFv2 web ACL ARN (arn:aws:wafv2:us-east-1:ACCOUNT:global/webacl/…)."
+  }
 }
 
 variable "default_root_object" {
