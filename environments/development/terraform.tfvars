@@ -188,6 +188,17 @@ cluster_autoscaler_enabled       = false
 cluster_autoscaler_install_helm  = false
 cluster_autoscaler_chart_version = "9.46.6"
 
+# ──────────────────────────────────────────────
+# CloudFront free-tier — storefront ALB origin (OFF by default)
+# Prerequisites: public ALB healthy; ACM cert ISSUED in us-east-1.
+# See docs/cloudfront.md
+# ──────────────────────────────────────────────
+cloudfront_enabled = false
+# cloudfront_acm_certificate_arn = "arn:aws:acm:us-east-1:ACCOUNT:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# cloudfront_origin_domain_name  = "k8s-….elb.amazonaws.com"
+# cloudfront_aliases             = ["shop-dev.example.com"]
+# cloudfront_price_class         = "PriceClass_100"
+
 # -----------------------------------------------
 
 # Trigger CICD

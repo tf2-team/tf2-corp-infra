@@ -588,6 +588,20 @@ helm upgrade techx-corp techx-corp-chart \
 
 Posture when ON: ALLOW `/`, `/api/*`, `/images/*` · BLOCK `/grafana`, `/jaeger`, `/loadgen`, `/feature`, `/flagservice`, `/otlp-http` (HTTP 403).
 
+### CloudFront free-tier edge (optional — ALB origin)
+
+Optional HTTPS edge in front of the storefront ALB. Off by default (`cloudfront_enabled = false`). Primary input is an **ACM certificate ARN** (must be issued in `us-east-1`); also require ALB DNS + domain aliases.
+
+Full runbook: **[docs/cloudfront.md](./cloudfront.md)**.
+
+```cmd
+cd /d techx-corp-infra
+REM After setting cloudfront_* in terraform.tfvars:
+terraform -chdir=environments/production plan -out=tfplan
+terraform -chdir=environments/production apply tfplan
+terraform -chdir=environments/production output cloudfront_domain_name
+```
+
 ---
 
 ## Phase 5–6: Verify & Rollback (tham chiếu chart)
