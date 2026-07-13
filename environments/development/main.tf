@@ -191,3 +191,24 @@ module "cloudfront_storefront" {
   web_acl_id            = var.cloudfront_web_acl_id
   tags                  = var.tags
 }
+
+# ──────────────────────────────────────────────
+# Client VPN — private operator access to internal storefront ALB
+# Bypass CloudFront path blocks for /grafana, /jaeger, … See docs/client-vpn.md
+# ──────────────────────────────────────────────
+
+module "client_vpn" {
+  source = "../../modules/client-vpn"
+
+  enabled                           = var.client_vpn_enabled
+  name                              = "${var.project_name}-client-vpn"
+  vpc_id                            = module.vpc.vpc_id
+  vpc_cidr_block                    = module.vpc.vpc_cidr_block
+  subnet_ids                        = length(var.client_vpn_subnet_ids) > 0 ? var.client_vpn_subnet_ids : [module.vpc.private_subnet_ids_list[0]]
+  client_cidr_block                 = var.client_vpn_client_cidr_block
+  server_certificate_arn            = var.client_vpn_server_certificate_arn
+  client_root_certificate_chain_arn = var.client_vpn_client_ca_arn
+  split_tunnel                      = var.client_vpn_split_tunnel
+  alb_security_group_ids            = var.client_vpn_alb_security_group_ids
+  tags                              = var.tags
+}

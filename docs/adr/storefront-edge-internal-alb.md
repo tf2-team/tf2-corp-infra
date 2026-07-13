@@ -87,6 +87,7 @@ So the choice is not “ALB vs nothing.” It is:
 | Viewer HTTPS + custom domain | CloudFront + ACM (`us-east-1`) |
 | Sensitive path 403s | CloudFront Function (`cloudfront_block_sensitive_paths`) |
 | Private origin connectivity | VPC origin → internal ALB SG (same-account auto-management) |
+| Private **operator** admin UI access | AWS Client VPN → **same** internal ALB (not a second Ingress); see [docs/client-vpn.md](../client-vpn.md) |
 | Pod targeting / health | Internal ALB target groups |
 
 The ALB is **not** a second public edge. It is a **private Kubernetes ingress load balancer**.

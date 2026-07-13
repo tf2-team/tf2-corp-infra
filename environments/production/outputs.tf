@@ -363,7 +363,47 @@ output "cloudfront_bootstrap_note" {
     6) terraform apply → point DNS CNAME/ALIAS to cloudfront_domain_name.
     7) Verify storefront HTTPS and 403 on blocked prefixes (when cloudfront_block_sensitive_paths=true).
     8) See docs/cloudfront.md for cutover/rollback.
+    9) Admin paths: use Client VPN → internal ALB (docs/client-vpn.md), not CloudFront.
   EOT
   description = "Operator enable sequence for CloudFront + VPC origin"
+}
+
+# ──────────────────────────────────────────────
+# Client VPN (private admin path to internal ALB)
+# ──────────────────────────────────────────────
+
+output "client_vpn_enabled" {
+  value       = module.client_vpn.enabled
+  description = "Whether Client VPN resources are managed"
+}
+
+output "client_vpn_endpoint_id" {
+  value       = module.client_vpn.client_vpn_endpoint_id
+  description = "Client VPN endpoint ID (null when disabled)"
+}
+
+output "client_vpn_endpoint_dns_name" {
+  value       = module.client_vpn.client_vpn_endpoint_dns_name
+  description = "Client VPN endpoint DNS name (null when disabled)"
+}
+
+output "client_vpn_security_group_id" {
+  value       = module.client_vpn.client_vpn_security_group_id
+  description = "Client VPN ENI security group ID (null when disabled)"
+}
+
+output "client_vpn_client_cidr_block" {
+  value       = module.client_vpn.client_cidr_block
+  description = "CIDR assigned to VPN clients when enabled"
+}
+
+output "client_vpn_export_client_config_command" {
+  value       = module.client_vpn.export_client_config_command
+  description = "CLI command to export OpenVPN client configuration (null when disabled)"
+}
+
+output "client_vpn_operator_note" {
+  value       = module.client_vpn.operator_note
+  description = "Operator enable sequence for Client VPN admin access"
 }
 

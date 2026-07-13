@@ -199,6 +199,17 @@ cloudfront_enabled = false
 # Required if distribution is on a flat-rate pricing plan (keep plan-created ACL):
 # cloudfront_web_acl_id            = "arn:aws:wafv2:us-east-1:ACCOUNT:global/webacl/CreatedByCloudFront-…/…"
 
+# ──────────────────────────────────────────────
+# Client VPN — private admin access to internal storefront ALB
+# OFF by default (association cost). Client CIDR must not overlap VPC 10.1.0.0/16.
+# See docs/client-vpn.md
+# ──────────────────────────────────────────────
+client_vpn_enabled           = false
+client_vpn_client_cidr_block = "10.101.0.0/22"
+# client_vpn_server_certificate_arn = "arn:aws:acm:us-east-1:ACCOUNT:certificate/SERVER-CERT-ID"
+# client_vpn_client_ca_arn          = "arn:aws:acm:us-east-1:ACCOUNT:certificate/CLIENT-CA-ID"
+# client_vpn_alb_security_group_ids = ["sg-xxxxxxxx"]
+
 # -----------------------------------------------
 
 # Trigger CICD

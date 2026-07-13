@@ -247,9 +247,26 @@ Prefer CloudFront for production edge posture.
 
 ---
 
+## Operator admin access (Client VPN)
+
+CloudFront **must** keep blocking admin prefixes for public users. Operators open those paths by connecting to **AWS Client VPN** and calling the **internal ALB** hostname (bypass CloudFront). There is no second admin ALB.
+
+Full runbook: **[docs/client-vpn.md](./client-vpn.md)**.
+
+```cmd
+REM Public edge — expect 403
+curl -i https://<cloudfront-alias>/grafana/
+
+REM After Client VPN connect — internal ALB (expect 200 / app login)
+curl -i http://<internal-alb-dns>/grafana/
+```
+
+---
+
 ## Related
 
 * **Why internal ALB (ADR):** [docs/adr/storefront-edge-internal-alb.md](./adr/storefront-edge-internal-alb.md) — do we need the ALB, alternatives, role split vs CloudFront
+* **Client VPN (admin paths):** [docs/client-vpn.md](./client-vpn.md)
 * Chart storefront Ingress: `techx-corp-chart/values-public-alb.yaml`, `templates/frontend-proxy-public-ingress.yaml`
 * Infra deploy runbook: `docs/DEPLOYMENT.md`
 * Change record: `docs/changes/2026-07-13-internal-alb-cloudfront-vpc-origin.md`
