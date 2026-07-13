@@ -340,3 +340,33 @@ resource "aws_eks_access_policy_association" "plan_role" {
   depends_on = [aws_eks_access_entry.plan_role]
 }
 
+# ──────────────────────────────────────────────
+# EKS Access Entries (Additional map-based configuration)
+# ──────────────────────────────────────────────
+
+resource "aws_eks_access_entry" "additional" {
+  for_each          = var.access_entries
+  cluster_name      = aws_eks_cluster.this.name
+  principal_arn     = each.value.principal_arn
+  type              = each.value.type
+  kubernetes_groups = each.value.kubernetes_groups
+}
+
+resource "aws_eks_access_policy_association" "additional" {
+  for_each = {
+    for k, v in var.access_entries : k => v
+    if v.policy_arn != null
+  }
+
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = each.value.principal_arn
+  policy_arn    = each.value.policy_arn
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [aws_eks_access_entry.additional]
+}
+
+

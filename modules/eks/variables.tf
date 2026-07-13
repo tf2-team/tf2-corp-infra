@@ -181,3 +181,15 @@ variable "plan_role_arn" {
   description = "IAM Role ARN of the GitHub Actions Plan Role to authorize in EKS"
 }
 
+variable "access_entries" {
+  type = map(object({
+    principal_arn     = string
+    type              = optional(string, "STANDARD")
+    kubernetes_groups = optional(list(string), [])
+    policy_arn        = optional(string)
+  }))
+  default     = {}
+  description = "Bản đồ các EKS Access Entries bổ sung cần cấu hình"
+}
+
+

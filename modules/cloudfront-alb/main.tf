@@ -99,6 +99,7 @@ resource "aws_cloudfront_function" "block_sensitive_paths" {
 # checkov:skip=CKV2_AWS_47:WAF optional (web_acl_id); Log4j AMR requires paid WAFv2 WebACL
 # checkov:skip=CKV2_AWS_72:Origin is http-only to storefront ALB listenPorts HTTP:80; viewer HTTPS enforced
 # checkov:skip=CKV_AWS_310:Single ALB VPC origin; origin-group failover not in free-tier design
+# checkov:skip=CKV_AWS_305:Dynamic storefront origin - root path is handled by backend app, default root object must not be configured
 resource "aws_cloudfront_distribution" "storefront" {
   count = var.enabled ? 1 : 0
 
