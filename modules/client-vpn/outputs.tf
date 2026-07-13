@@ -55,8 +55,10 @@ output "operator_note" {
          - server.crt+key (+ca chain) → client_vpn_server_certificate_arn
          - ca.crt+ca.key              → client_vpn_client_ca_arn  (two different ARNs)
     3) Recommended: client_vpn_alb_security_group_ids from storefront ALB SGs (TCP 80).
-    4) client_vpn_enabled=true → terraform apply → export .ovpn, embed client cert/key, connect.
-    5) curl http://<INTERNAL_ALB_DNS>/grafana/ (not CF 403); CloudFront alias still 403 when blocking on.
-    6) Disable with client_vpn_enabled=false to stop association charges.
+    4) client_vpn_enabled=true → terraform apply → wait association available.
+    5) Local connect (docs/client-vpn.md "Client setup and connect"):
+         export .ovpn → append client1 cert/key/ca → AWS VPN Client Connect.
+    6) curl http://<INTERNAL_ALB_DNS>/grafana/ (not CF 403); CloudFront alias still 403 when blocking on.
+    7) Disconnect when done; disable with client_vpn_enabled=false to stop association charges.
   EOT
 }

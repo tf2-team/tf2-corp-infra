@@ -87,11 +87,29 @@ openssl genrsa -out ca.key 2048
 openssl req -new -x509 -days 3650 -key ca.key -out ca.crt -subj "/CN=TechX Client VPN CA"
 
 REM === 2) Server — becomes client_vpn_server_certificate_arn ===
+REM CRITICAL: CN (and SAN) must be an FQDN. Bare CN=server leaves ACM DomainName empty
+REM and CreateClientVpnEndpoint fails with "Certificate ... does not have a domain".
+REM Any private FQDN is fine (you do not need to own or resolve this DNS name).
 openssl genrsa -out server.key 2048
-openssl req -new -key server.key -out server.csr -subj "/CN=server"
-openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 825
+openssl req -new -key server.key -out server.csr -subj "/CN=server.clientvpn.techx.local"
+echo subjectAltName=DNS:server.clientvpn.techx.local> server-ext.cnf
+openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 825 -extfile server-ext.cnf
 
 REM === 3) Operator client (for .ovpn only; not imported to ACM) ===
+openssl genrsa -out client1.key 2048
+openssl req -new -key client1.key -out client1.csr -subj "/CN=client1"
+openssl x509 -req -in client1.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client1.crt -days 825
+```
+
+```sh
+# sh/bash: same PKI; use printf for the SAN ext file
+mkdir -p client-vpn-pki && cd client-vpn-pki
+openssl genrsa -out ca.key 2048
+openssl req -new -x509 -days 3650 -key ca.key -out ca.crt -subj "/CN=TechX Client VPN CA"
+openssl genrsa -out server.key 2048
+openssl req -new -key server.key -out server.csr -subj "/CN=server.clientvpn.techx.local"
+printf 'subjectAltName=DNS:server.clientvpn.techx.local\n' > server-ext.cnf
+openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 825 -extfile server-ext.cnf
 openssl genrsa -out client1.key 2048
 openssl req -new -key client1.key -out client1.csr -subj "/CN=client1"
 openssl x509 -req -in client1.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client1.crt -days 825
@@ -103,7 +121,7 @@ Files:
 |---|---|
 | `ca.crt` + `ca.key` | Import together → `client_vpn_client_ca_arn` (ACM requires the key) |
 | `ca.key` | Also keep offline to sign more client certs later |
-| `server.crt` + `server.key` (+ `ca.crt` as chain) | Import → `client_vpn_server_certificate_arn` |
+| `server.crt` + `server.key` (+ `ca.crt` as chain) | Import → `client_vpn_server_certificate_arn` (must have FQDN domain) |
 | `client1.crt` + `client1.key` | Append to `.ovpn` after export (not imported to ACM) |
 
 ### B. Import **both** certificates into ACM (`us-east-1`)
@@ -163,10 +181,23 @@ arn:aws:acm:us-east-1:493499579600:certificate/<CA-OR-CLIENT-REF-ID>
 aws acm list-certificates --region us-east-1 --output table
 aws acm describe-certificate --region us-east-1 ^
   --certificate-arn arn:aws:acm:us-east-1:ACCOUNT:certificate/SERVER-OR-CA-ID ^
-  --query "Certificate.{Arn:CertificateArn,Type:Type,InUse:InUseBy}" --output table
+  --query "Certificate.{Arn:CertificateArn,Domain:DomainName,Type:Type,InUse:InUseBy}" --output table
 ```
 
 Imported certs show as type **IMPORTED**. You should have **two different ARNs** — do not reuse one ARN for both variables.
+
+**Server cert domain check (required before apply):**
+
+```cmd
+aws acm describe-certificate --region us-east-1 ^
+  --certificate-arn arn:aws:acm:us-east-1:ACCOUNT:certificate/SERVER-ID ^
+  --query "Certificate.DomainName" --output text
+```
+
+| Result | Meaning |
+|---|---|
+| `server.clientvpn.techx.local` (or your FQDN) | OK — use this ARN as `client_vpn_server_certificate_arn` |
+| `None` / empty / `null` | **Not usable** for Client VPN server. Re-generate with an FQDN CN (+ SAN), re-import, update tfvars. Do **not** use the client CA ARN as the server cert. |
 
 > **Security:** ACM will store the CA private key for the client-CA import. Restrict IAM who can export/manage ACM certs; keep a local backup of `ca.key` offline and never commit it to git.
 
@@ -240,7 +271,7 @@ Must **not** overlap the VPC CIDR. AWS Client VPN client CIDR is typically `/22`
 |---|---|---|
 | `client_vpn_enabled` | — | Gate; default `false` |
 | `client_vpn_server_certificate_arn` | Yes | ACM **server** cert ARN (imported; same region as VPC) |
-| `client_vpn_client_ca_arn` | Yes | ACM **client CA** cert ARN (imported CA public cert only) |
+| `client_vpn_client_ca_arn` | Yes | ACM **client CA** cert ARN (imported `ca.crt` + `ca.key`) |
 | `client_vpn_client_cidr_block` | No | Prod `10.100.0.0/22`; dev `10.101.0.0/22` |
 | `client_vpn_subnet_ids` | No | Empty = first private subnet only |
 | `client_vpn_split_tunnel` | No | Default `true` |
@@ -280,62 +311,210 @@ terraform -chdir=environments/production output client_vpn_endpoint_id
 terraform -chdir=environments/production output client_vpn_export_client_config_command
 ```
 
-Association can take several minutes to become available.
+Association can take several minutes to become available. Confirm before connecting from a laptop:
 
-### 3. Export client configuration
+```cmd
+aws ec2 describe-client-vpn-endpoints --region us-east-1 ^
+  --query "ClientVpnEndpoints[*].{Id:ClientVpnEndpointId,Status:Status.Code,Dns:DnsName,Split:SplitTunnel}" ^
+  --output table
+```
+
+```cmd
+aws ec2 describe-client-vpn-target-networks --region us-east-1 ^
+  --client-vpn-endpoint-id cvpn-endpoint-xxxxxxxx ^
+  --query "ClientVpnTargetNetworks[*].{Subnet:TargetNetworkId,Status:Status.Code}" --output table
+```
+
+Endpoint and target network status should be **available**.
+
+Then continue with **Client setup and connect (local)** below.
+
+---
+
+## Client setup and connect (local)
+
+Mutual TLS: the **laptop** authenticates with a **client** certificate (`client1.crt` + `client1.key`) signed by the same CA you imported as `client_vpn_client_ca_arn`. Terraform/ACM server ARNs are **not** installed on the laptop.
+
+```text
+Generate client1 cert → export .ovpn → embed cert/key/CA → AWS VPN Client Connect
+  → curl/browser http://<INTERNAL_ALB>/grafana/
+```
+
+### 1. Install a VPN client
+
+| Client | Notes |
+|---|---|
+| **AWS VPN Client** (recommended) | Free desktop app from AWS: https://aws.amazon.com/vpn/client-vpn-download/ |
+| OpenVPN Connect / community OpenVPN | Import the same `.ovpn` profile |
+
+### 2. Keep local PKI files ready
+
+From the earlier PKI directory (never commit these):
+
+| File | Used for |
+|---|---|
+| `client1.crt` | Client identity in `.ovpn` `<cert>` |
+| `client1.key` | Client private key in `.ovpn` `<key>` |
+| `ca.crt` | CA block in `.ovpn` `<ca>` (if the client requires it) |
+
+Use **client** files, not `server.crt` / `server.key`.
+
+To issue another operator later (same CA):
+
+```cmd
+cd /d client-vpn-pki
+openssl genrsa -out client2.key 2048
+openssl req -new -key client2.key -out client2.csr -subj "/CN=client2"
+openssl x509 -req -in client2.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client2.crt -days 825
+```
+
+Each person gets their own `.ovpn` with their own `clientN` cert/key.
+
+### 3. Export the Client VPN configuration (`.ovpn`)
+
+```cmd
+cd /d techx-corp-infra
+terraform -chdir=environments/production output client_vpn_endpoint_id
+```
+
+Or:
+
+```cmd
+aws ec2 describe-client-vpn-endpoints --region us-east-1 ^
+  --query "ClientVpnEndpoints[0].ClientVpnEndpointId" --output text
+```
+
+Export (replace the endpoint id):
 
 ```cmd
 aws ec2 export-client-vpn-client-configuration --region us-east-1 ^
   --client-vpn-endpoint-id cvpn-endpoint-xxxxxxxx ^
-  --output text > client-vpn.ovpn
+  --output text > %USERPROFILE%\Downloads\techx-prod-client-vpn.ovpn
 ```
 
-Edit `client-vpn.ovpn` and append the client certificate and key:
+PowerShell:
+
+```powershell
+aws ec2 export-client-vpn-client-configuration --region us-east-1 `
+  --client-vpn-endpoint-id cvpn-endpoint-xxxxxxxx `
+  --output text | Set-Content -Encoding ascii "$env:USERPROFILE\Downloads\techx-prod-client-vpn.ovpn"
+```
+
+The exported file has `remote`, `remote-random-hostname`, and TLS settings. It does **not** include your client certificate yet.
+
+### 4. Embed client certificate, key, and CA into the `.ovpn`
+
+Open `%USERPROFILE%\Downloads\techx-prod-client-vpn.ovpn` in a text editor. **Append** at the end of the file (full PEM blocks, including `BEGIN`/`END` lines):
 
 ```text
 <cert>
-… contents of client1.crt …
+-----BEGIN CERTIFICATE-----
+… entire contents of client1.crt …
+-----END CERTIFICATE-----
 </cert>
+
 <key>
-… contents of client1.key …
+-----BEGIN PRIVATE KEY-----
+… entire contents of client1.key …
+-----END PRIVATE KEY-----
 </key>
-```
 
-Some clients also need the CA:
-
-```text
 <ca>
-… contents of ca.crt …
+-----BEGIN CERTIFICATE-----
+… entire contents of ca.crt …
+-----END CERTIFICATE-----
 </ca>
 ```
 
-Import into **AWS VPN Client** or OpenVPN Connect and connect.
+Rules:
 
-### 4. Resolve internal ALB hostname
+* Paste the real PEM text from the files (no extra spaces before `-----BEGIN`).
+* Do **not** put the server cert here.
+* The client cert must be signed by the CA whose public cert (with key) was imported for `client_vpn_client_ca_arn`.
+* Treat the finished `.ovpn` as a **secret** (contains a private key). Do not commit it or share it in chat/tickets.
+
+### 5. Connect with AWS VPN Client
+
+1. Launch **AWS VPN Client**.
+2. **File → Manage Profiles → Add Profile**.
+3. **Display name:** e.g. `techx-prod`.
+4. **VPN configuration file:** browse to `techx-prod-client-vpn.ovpn` (with certs embedded).
+5. **Add Profile**.
+6. Select the profile → **Connect**.
+
+When connected:
+
+* Status shows **Connected**.
+* You receive an IP from the client CIDR (prod `10.100.0.0/22`, e.g. `10.100.0.x`).
+* Split tunnel is on: only VPC destinations use the VPN; normal internet stays local.
+
+**OpenVPN Connect alternative:** Import the same `.ovpn` → Connect.
+
+**Disconnect** when finished (connection hours are billed): AWS VPN Client → **Disconnect**.
+
+### 6. Resolve the internal ALB hostname
+
+Admin UIs are on the **internal ALB**, not the CloudFront shop URL.
 
 ```cmd
 kubectl get ingress frontend-proxy-public -n techx-corp ^
   -o jsonpath="{.status.loadBalancer.ingress[0].hostname}"
 ```
 
-Or use `cloudfront_origin_domain_name` from production tfvars / Terraform output.
+Or use the live value of `cloudfront_origin_domain_name` in production tfvars (must match current Ingress hostname after ALB recreates).
 
-### 5. Verify dual path
+Example form:
+
+```text
+internal-k8s-techxcor-frontend-….us-east-1.elb.amazonaws.com
+```
+
+### 7. Open admin paths (while VPN is connected)
+
+Browser:
+
+```text
+http://<INTERNAL_ALB_DNS>/
+http://<INTERNAL_ALB_DNS>/grafana/
+http://<INTERNAL_ALB_DNS>/jaeger/
+http://<INTERNAL_ALB_DNS>/loadgen/
+http://<INTERNAL_ALB_DNS>/feature/
+```
+
+CMD:
 
 ```cmd
-REM Public edge — admin still blocked
+curl -i http://internal-k8s-….us-east-1.elb.amazonaws.com/
+curl -i http://internal-k8s-….us-east-1.elb.amazonaws.com/grafana/
+curl -i http://internal-k8s-….us-east-1.elb.amazonaws.com/jaeger/
+```
+
+### 8. Dual-path verification
+
+```cmd
+REM Public edge — admin still blocked (no VPN required)
 curl -i https://shop.hungtran.id.vn/grafana/
 
 REM On VPN — internal ALB full surface
-curl -i http://k8s-techxcor-frontend-….us-east-1.elb.amazonaws.com/
-curl -i http://k8s-techxcor-frontend-….us-east-1.elb.amazonaws.com/grafana/
-curl -i http://k8s-techxcor-frontend-….us-east-1.elb.amazonaws.com/jaeger/
+curl -i http://internal-k8s-….us-east-1.elb.amazonaws.com/grafana/
 ```
 
-Expect:
+| Entry | Expect |
+|---|---|
+| `https://shop…/grafana/` (CloudFront) | **403** when `cloudfront_block_sensitive_paths=true` |
+| `http://<internal-alb>/grafana/` **with VPN connected** | **200** or app login (not edge 403) |
+| Same internal ALB URL **without** VPN | Timeout / unreachable from the public internet |
 
-* CloudFront `/grafana` → **403**  
-* Internal ALB `/grafana` while VPN connected → **200** or app login (not edge 403)
+Grafana/Jaeger still use their own credentials (ESO secrets). VPN only provides network access.
+
+### Client connect quick checklist
+
+1. Endpoint + association **available**
+2. Export `.ovpn`
+3. Append `<cert>` / `<key>` / `<ca>` from **client1** (+ CA)
+4. AWS VPN Client → Add Profile → **Connect**
+5. Use **internal ALB** DNS for `/grafana`, not the shop hostname
+6. **Disconnect** when done
 
 ---
 
@@ -343,11 +522,16 @@ Expect:
 
 | Symptom | Likely cause | Action |
 |---|---|---|
+| `Certificate ... does not have a domain` on create | Server ACM cert has empty `DomainName` (bare `CN=server`, or CA ARN used as server) | Re-generate **server** leaf with FQDN CN (e.g. `server.clientvpn.techx.local`) + SAN; re-import; set `client_vpn_server_certificate_arn` to the new ARN. Confirm with `describe-certificate` → `DomainName` non-empty. Never use `client_vpn_client_ca_arn` as the server ARN. |
+| `Invalid rule description` on ALB SG rule | Non-ASCII chars in rule description (e.g. Unicode arrow) | Module uses ASCII-only descriptions; pull latest `modules/client-vpn` and re-apply |
 | VPN connects but ALB times out | ALB SG missing client CIDR | Set `client_vpn_alb_security_group_ids` or add TCP 80 from client CIDR manually |
-| Association pending long time | First association cold start | Wait 5–15 minutes; check subnet has free IPs |
-| Auth failure | Client cert not signed by imported CA | Re-issue client cert; re-import CA if wrong cert |
+| Association pending long time | First association cold start | Wait 5–15 minutes; check target network status |
+| Auth / TLS handshake fails | Wrong cert in `.ovpn` (server cert used, or client not signed by imported CA) | Re-export; embed **client1** cert/key signed by the CA used for `client_vpn_client_ca_arn` |
+| Profile import error | Incomplete PEM blocks or wrong encoding | Re-paste full `BEGIN`/`END` blocks; save `.ovpn` as UTF-8/ASCII without BOM |
+| Connects but no route to `10.0.x.x` | Not fully connected, or authorization rule missing | Confirm Connected; check VPC authorization rule exists |
 | Overlap error on create | Client CIDR overlaps VPC | Use `10.100.0.0/22` (prod) / `10.101.0.0/22` (dev) |
-| Admin still 403 | Hitting CloudFront URL | Use **internal ALB** hostname, not the shop alias |
+| Admin still 403 | Hitting CloudFront URL | Use **internal ALB** hostname on VPN, not the shop alias |
+| ACM import missing private key | `import-certificate` without `--private-key` | Import `ca.crt` **with** `ca.key` (and server with `server.key`) |
 
 **Do not** set Ingress `alb.ingress.kubernetes.io/inbound-cidrs` to only the VPN client CIDR — that can break CloudFront VPC origin access to the same ALB.
 

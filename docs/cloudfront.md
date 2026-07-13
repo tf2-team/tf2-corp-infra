@@ -251,13 +251,13 @@ Prefer CloudFront for production edge posture.
 
 CloudFront **must** keep blocking admin prefixes for public users. Operators open those paths by connecting to **AWS Client VPN** and calling the **internal ALB** hostname (bypass CloudFront). There is no second admin ALB.
 
-Full runbook (including prerequisites setup for **both** ACM certs — Import server + Import client CA): **[docs/client-vpn.md](./client-vpn.md)**.
+Full runbook (ACM import + **local client setup/connect**): **[docs/client-vpn.md](./client-vpn.md)**.
 
 ```cmd
 REM Public edge — expect 403
 curl -i https://<cloudfront-alias>/grafana/
 
-REM After Client VPN connect — internal ALB (expect 200 / app login)
+REM After Client VPN connect (see client-vpn.md "Client setup and connect") — internal ALB
 curl -i http://<internal-alb-dns>/grafana/
 ```
 

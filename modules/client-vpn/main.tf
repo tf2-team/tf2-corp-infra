@@ -163,7 +163,7 @@ resource "aws_ec2_client_vpn_authorization_rule" "vpc" {
 }
 
 # ──────────────────────────────────────────────
-# Optional: allow VPN client CIDR → internal ALB SG (TCP 80)
+# Optional: allow VPN client CIDR to internal ALB SG (TCP 80)
 # Does not replace CloudFront VPC-origin rules on the same SG.
 # ──────────────────────────────────────────────
 
@@ -171,7 +171,8 @@ resource "aws_vpc_security_group_ingress_rule" "alb_from_vpn_clients" {
   for_each = local.create ? toset(var.alb_security_group_ids) : toset([])
 
   security_group_id = each.value
-  description       = "Client VPN clients → storefront internal ALB HTTP"
+  # EC2 SG rule descriptions allow only ASCII from a fixed set (no Unicode).
+  description       = "Client VPN clients to storefront internal ALB HTTP"
   ip_protocol       = "tcp"
   from_port         = var.alb_ingress_port
   to_port           = var.alb_ingress_port

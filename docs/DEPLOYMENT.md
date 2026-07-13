@@ -597,7 +597,8 @@ terraform -chdir=environments/production output cloudfront_vpc_origin_id
 
 Admin/telemetry prefixes remain **403 on CloudFront**. Operators connect via **AWS Client VPN** and use the **internal ALB** DNS (no second ALB). Off by default (`client_vpn_enabled = false`) because of association hours.
 
-Full runbook (including **prerequisites setup for both ACM certs**): **[docs/client-vpn.md](./client-vpn.md)**.
+Full runbook: **[docs/client-vpn.md](./client-vpn.md)**  
+(sections **Prerequisites setup**, **Enable sequence**, **Client setup and connect (local)**).
 
 **Prerequisites before enable (summary):**
 
@@ -616,6 +617,15 @@ terraform -chdir=environments/production apply tfplan
 terraform -chdir=environments/production output client_vpn_endpoint_id
 terraform -chdir=environments/production output client_vpn_export_client_config_command
 ```
+
+**Local connect (summary)** — details in `docs/client-vpn.md` → **Client setup and connect (local)**:
+
+1. Install [AWS VPN Client](https://aws.amazon.com/vpn/client-vpn-download/).
+2. Export `.ovpn` (`export-client-vpn-client-configuration`).
+3. Append `<cert>` / `<key>` / `<ca>` from **client1** (not server) into the `.ovpn`.
+4. AWS VPN Client → Add Profile → **Connect**.
+5. Open `http://<INTERNAL_ALB_DNS>/grafana/` (not the CloudFront shop URL).
+6. **Disconnect** when finished.
 
 ---
 
