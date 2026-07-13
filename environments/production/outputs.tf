@@ -407,3 +407,23 @@ output "client_vpn_operator_note" {
   description = "Operator enable sequence for Client VPN admin access"
 }
 
+output "cost_budgets_sns_topic_arn" {
+  value       = module.cost_budgets.sns_topic_arn
+  description = "SNS topic ARN for cost budget alerts (null when disabled)"
+}
+
+output "cost_budgets_weekly_budget_name" {
+  value       = module.cost_budgets.weekly_budget_name
+  description = "Weekly AWS Budget name (null when disabled)"
+}
+
+output "cost_budgets_daily_budget_name" {
+  value       = module.cost_budgets.daily_budget_name
+  description = "Daily AWS Budget name (null when disabled)"
+}
+
+output "cost_budgets_operator_note" {
+  value       = module.cost_budgets.operator_note
+  description = "Post-apply steps for cost budgets (confirm email-json subscription)"
+}
+

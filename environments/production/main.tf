@@ -219,3 +219,20 @@ module "client_vpn" {
   tags                           = var.tags
 }
 
+# ──────────────────────────────────────────────
+# Cost budgets — ~$300/week TF ceiling (onboarding/BUDGET.md)
+# SNS protocol email-json; confirm subscription after apply.
+# Account-level; production only (do not duplicate in development).
+# ──────────────────────────────────────────────
+
+module "cost_budgets" {
+  source = "../../modules/cost-budgets"
+
+  enabled             = var.cost_budgets_enabled
+  name_prefix         = var.project_name
+  alert_email         = var.cost_budgets_alert_email
+  weekly_limit_usd    = var.cost_budgets_weekly_limit_usd
+  daily_limit_usd     = var.cost_budgets_daily_limit_usd
+  create_daily_budget = var.cost_budgets_create_daily
+  tags                = var.tags
+}
