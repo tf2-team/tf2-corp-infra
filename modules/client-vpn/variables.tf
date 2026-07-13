@@ -151,6 +151,25 @@ variable "alb_ingress_port" {
   nullable    = false
 }
 
+variable "eks_cluster_security_group_ids" {
+  type        = list(string)
+  description = <<-EOT
+    Optional EKS cluster security group ID(s). When non-empty and enabled, adds
+    ingress TCP 443 from client_cidr_block so VPN clients can reach the private
+    Kubernetes API endpoint (same dual-access model as public endpoint + VPN).
+    Pass module.eks.cluster_security_group_id from the environment stack.
+  EOT
+  default     = []
+  nullable    = false
+}
+
+variable "eks_api_ingress_port" {
+  type        = number
+  description = "Port opened on eks_cluster_security_group_ids for VPN clients (Kubernetes API 443)"
+  default     = 443
+  nullable    = false
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags applied to created resources"

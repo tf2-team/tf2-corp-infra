@@ -498,7 +498,11 @@ variable "client_vpn_enabled" {
   type        = bool
   default     = false
   nullable    = false
-  description = "When true, create AWS Client VPN for private access to the internal storefront ALB"
+  description = <<-EOT
+    When true, create AWS Client VPN for private access to the internal storefront
+    ALB and the EKS private Kubernetes API (cluster SG TCP 443 from client CIDR).
+    Public EKS endpoint access is unchanged (dual access when public is enabled).
+  EOT
 }
 
 variable "client_vpn_client_cidr_block" {

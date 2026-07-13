@@ -593,12 +593,12 @@ terraform -chdir=environments/production output cloudfront_domain_name
 terraform -chdir=environments/production output cloudfront_vpc_origin_id
 ```
 
-### Client VPN (private admin paths on the same internal ALB)
+### Client VPN (internal ALB admin paths + EKS private API)
 
-Admin/telemetry prefixes remain **403 on CloudFront**. Operators connect via **AWS Client VPN** and use the **internal ALB** DNS (no second ALB). Off by default (`client_vpn_enabled = false`) because of association hours.
+Admin/telemetry prefixes remain **403 on CloudFront**. Operators connect via **AWS Client VPN** and use the **internal ALB** DNS (no second ALB). The same VPN path also allows **`kubectl`/Helm to the EKS private API** (cluster security group TCP 443 from the VPN client CIDR). The **public** EKS endpoint stays enabled by default (**dual access**: internet or VPN). Off by default (`client_vpn_enabled = false`) because of association hours.
 
 Full runbook: **[docs/client-vpn.md](./client-vpn.md)**  
-(sections **Prerequisites setup**, **Enable sequence**, **Client setup and connect (local)**).
+(sections **Prerequisites setup**, **Enable sequence**, **Client setup and connect (local)**, **Kubernetes API dual-path verify**).
 
 **Prerequisites before enable (summary):**
 
@@ -607,7 +607,8 @@ Full runbook: **[docs/client-vpn.md](./client-vpn.md)**
    - Client CA cert + CA key → `client_vpn_client_ca_arn`
 2. Keep per-operator client cert/key for the `.ovpn` file (not imported to ACM).
 3. Recommended: set `client_vpn_alb_security_group_ids` from the storefront ALB SGs (TCP 80 from client CIDR).
-4. Optional: leave `client_vpn_subnet_ids` empty for one-AZ association (cost).
+4. EKS cluster SG TCP 443 from client CIDR is **wired automatically** (`module.eks.cluster_security_group_id`) when VPN is enabled.
+5. Optional: leave `client_vpn_subnet_ids` empty for one-AZ association (cost).
 
 ```cmd
 cd /d techx-corp-infra
@@ -625,7 +626,8 @@ terraform -chdir=environments/production output client_vpn_export_client_config_
 3. Append `<cert>` / `<key>` / `<ca>` from **client1** (not server) into the `.ovpn`.
 4. AWS VPN Client → Add Profile → **Connect**.
 5. Open `http://<INTERNAL_ALB_DNS>/grafana/` (not the CloudFront shop URL).
-6. **Disconnect** when finished.
+6. `kubectl get ns` should work on VPN (private API) and off VPN (public API).
+7. **Disconnect** when finished.
 
 ---
 

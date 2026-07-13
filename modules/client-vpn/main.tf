@@ -1,9 +1,12 @@
 # ──────────────────────────────────────────────
 # AWS Client VPN — private operator access to VPC resources
 #
-# Primary use: reach the existing *internal* storefront ALB (frontend-proxy-public)
-# to open admin/observability paths blocked at CloudFront (/grafana, /jaeger, …).
-# Does not create a second ALB. Path policy at the public edge stays on CloudFront.
+# Primary uses:
+#   1) Internal storefront ALB (frontend-proxy-public) for admin paths blocked at
+#      CloudFront (/grafana, /jaeger, …). Does not create a second ALB.
+#   2) EKS Kubernetes API on the private endpoint (TCP 443) when VPN DNS resolves
+#      the cluster hostname to VPC ENI IPs. Public EKS endpoint stays independent
+#      (dual-access: internet + VPN); this module only opens the private path.
 #
 # Auth: mutual TLS (operator-managed CA → ACM). Split tunnel by default.
 # Cost: association hours per subnet — associate one AZ unless HA is required.
@@ -172,9 +175,26 @@ resource "aws_vpc_security_group_ingress_rule" "alb_from_vpn_clients" {
 
   security_group_id = each.value
   # EC2 SG rule descriptions allow only ASCII from a fixed set (no Unicode).
-  description       = "Client VPN clients to storefront internal ALB HTTP"
+  description = "Client VPN clients to storefront internal ALB HTTP"
+  ip_protocol = "tcp"
+  from_port   = var.alb_ingress_port
+  to_port     = var.alb_ingress_port
+  cidr_ipv4   = var.client_cidr_block
+}
+
+# ──────────────────────────────────────────────
+# Optional: allow VPN client CIDR to EKS cluster SG (TCP 443)
+# Fixes: kubectl dial tcp 10.x.x.x:443 i/o timeout while on Client VPN when the
+# API hostname resolves to private ENI IPs. Does not change public endpoint.
+# ──────────────────────────────────────────────
+
+resource "aws_vpc_security_group_ingress_rule" "eks_api_from_vpn_clients" {
+  for_each = local.create ? toset(var.eks_cluster_security_group_ids) : toset([])
+
+  security_group_id = each.value
+  description       = "Client VPN clients to EKS Kubernetes API"
   ip_protocol       = "tcp"
-  from_port         = var.alb_ingress_port
-  to_port           = var.alb_ingress_port
+  from_port         = var.eks_api_ingress_port
+  to_port           = var.eks_api_ingress_port
   cidr_ipv4         = var.client_cidr_block
 }
