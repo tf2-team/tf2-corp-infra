@@ -53,3 +53,11 @@ skip-check:
   - CKV2_AWS_72
   # Origin group / failover needs a second origin; single ALB storefront edge only
   - CKV_AWS_310
+  # CloudFront: Dynamic storefront origin does not configure default root object (handled by backend app)
+  - CKV_AWS_305
+  # Client VPN: Connection logging KMS encryption & retention cost exceptions (Cost Optimization pillar)
+  - CKV_AWS_158
+  - CKV_AWS_338
+  # Client VPN: Ingress to port 80 false positive (source is client VPN SG, not 0.0.0.0/0)
+  - CKV_AWS_260
+
