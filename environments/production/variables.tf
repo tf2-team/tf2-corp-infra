@@ -564,14 +564,14 @@ variable "access_entries" {
 }
 
 # ──────────────────────────────────────────────
-# Cost budgets — weekly TF ceiling (~$300/week)
+# Cost budgets — onboarding ~$300/week as monthly $900 (no WEEKLY API)
 # ──────────────────────────────────────────────
 
 variable "cost_budgets_enabled" {
   type        = bool
   default     = true
   nullable    = false
-  description = "When true, create SNS (email-json) + weekly/daily AWS Budgets for the TF spend ceiling"
+  description = "When true, create SNS (email-json) + monthly/daily AWS Budgets for the TF spend ceiling"
 }
 
 variable "cost_budgets_alert_email" {
@@ -581,11 +581,11 @@ variable "cost_budgets_alert_email" {
   description = "Email for cost budget SNS email-json alerts (required when cost_budgets_enabled=true; Confirm after apply)"
 }
 
-variable "cost_budgets_weekly_limit_usd" {
+variable "cost_budgets_monthly_limit_usd" {
   type        = string
-  default     = "300"
+  default     = "900"
   nullable    = false
-  description = "Weekly COST budget limit in USD (onboarding BUDGET.md ~$300/week/TF)"
+  description = "Monthly COST budget USD (≈ $300/week × 3 capstone weeks; AWS has no WEEKLY time_unit)"
 }
 
 variable "cost_budgets_daily_limit_usd" {
