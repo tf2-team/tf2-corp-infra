@@ -220,6 +220,7 @@ Prefer CloudFront for production edge posture.
 
 ## Related
 
+* **Why internal ALB (ADR):** [docs/adr/storefront-edge-internal-alb.md](./adr/storefront-edge-internal-alb.md) — do we need the ALB, alternatives, role split vs CloudFront
 * Chart storefront Ingress: `techx-corp-chart/values-public-alb.yaml`, `templates/frontend-proxy-public-ingress.yaml`
 * Infra deploy runbook: `docs/DEPLOYMENT.md`
 * Change record: `docs/changes/2026-07-13-internal-alb-cloudfront-vpc-origin.md`
