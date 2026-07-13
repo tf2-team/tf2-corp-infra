@@ -408,6 +408,45 @@ variable "cluster_autoscaler_chart_version" {
   description = "Pinned cluster-autoscaler Helm chart version"
 }
 
+# ──────────────────────────────────────────────
+# CloudFront free-tier (storefront ALB origin)
+# ──────────────────────────────────────────────
+
+variable "cloudfront_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Create CloudFront distribution in front of the storefront ALB (requires ACM + origin DNS + aliases)"
+}
+
+variable "cloudfront_acm_certificate_arn" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "ACM certificate ARN in us-east-1 for CloudFront viewer HTTPS (primary operator input)"
+}
+
+variable "cloudfront_origin_domain_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Storefront ALB DNS name (kubectl get ingress frontend-proxy-public … hostname)"
+}
+
+variable "cloudfront_aliases" {
+  type        = list(string)
+  default     = []
+  nullable    = false
+  description = "CNAMEs covered by the ACM certificate (required when cloudfront_enabled=true)"
+}
+
+variable "cloudfront_price_class" {
+  type        = string
+  default     = "PriceClass_100"
+  nullable    = false
+  description = "CloudFront price class (PriceClass_100 is free-tier / lowest-cost footprint)"
+}
+
 variable "plan_role_arn" {
   type        = string
   default     = null
