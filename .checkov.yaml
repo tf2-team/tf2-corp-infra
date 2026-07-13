@@ -42,3 +42,14 @@ skip-check:
   # Secrets Manager: Automatic rotation not applicable -
   # secrets are populated via external bootstrap scripts, not managed by Terraform
   - CKV2_AWS_57
+
+  # CloudFront (modules/cloudfront-alb) free-tier / architecture exceptions:
+  # Access logging requires a dedicated S3 log bucket (+ lifecycle) outside cost posture
+  - CKV_AWS_86
+  # WAFv2 + AWS Managed Rules (Log4j AMR) is optional and billed; wire via web_acl_id later
+  - CKV2_AWS_47
+  # Origin is intentionally http-only to the storefront ALB (listen HTTP:80);
+  # CloudFront terminates viewer TLS (redirect-to-https). ALB HTTPS not required.
+  - CKV2_AWS_72
+  # Origin group / failover needs a second origin; single ALB storefront edge only
+  - CKV_AWS_310
