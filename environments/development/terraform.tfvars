@@ -205,6 +205,8 @@ cloudfront_enabled = false
 # Prerequisites setup (Import both ACM certs): docs/client-vpn.md → "Prerequisites setup"
 #   ACM always needs --private-key: server.crt+key; ca.crt+ca.key (two different ARNs)
 # ──────────────────────────────────────────────
+# Client VPN: internal ALB admin paths + EKS private API when enabled.
+# Public EKS endpoint remains enabled (dual access). See docs/client-vpn.md.
 client_vpn_enabled           = false
 client_vpn_client_cidr_block = "10.101.0.0/22"
 # client_vpn_server_certificate_arn = "arn:aws:acm:us-east-1:ACCOUNT:certificate/<SERVER-ID>"

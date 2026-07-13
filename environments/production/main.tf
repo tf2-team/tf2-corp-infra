@@ -193,8 +193,11 @@ module "cloudfront_storefront" {
 }
 
 # ──────────────────────────────────────────────
-# Client VPN — private operator access to internal storefront ALB
-# Bypass CloudFront path blocks for /grafana, /jaeger, … See docs/client-vpn.md
+# Client VPN — private operator access to internal storefront ALB + EKS API
+# Bypass CloudFront path blocks for /grafana, /jaeger, …
+# Opens cluster SG TCP 443 from VPN client CIDR (private API while on VPN).
+# Public EKS endpoint remains as configured on the cluster (dual access).
+# See docs/client-vpn.md
 # ──────────────────────────────────────────────
 
 module "client_vpn" {
@@ -210,5 +213,7 @@ module "client_vpn" {
   client_root_certificate_chain_arn = var.client_vpn_client_ca_arn
   split_tunnel                      = var.client_vpn_split_tunnel
   alb_security_group_ids            = var.client_vpn_alb_security_group_ids
-  tags                              = var.tags
+  # Private Kubernetes API path for VPN clients (public endpoint unchanged).
+  eks_cluster_security_group_ids = [module.eks.cluster_security_group_id]
+  tags                           = var.tags
 }

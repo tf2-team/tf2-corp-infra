@@ -1,8 +1,8 @@
-# Change: Fix Client VPN ACM domain requirement and SG rule description
+# Change: Fix Client VPN ACM domain, SG description, and server Key Usage
 
 ## Summary
 
-Fixed two apply-time failures when enabling AWS Client VPN: (1) security group ingress rule descriptions used a Unicode arrow rejected by the EC2 API, and (2) operator docs used a bare `CN=server` leaf that ACM stores without a domain name, which `CreateClientVpnEndpoint` rejects.
+Fixed Client VPN enablement and connect failures: (1) security group rule descriptions used a Unicode arrow rejected by EC2, (2) bare `CN=server` leaves ACM DomainName empty so endpoint create fails, and (3) server leaves without Key Usage / `serverAuth` EKU fail OpenVPN `remote-cert-tls server` with `VERIFY KU ERROR` / TLS handshake error.
 
 ## Context
 
@@ -22,8 +22,8 @@ Both block endpoint creation. The module and runbook needed to match AWS constra
 ## After
 
 * ALB SG rule description is ASCII-only: `Client VPN clients to storefront internal ALB HTTP`.
-* PKI runbook uses FQDN CN + SAN (`server.clientvpn.techx.local`) and documents a `describe-certificate` DomainName check before apply.
-* Troubleshooting table covers both apply errors; variable description notes the FQDN domain requirement.
+* PKI runbook uses FQDN CN + SAN (`server.clientvpn.techx.local`) **and** Key Usage + `serverAuth` / `clientAuth` EKU extensions required by AWS VPN Client (`remote-cert-tls server`).
+* Documents DomainName check, `VERIFY KU ERROR` troubleshooting, and variable description notes for FQDN + KU.
 
 ## Technical Design Decisions
 

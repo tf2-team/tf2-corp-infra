@@ -48,17 +48,20 @@ output "export_client_config_command" {
 output "operator_note" {
   description = "Short operator reminder for enablement and admin path access"
   value       = <<-EOT
-    Client VPN (private admin path to internal storefront ALB):
+    Client VPN (internal ALB admin paths + EKS private API):
     Prerequisites setup (docs/client-vpn.md):
     1) Generate CA + server + per-user client certs (outside git).
     2) ACM Import (us-east-1), NOT Request public cert (both need --private-key):
          - server.crt+key (+ca chain) → client_vpn_server_certificate_arn
          - ca.crt+ca.key              → client_vpn_client_ca_arn  (two different ARNs)
     3) Recommended: client_vpn_alb_security_group_ids from storefront ALB SGs (TCP 80).
-    4) client_vpn_enabled=true → terraform apply → wait association available.
-    5) Local connect (docs/client-vpn.md "Client setup and connect"):
+    4) EKS cluster SG TCP 443 from client CIDR is wired automatically when enabled
+         (eks_cluster_security_group_ids ← module.eks.cluster_security_group_id).
+    5) client_vpn_enabled=true → terraform apply → wait association available.
+    6) Local connect (docs/client-vpn.md "Client setup and connect"):
          export .ovpn → append client1 cert/key/ca → AWS VPN Client Connect.
-    6) curl http://<INTERNAL_ALB_DNS>/grafana/ (not CF 403); CloudFront alias still 403 when blocking on.
-    7) Disconnect when done; disable with client_vpn_enabled=false to stop association charges.
+    7) curl http://<INTERNAL_ALB_DNS>/grafana/ (not CF 403); CloudFront alias still 403 when blocking on.
+    8) kubectl get ns works on VPN (private API) and off VPN (public EKS endpoint, if enabled).
+    9) Disconnect when done; disable with client_vpn_enabled=false to stop association charges.
   EOT
 }

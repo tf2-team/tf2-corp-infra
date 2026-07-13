@@ -214,9 +214,11 @@ cloudfront_block_sensitive_paths = true
 #   client_vpn_server_certificate_arn = server.crt + server.key (+ ca.crt chain)
 #   client_vpn_client_ca_arn          = ca.crt + ca.key
 # ──────────────────────────────────────────────
+# Client VPN: internal ALB admin paths + EKS private API (cluster SG :443 from client CIDR).
+# Public EKS endpoint remains enabled (dual access). See docs/client-vpn.md.
 client_vpn_enabled           = true
 client_vpn_client_cidr_block = "10.100.0.0/22"
-client_vpn_server_certificate_arn = "arn:aws:acm:us-east-1:493499579600:certificate/b168c7b6-ba79-41f7-94aa-48398cead778"
+client_vpn_server_certificate_arn = "arn:aws:acm:us-east-1:493499579600:certificate/9b00812a-e340-42ce-9bbc-34f2361be15f"
 client_vpn_client_ca_arn          = "arn:aws:acm:us-east-1:493499579600:certificate/9952f4c6-0e3d-4251-93a9-669b58432310"
 # Recommended: all SGs on the storefront ALB (TCP 80 from client CIDR)
 client_vpn_alb_security_group_ids = ["sg-085f3775c0408abb0", "sg-0bd7e89c21dffcd55"]
