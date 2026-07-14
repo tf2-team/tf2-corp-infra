@@ -222,10 +222,12 @@ EKS managed node groups use **one group per AZ** so capacity cannot pile into a 
 
 | Env | Groups | Subnets |
 |-----|--------|---------|
-| development | `techx-dev-general-1a`, `techx-dev-general-1b` | `priv-1a`, `priv-1b` |
-| production | `techx-tf2-general-1a`, `techx-tf2-general-1b` | `priv-1a`, `priv-1b` |
+| development | `techx-dev-system-1a`, `techx-dev-system-1b` | `priv-1a-nodes`, `priv-1b-nodes` |
+| production | `techx-tf2-prod-system-1a`, `techx-tf2-prod-system-1b` | `priv-1a-nodes`, `priv-1b-nodes` |
 
-`subnet_keys` in `terraform.tfvars` are resolved to subnet IDs in `main.tf` from the VPC module.  
+`subnet_keys` in `terraform.tfvars` are resolved to subnet IDs in `main.tf` from the VPC module.
+
+Legacy `/24` keys `priv-1a` / `priv-1b` remain in the VPC for migration (no `karpenter.sh/discovery`). New MNG and Karpenter capacity use `/20` `priv-*-nodes` only.  
 Changing from a single multi-subnet group **destroys** the old NG and creates two new ones — pods reschedule; existing EBS volumes stay in their AZ.
 
 ```bash
@@ -261,7 +263,16 @@ Both environments enable:
 5. Recycle existing Karpenter nodes the same way (maxPods is set at node join).
 6. Confirm DaemonSets: `kubectl -n techx-corp-dev get ds otel-collector-agent` → Desired = Ready.
 
-Private subnets are `/24`; prefix mode uses `/28` blocks. With a small node count and `WARM_PREFIX_TARGET=1`, IP pressure is low — monitor `AvailableIpAddressCount` if node count grows large.
+**Node/pod private subnets are `/20` (`priv-*-nodes`)** so prefix mode has enough contiguous `/28` blocks. Legacy `/24` subnets stay tagged without Karpenter discovery after the IP-exhaustion fix.
+
+Prefix mode uses `/28` blocks. Free **single** IPs in a subnet can still be non-zero while **zero free `/28` prefixes** remain (fragmentation from primary ENI IPs). When diagnosing `failed to assign an IP address to container`, check free `/28` contiguity — not only `AvailableIpAddressCount`.
+
+**After applying larger node subnets:**
+
+1. Confirm new subnets exist and carry `karpenter.sh/discovery=<cluster>`.
+2. Confirm legacy `/24` no longer have that discovery tag.
+3. Recycle Karpenter nodes still on legacy CIDRs (`kubectl delete nodeclaim …` or drain) so replacements land on `/20`.
+4. MNG subnet change replaces node groups — expect a brief critical-floor roll; wait until both AZs have Ready system nodes before heavy deploys.
 
 ---
 
@@ -789,4 +800,6 @@ aws s3api list-object-versions \
 - [USAGE_GUIDE.md](./USAGE_GUIDE.md) — thao tác Terraform hàng ngày  
 - `techx-corp-platform/docs/CICD.md` — GitHub Actions  
 - `techx-corp-platform/docs/DEPLOYMENT.md` — E2E operator runbook  
-- `techx-corp-chart/docs/DEPLOYMENT.md` — Helm / smoke / rollback  
+- `techx-corp-chart/docs/DEPLOYMENT.md` — Helm / smoke / rollback
+
+<!-- Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom. -->

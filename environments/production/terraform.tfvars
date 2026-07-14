@@ -20,6 +20,8 @@ ecr_force_delete           = true
 # ──────────────────────────────────────────────
 # VPC Configuration
 # Non-overlapping CIDR with development (10.1.0.0/16)
+# Node/pod capacity lives on /20 priv-*-nodes (prefix-delegation needs free /28s).
+# Legacy /24 priv-1a/1b stay for gradual drain; Karpenter discovery disabled on them.
 # ──────────────────────────────────────────────
 vpc_cidr_block = "10.0.0.0/16"
 
@@ -35,13 +37,27 @@ public_subnets = {
 }
 
 private_subnets = {
+  # Legacy small CIDRs — keep for existing ENIs/ALB during migration; no new Karpenter nodes.
   "priv-1a" = {
-    cidr_block        = "10.0.10.0/24"
+    cidr_block                 = "10.0.10.0/24"
+    availability_zone          = "us-east-1a"
+    nat_gateway_key            = "nat-1a"
+    enable_karpenter_discovery = false
+  }
+  "priv-1b" = {
+    cidr_block                 = "10.0.11.0/24"
+    availability_zone          = "us-east-1b"
+    nat_gateway_key            = "nat-1a"
+    enable_karpenter_discovery = false
+  }
+  # Primary node/pod subnets (~4k IPs each; ~256× /28 prefixes per AZ).
+  "priv-1a-nodes" = {
+    cidr_block        = "10.0.16.0/20"
     availability_zone = "us-east-1a"
     nat_gateway_key   = "nat-1a"
   }
-  "priv-1b" = {
-    cidr_block        = "10.0.11.0/24"
+  "priv-1b-nodes" = {
+    cidr_block        = "10.0.32.0/20"
     availability_zone = "us-east-1b"
     nat_gateway_key   = "nat-1a"
   }
@@ -73,7 +89,7 @@ node_groups = {
     min_size       = 1
     max_size       = 2
     max_pods       = 110
-    subnet_keys    = ["priv-1a"]
+    subnet_keys    = ["priv-1a-nodes"]
     labels = {
       role           = "critical"
       workload-class = "critical"
@@ -90,7 +106,7 @@ node_groups = {
     min_size       = 1
     max_size       = 2
     max_pods       = 110
-    subnet_keys    = ["priv-1b"]
+    subnet_keys    = ["priv-1b-nodes"]
     labels = {
       role           = "critical"
       workload-class = "critical"
@@ -266,3 +282,4 @@ cost_anomaly_alert_email         = "ctran13904@gmail.com"
 cost_anomaly_frequency           = "DAILY"
 cost_anomaly_impact_absolute_usd = "25"
 cost_anomaly_impact_percentage   = "40"
+# Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.

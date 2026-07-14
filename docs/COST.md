@@ -125,7 +125,7 @@ Both **development** and **production** currently use the same compute shape:
 
 **Node capacity (desired):** 2 × `t3.large` = **4 vCPU / 16 GiB** raw (before kubelet / system reservation).
 
-**Pod density (not extra instances):** VPC CNI **prefix delegation** + kubelet **maxPods=110** on MNG and Karpenter nodes (default ENI mode is maxPods≈35 on `t3.large`). This raises how many pods fit **per node** so DaemonSets (e.g. OTEL agent) and system controllers do not fail with `Too many pods`. It does **not** increase the MNG desired count or NodePool CPU/memory limits. Prefix mode uses `/28` IP blocks on private `/24` subnets — fine at demo scale; watch available IPs if node count grows.
+**Pod density (not extra instances):** VPC CNI **prefix delegation** + kubelet **maxPods=110** on MNG and Karpenter nodes (default ENI mode is maxPods≈35 on `t3.large`). This raises how many pods fit **per node** so DaemonSets (e.g. OTEL agent) and system controllers do not fail with `Too many pods`. It does **not** increase the MNG desired count or NodePool CPU/memory limits. Prefix mode uses `/28` IP blocks on private **`/20` node subnets** (`priv-*-nodes`); legacy `/24` subnets are no longer used for new nodes (Karpenter discovery disabled). Subnet size is free; cost is unchanged by CIDR width.
 
 ### 3.2 Application components (Helm)
 
@@ -377,3 +377,5 @@ These figures exclude GitHub CI and any non-AWS tools.
 ## Disclaimer
 
 This is an **engineering planning document**. It is not a quote from AWS. Taxes, enterprise discounts, Free Tier remaining balance, Support plan fees, and unexpected data-transfer patterns can change the invoice. Prefer **Cost Explorer actuals** for financial reporting once the stacks have run under representative load.
+
+<!-- Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom. -->
