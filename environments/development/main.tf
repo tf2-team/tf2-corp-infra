@@ -68,11 +68,17 @@ module "eks" {
 }
 
 # GitOps control plane (REL-09). Same enablement model as production (API access required at apply).
+# UI path prefix matches production (/argocd) so the same frontend-proxy image works.
+# Prefer port-forward in dev unless an internal hostname URL is set via argocd_server_url.
 module "argocd" {
   source = "../../modules/argocd"
 
-  enabled       = var.argocd_enabled
-  chart_version = var.argocd_chart_version
+  enabled         = var.argocd_enabled
+  chart_version   = var.argocd_chart_version
+  server_rootpath = var.argocd_server_rootpath
+  server_insecure = var.argocd_server_insecure
+  server_url      = var.argocd_server_url
+  server_domain   = "argocd.local"
 }
 
 # ──────────────────────────────────────────────

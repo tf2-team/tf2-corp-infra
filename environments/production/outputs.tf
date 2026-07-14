@@ -171,7 +171,17 @@ output "argocd_chart_version" {
 
 output "argocd_port_forward_command" {
   value       = module.argocd.port_forward_command
-  description = "Local access to Argo CD UI (no public Ingress)"
+  description = "Break-glass local port-forward to Argo CD UI (prefer private DNS path)"
+}
+
+output "argocd_server_url" {
+  value       = module.argocd.server_url
+  description = "Configured external Argo CD base URL (null when unset)"
+}
+
+output "argocd_ui_path" {
+  value       = module.argocd.ui_path
+  description = "UI path on the internal hostname (e.g. /argocd/)"
 }
 
 output "argocd_admin_password_command" {
@@ -405,5 +415,89 @@ output "client_vpn_export_client_config_command" {
 output "client_vpn_operator_note" {
   value       = module.client_vpn.operator_note
   description = "Operator enable sequence for Client VPN admin access"
+}
+
+# ──────────────────────────────────────────────
+# Private DNS (internal.<domain>/<service> → ALB)
+# ──────────────────────────────────────────────
+
+output "private_dns_enabled" {
+  value       = module.private_dns.enabled
+  description = "Whether private DNS resources are managed"
+}
+
+output "private_dns_zone_id" {
+  value       = module.private_dns.zone_id
+  description = "Private hosted zone ID (null when disabled)"
+}
+
+output "private_dns_zone_name" {
+  value       = module.private_dns.zone_name
+  description = "Private hosted zone / operator hostname (empty when disabled)"
+}
+
+output "private_dns_hostname" {
+  value       = module.private_dns.hostname
+  description = "Operator internal hostname (zone apex)"
+}
+
+output "private_dns_base_url" {
+  value       = module.private_dns.base_url
+  description = "HTTP base URL for the internal entrypoint"
+}
+
+output "private_dns_service_urls" {
+  value       = module.private_dns.service_urls
+  description = "Map of service short name → full HTTP URL (hostname + path)"
+}
+
+output "private_dns_operator_note" {
+  value       = module.private_dns.operator_note
+  description = "Operator reminder for private DNS + Client VPN access"
+}
+
+output "private_dns_acm_certificate_arn" {
+  value       = module.private_dns.acm_certificate_arn
+  description = "Operator-supplied ACM ARN for internal hostname TLS (empty when unset)"
+}
+
+output "private_dns_https_enabled" {
+  value       = module.private_dns.https_enabled
+  description = "True when private_dns_acm_certificate_arn is set"
+}
+
+output "cost_budgets_sns_topic_arn" {
+  value       = module.cost_budgets.sns_topic_arn
+  description = "SNS topic ARN for cost budget alerts (null when disabled)"
+}
+
+output "cost_budgets_monthly_budget_name" {
+  value       = module.cost_budgets.monthly_budget_name
+  description = "Monthly AWS Budget name (null when disabled)"
+}
+
+output "cost_budgets_daily_budget_name" {
+  value       = module.cost_budgets.daily_budget_name
+  description = "Daily AWS Budget name (null when disabled)"
+}
+
+output "cost_budgets_operator_note" {
+  value       = module.cost_budgets.operator_note
+  description = "Post-apply steps for cost budgets (confirm email-json subscription)"
+}
+
+output "cost_anomaly_monitor_arn" {
+  value       = module.cost_anomaly.monitor_arn
+  description = "Cost Anomaly monitor ARN (null when disabled)"
+}
+
+output "cost_anomaly_subscription_arn" {
+  value       = module.cost_anomaly.subscription_arn
+  description = "Cost Anomaly subscription ARN (null when disabled)"
+}
+
+output "cost_anomaly_operator_note" {
+  value       = module.cost_anomaly.operator_note
+  description = "Post-apply steps for Cost Anomaly Detection"
 }
 

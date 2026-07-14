@@ -1,5 +1,9 @@
 # Install Argo CD via official Helm chart (pinned).
 # Requires helm + kubernetes providers configured for the target EKS cluster.
+#
+# Operator UI access (v2): path-based behind the storefront frontend-proxy on the
+# internal ALB / private DNS, e.g. https://internal.hungtran.id.vn/argocd
+# (VPN only). No public Ingress. CloudFront must block /argocd.
 
 resource "kubernetes_namespace" "argocd" {
   count = var.enabled ? 1 : 0
@@ -28,7 +32,8 @@ resource "helm_release" "argocd" {
   atomic           = true
   timeout          = var.timeout_seconds
 
-  # v1: ClusterIP only — no public Ingress / storefront ALB exposure.
+  # ClusterIP only — no public Ingress / storefront ALB exposure of this Service.
+  # Path access is via frontend-proxy Envoy (/argocd → this Service) when rootpath is set.
   # Pin control-plane pods to critical MNG (docs/workload-placement.md).
   values = [
     yamlencode({
@@ -39,14 +44,25 @@ resource "helm_release" "argocd" {
         }
       }
       configs = {
-        params = {
-          # Keep TLS on server; access via port-forward or future private ALB.
-          "server.insecure" = false
-        }
-        cm = {
-          "timeout.reconciliation"       = "180s"
-          "application.instanceLabelKey" = "argocd.argoproj.io/instance"
-        }
+        params = merge(
+          {
+            # HTTP behind Envoy/ALB TLS termination (same posture as Grafana on the internal ALB).
+            "server.insecure" = tostring(var.server_insecure)
+          },
+          var.server_rootpath != "" ? {
+            "server.basehref" = var.server_rootpath
+            "server.rootpath" = var.server_rootpath
+          } : {}
+        )
+        cm = merge(
+          {
+            "timeout.reconciliation"       = "180s"
+            "application.instanceLabelKey" = "argocd.argoproj.io/instance"
+          },
+          var.server_url != "" ? {
+            url = var.server_url
+          } : {}
+        )
         rbac = {
           "policy.default" = "role:readonly"
           "policy.csv"     = var.rbac_policy_csv

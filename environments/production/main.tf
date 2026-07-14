@@ -69,11 +69,25 @@ module "eks" {
 }
 
 # GitOps control plane (REL-09). Same enablement model as development (API access required at apply).
+# UI: https://internal.hungtran.id.vn/argocd via frontend-proxy Envoy (VPN + private DNS).
+# CloudFront must block /argocd (cloudfront_blocked_prefixes).
 module "argocd" {
   source = "../../modules/argocd"
 
-  enabled       = var.argocd_enabled
-  chart_version = var.argocd_chart_version
+  enabled         = var.argocd_enabled
+  chart_version   = var.argocd_chart_version
+  server_rootpath = var.argocd_server_rootpath
+  server_insecure = var.argocd_server_insecure
+  server_domain   = var.private_dns_enabled ? var.private_dns_zone_name : "argocd.local"
+  server_url = (
+    var.argocd_server_url != ""
+    ? var.argocd_server_url
+    : (
+      var.private_dns_enabled && var.argocd_server_rootpath != ""
+      ? "https://${var.private_dns_zone_name}${var.argocd_server_rootpath}"
+      : ""
+    )
+  )
 }
 
 # ──────────────────────────────────────────────
@@ -219,3 +233,56 @@ module "client_vpn" {
   tags                           = var.tags
 }
 
+# ──────────────────────────────────────────────
+# Private DNS — internal.<domain> → ALB; services via path (/grafana, /jaeger, …)
+# See docs/client-vpn.md
+# ──────────────────────────────────────────────
+
+module "private_dns" {
+  source = "../../modules/private-dns"
+
+  enabled             = var.private_dns_enabled
+  zone_name           = var.private_dns_zone_name
+  vpc_id              = module.vpc.vpc_id
+  alb_arn             = var.cloudfront_origin_alb_arn
+  service_paths       = var.private_dns_service_paths
+  acm_certificate_arn = var.private_dns_acm_certificate_arn
+  use_https_urls      = var.private_dns_use_https_urls
+  tags                = var.tags
+}
+
+# ──────────────────────────────────────────────
+# Cost budgets — onboarding ~$300/week × ~3 weeks → monthly $900
+# AWS Budgets has no WEEKLY time_unit (only DAILY/MONTHLY/…).
+# SNS protocol email-json; confirm subscription after apply.
+# Account-level; production only (do not duplicate in development).
+# ──────────────────────────────────────────────
+
+module "cost_budgets" {
+  source = "../../modules/cost-budgets"
+
+  enabled             = var.cost_budgets_enabled
+  name_prefix         = var.project_name
+  alert_email         = var.cost_budgets_alert_email
+  monthly_limit_usd   = var.cost_budgets_monthly_limit_usd
+  daily_limit_usd     = var.cost_budgets_daily_limit_usd
+  create_daily_budget = var.cost_budgets_create_daily
+  tags                = var.tags
+}
+
+# ──────────────────────────────────────────────
+# Cost Anomaly Detection — spike vs baseline (per SERVICE)
+# Complements budgets (ceiling). Account-level; production only.
+# ──────────────────────────────────────────────
+
+module "cost_anomaly" {
+  source = "../../modules/cost-anomaly"
+
+  enabled             = var.cost_anomaly_enabled
+  name_prefix         = var.project_name
+  alert_email         = var.cost_anomaly_alert_email
+  frequency           = var.cost_anomaly_frequency
+  impact_absolute_usd = var.cost_anomaly_impact_absolute_usd
+  impact_percentage   = var.cost_anomaly_impact_percentage
+  tags                = var.tags
+}

@@ -189,6 +189,33 @@ variable "argocd_chart_repo_url" {
   description = "Git URL of the Helm chart repo used by Argo CD Applications"
 }
 
+variable "argocd_server_rootpath" {
+  type        = string
+  default     = "/argocd"
+  nullable    = false
+  description = <<-EOT
+    Path prefix for Argo CD UI (must match frontend-proxy Envoy /argocd route and
+    CloudFront blocked prefix). Empty disables path prefix.
+  EOT
+}
+
+variable "argocd_server_insecure" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "Serve Argo CD over HTTP (TLS terminates at internal ALB / Envoy)."
+}
+
+variable "argocd_server_url" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = <<-EOT
+    Optional override for argocd-cm url. Empty + private_dns_enabled derives
+    https://<private_dns_zone_name><argocd_server_rootpath>.
+  EOT
+}
+
 # ──────────────────────────────────────────────
 # Storefront public ALB path blocking (Helm-applied)
 # ──────────────────────────────────────────────
@@ -464,11 +491,14 @@ variable "cloudfront_blocked_prefixes" {
     "/jaeger",
     "/loadgen",
     "/feature",
-    "/flagservice",
-    "/otlp-http",
+    "/argocd",
   ]
   nullable    = false
-  description = "URI path prefixes blocked at CloudFront when cloudfront_block_sensitive_paths is true"
+  description = <<-EOT
+    URI path prefixes blocked at CloudFront when cloudfront_block_sensitive_paths is true.
+    /otlp-http and /flagservice are allowed so the storefront can use browser OTLP and
+    flagd evaluation EventStream via the public edge. /argocd is VPN/private-DNS only.
+  EOT
 }
 
 variable "cloudfront_web_acl_id" {
@@ -552,6 +582,61 @@ variable "client_vpn_alb_security_group_ids" {
   EOT
 }
 
+# ──────────────────────────────────────────────
+# Private DNS — internal.<domain>/<service> for Client VPN operators
+# ──────────────────────────────────────────────
+
+variable "private_dns_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = <<-EOT
+    When true, create a Route 53 private hosted zone associated with the VPC and
+    an apex Alias A to the internal storefront ALB (e.g. internal.hungtran.id.vn).
+    Services are path-based on frontend-proxy. Resolvable from Client VPN
+    (AmazonProvidedDNS). See docs/client-vpn.md.
+  EOT
+}
+
+variable "private_dns_zone_name" {
+  type        = string
+  default     = "internal.hungtran.id.vn"
+  nullable    = false
+  description = "Private hosted zone apex / operator hostname (e.g. internal.hungtran.id.vn)"
+}
+
+variable "private_dns_service_paths" {
+  type = map(string)
+  default = {
+    grafana     = "/grafana/"
+    jaeger      = "/jaeger/"
+    loadgen     = "/loadgen/"
+    feature     = "/feature/"
+    argocd      = "/argocd/"
+    flagservice = "/flagservice/"
+  }
+  nullable    = false
+  description = "Service short name → URL path (documentation/outputs; DNS is a single apex record)"
+}
+
+variable "private_dns_acm_certificate_arn" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = <<-EOT
+    Existing ACM certificate ARN covering private_dns_zone_name (us-east-1 / ALB region).
+    Same pattern as cloudfront_acm_certificate_arn: issue the cert outside Terraform,
+    then set this ARN. Also set chart publicAlb.certificateArn to the same value.
+  EOT
+}
+
+variable "private_dns_use_https_urls" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, force https:// in outputs even if acm_certificate_arn is empty (not recommended)"
+}
+
 variable "access_entries" {
   type = map(object({
     principal_arn     = string
@@ -561,4 +646,82 @@ variable "access_entries" {
   }))
   default     = {}
   description = "Bản đồ các EKS Access Entries bổ sung cần cấu hình"
+}
+
+# ──────────────────────────────────────────────
+# Cost budgets — onboarding ~$300/week as monthly $900 (no WEEKLY API)
+# ──────────────────────────────────────────────
+
+variable "cost_budgets_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, create SNS (email-json) + monthly/daily AWS Budgets for the TF spend ceiling"
+}
+
+variable "cost_budgets_alert_email" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Email for cost budget SNS email-json alerts (required when cost_budgets_enabled=true; Confirm after apply)"
+}
+
+variable "cost_budgets_monthly_limit_usd" {
+  type        = string
+  default     = "900"
+  nullable    = false
+  description = "Monthly COST budget USD (≈ $300/week × 3 capstone weeks; AWS has no WEEKLY time_unit)"
+}
+
+variable "cost_budgets_daily_limit_usd" {
+  type        = string
+  default     = "45"
+  nullable    = false
+  description = "Daily COST budget limit in USD (early warning ≈ weekly/7)"
+}
+
+variable "cost_budgets_create_daily" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, also create the daily budget"
+}
+
+# ──────────────────────────────────────────────
+# Cost Anomaly Detection — account-level; production only
+# ──────────────────────────────────────────────
+
+variable "cost_anomaly_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, create Cost Explorer anomaly monitor + email subscription"
+}
+
+variable "cost_anomaly_alert_email" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Email for Cost Anomaly alerts (required when cost_anomaly_enabled=true; Confirm if AWS asks)"
+}
+
+variable "cost_anomaly_frequency" {
+  type        = string
+  default     = "DAILY"
+  nullable    = false
+  description = "Anomaly notification frequency: DAILY | IMMEDIATE | WEEKLY"
+}
+
+variable "cost_anomaly_impact_absolute_usd" {
+  type        = string
+  default     = "25"
+  nullable    = false
+  description = "Alert when anomaly impact >= this USD (AND with percentage)"
+}
+
+variable "cost_anomaly_impact_percentage" {
+  type        = string
+  default     = "40"
+  nullable    = false
+  description = "Alert when anomaly impact >= this percent vs expected (AND with absolute USD)"
 }
