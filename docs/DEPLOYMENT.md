@@ -506,7 +506,13 @@ Production UI (Client VPN + private DNS; not public):
 https://internal.hungtran.id.vn/argocd/
 ```
 
-Break-glass still uses port-forward (`argocd_port_forward_command`; HTTP:80 when `server.insecure=true`).
+Localhost port-forward remains fully supported (HTTP:80 when `server.insecure=true`):
+
+```cmd
+kubectl port-forward service/argocd-server 8080:80 -n argocd
+```
+
+Open `http://localhost:8080/argocd/` (rootpath). Terraform: `argocd_port_forward_command` / `argocd_port_forward_ui_url`.
 
 - Module: `modules/argocd` (pinned argo-cd chart, ClusterIP, **no** public Ingress).  
 - Path access: frontend-proxy Envoy `/argocd` → `argocd-server.argocd.svc` (rootpath `/argocd`).  
