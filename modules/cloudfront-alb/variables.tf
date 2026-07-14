@@ -141,11 +141,11 @@ variable "blocked_prefixes" {
     "/jaeger",
     "/loadgen",
     "/feature",
-    "/flagservice",
   ]
   description = <<-EOT
     URI path prefixes blocked at CloudFront when block_sensitive_paths is true.
-    Does not include /otlp-http — browser RUM/web OTLP traces post to the public edge.
+    Does not include /otlp-http or /flagservice — storefront browser clients need
+    public edge access for OTLP traces and flagd evaluation EventStream.
   EOT
   nullable    = false
 }
