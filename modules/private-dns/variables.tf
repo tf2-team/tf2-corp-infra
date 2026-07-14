@@ -62,28 +62,32 @@ variable "service_paths" {
   }
 }
 
-variable "request_acm_certificate" {
-  type        = bool
+variable "acm_certificate_arn" {
+  type        = string
   description = <<-EOT
-    When true (and enabled), request a public ACM certificate for zone_name (DNS validation).
-    Create the validation CNAME records in *public* DNS for the parent domain, then wait for
-    ISSUED. Attach the ARN to the chart Ingress (HTTPS:443). Private zone A records do not
-    satisfy ACM DNS validation — validation must be public.
+    Existing ACM certificate ARN covering zone_name (same region as the ALB, us-east-1).
+    Same pattern as cloudfront_acm_certificate_arn: issue/import the cert outside this
+    module, then pass the ISSUED ARN. Required for HTTPS operator URLs; empty keeps HTTP.
+    Also set the same ARN on chart components.frontend-proxy.publicAlb.certificateArn.
   EOT
-  default     = false
+  default     = ""
   nullable    = false
-}
 
-variable "acm_subject_alternative_names" {
-  type        = list(string)
-  description = "Optional SANs on the ACM certificate (in addition to zone_name)"
-  default     = []
-  nullable    = false
+  validation {
+    condition = (
+      var.acm_certificate_arn == "" ||
+      can(regex("^arn:aws:acm:[a-z0-9-]+:[0-9]{12}:certificate/[0-9a-f-]+$", var.acm_certificate_arn))
+    )
+    error_message = "acm_certificate_arn must be empty or a valid ACM certificate ARN."
+  }
 }
 
 variable "use_https_urls" {
   type        = bool
-  description = "When true, service_urls/base_url outputs use https:// (after ALB TLS is enabled)"
+  description = <<-EOT
+    When true, service_urls/base_url outputs use https://.
+    When false but acm_certificate_arn is set, outputs still use https://.
+  EOT
   default     = false
   nullable    = false
 }

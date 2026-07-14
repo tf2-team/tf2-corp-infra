@@ -539,31 +539,26 @@ Until the ACM cert is **ISSUED** and the chart has `certificateArn` + HTTPS:443,
 
 Enable HTTPS on the **same** internal ALB for `https://internal.hungtran.id.vn` (VPN only). Keep **HTTP:80** for CloudFront VPC origin. **Do not** enable ALB `ssl-redirect` — CloudFront origin is `http-only` on port 80.
 
+Terraform does **not** create the ACM certificate. Same pattern as CloudFront: issue an ISSUED cert in `us-east-1` covering `internal.hungtran.id.vn`, then pass the ARN.
+
 | Step | Action |
 |---|---|
-| 1 | Production tfvars: `private_dns_request_acm_certificate = true` → `terraform apply` |
-| 2 | `terraform -chdir=environments/production output private_dns_acm_validation_records` |
-| 3 | Create those **CNAME** records in **public** DNS for `hungtran.id.vn` (not the private zone) |
-| 4 | Wait until cert status is **ISSUED** (`output private_dns_acm_certificate_status` or ACM console) |
-| 5 | Chart `values-prod.yaml`: set `certificateArn` to the ARN; `listenPorts: '[{"HTTP":80},{"HTTPS":443}]'` → Argo sync |
-| 6 | Client VPN already opens ALB **TCP 80 + 443** (module default `alb_ingress_ports`) |
-| 7 | Optional: `private_dns_use_https_urls = true` in tfvars so outputs show `https://` |
-| 8 | Browse `https://internal.hungtran.id.vn/grafana/` on VPN |
+| 1 | Request/import ACM cert in **us-east-1** for `internal.hungtran.id.vn` (DNS validation in **public** DNS) |
+| 2 | Confirm **ISSUED**: `aws acm describe-certificate --region us-east-1 --certificate-arn <ARN> --query Certificate.Status` |
+| 3 | Production tfvars: `private_dns_acm_certificate_arn = "arn:aws:acm:us-east-1:…:certificate/…"` → `terraform apply` |
+| 4 | Chart `values-prod.yaml`: set `publicAlb.certificateArn` to the **same ARN** → Argo sync (Ingress auto dual-ports HTTP+HTTPS) |
+| 5 | Client VPN already opens ALB **TCP 80 + 443** (module default `alb_ingress_ports`) |
+| 6 | Browse `https://internal.hungtran.id.vn/grafana/` on VPN |
 
 ```cmd
+REM Issue cert (public DNS validation), then:
+aws acm list-certificates --region us-east-1 --query "CertificateSummaryList[?DomainName=='internal.hungtran.id.vn']"
+
 cd /d techx-corp-infra
-terraform -chdir=environments/production apply
-terraform -chdir=environments/production output private_dns_acm_validation_records
+REM Set private_dns_acm_certificate_arn in terraform.tfvars, then:
+terraform -chdir=environments/production plan -out=tfplan
+terraform -chdir=environments/production apply tfplan
 terraform -chdir=environments/production output private_dns_acm_certificate_arn
-terraform -chdir=environments/production output private_dns_acm_certificate_status
-```
-
-Public DNS validation example (name/value from the output; your DNS host may differ):
-
-```text
-Name:  _abc123.internal.hungtran.id.vn
-Type:  CNAME
-Value: _xyz.acm-validations.aws.
 ```
 
 | Check | Expect |

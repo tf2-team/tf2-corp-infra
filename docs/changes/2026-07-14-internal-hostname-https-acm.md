@@ -1,62 +1,58 @@
-# Change: ACM + HTTPS support for `internal.hungtran.id.vn`
+# Change: Internal hostname HTTPS via supplied ACM ARN
 
 ## Summary
 
-Added optional **ACM certificate request** for the private operator hostname and Client VPN access to ALB **TCP 443**, so operators can terminate TLS on the internal storefront ALB at `https://internal.hungtran.id.vn` after public DNS validation and chart certificate attach. CloudFront origin stays **HTTP:80**.
+HTTPS for `https://internal.hungtran.id.vn` uses an **operator-supplied ACM certificate ARN** (same pattern as CloudFront). Terraform no longer requests ACM certificates or emits DNS validation records. Client VPN still opens ALB TCP **80 + 443**.
 
 ## Context
 
-Private DNS already resolves `internal.hungtran.id.vn` to the internal ALB over **HTTP**. Staff asked for HTTPS. Public ACM certs can be used on internal ALBs; validation still requires **public** DNS CNAMEs for domain ownership.
+The previous design requested ACM in Terraform (`request_acm_certificate`) and required manual public-DNS validation CNAMEs plus chart paste. Operators prefer issuing the cert outside Terraform and **passing the ISSUED ARN**, consistent with `cloudfront_acm_certificate_arn`.
 
 ## Before
 
-* Internal ALB: HTTP:80 only.
-* Client VPN → ALB SG: TCP 80 only.
-* No ACM request path for the private hostname.
+* `private_dns_request_acm_certificate` created `aws_acm_certificate`.
+* Outputs included validation CNAME records and cert status.
+* Multi-step request → public DNS → wait ISSUED → paste ARN.
 
 ## After
 
-* `modules/private-dns`: optional `aws_acm_certificate` when `request_acm_certificate=true`; outputs ARN, status, validation CNAMEs.
-* Production: `private_dns_request_acm_certificate = true` (operator validates DNS next).
-* Client VPN: ALB SG rules for ports **80 and 443**.
-* Chart: Ingress supports `certificateArn` → HTTPS:443 + certificate annotation (HTTP:80 retained). No ssl-redirect.
+* Input: `private_dns_acm_certificate_arn` (empty = HTTP-only outputs).
+* Module does not create ACM resources.
+* When ARN is set, service URL outputs use `https://`.
+* Chart still needs the **same ARN** on `publicAlb.certificateArn` for the ALB listener.
 
 ## Technical Design Decisions
 
-* **No ALB ssl-redirect:** CloudFront VPC origin is `http-only` on port 80; redirect would break the public edge.
-* **Public ACM + public DNS validation:** Private hosted zone cannot complete ACM DNS validation; validation CNAMEs go on the public `hungtran.id.vn` DNS.
-* **Do not wait for validation in Terraform by default:** Avoid long-blocking applies; operator creates CNAMEs and re-checks status.
-* **Chart auto dual-ports when cert set:** Empty cert + HTTPS listen-ports would break the controller; template enables HTTPS only when ARN is non-empty.
+* **Receive ARN, do not request cert:** Matches CloudFront and avoids long-running validation in apply.
+* **Chart still gets ARN in values:** ALB controller reads Ingress annotations from Helm; single shared ARN value in tfvars + values-prod.
+* **No ssl-redirect:** CloudFront origin remains HTTP:80.
 
 ## Implementation Details
 
-1. Extended `modules/private-dns` with ACM resource and outputs.
-2. Production variables/tfvars/outputs for request + validation records.
-3. Client VPN module: multi-port ALB SG rules (default 80, 443).
-4. Documented operator sequence in `docs/client-vpn.md`.
+1. Replaced ACM request resource with `acm_certificate_arn` variable on `modules/private-dns`.
+2. Production variables/tfvars/outputs updated.
+3. Docs TLS section rewritten for supply-ARN flow.
+4. Client VPN multi-port ALB rules retained.
 
 ## Files Changed
 
 * `modules/private-dns/main.tf`, `variables.tf`, `outputs.tf`
-* `modules/client-vpn/main.tf`, `variables.tf`, `outputs.tf`
 * `environments/production/main.tf`, `variables.tf`, `outputs.tf`, `terraform.tfvars`
 * `docs/client-vpn.md`
 * `docs/changes/2026-07-14-internal-hostname-https-acm.md` — This change record.
 
 ## Dependencies and Cross-Repository Impact
 
-* Chart: `certificateArn` annotation + dual listen when set (separate chart change).
-* Operator must create **public** DNS validation records after apply.
+* Chart: set `components.frontend-proxy.publicAlb.certificateArn` to the same ARN.
+* Related chart change: Ingress HTTPS when `certificateArn` non-empty.
 
 ## Impact Analysis
 
 | Dimension | Impact |
 |---|---|
-| **Application behavior** | HTTPS available for operator host after cert + chart ARN |
-| **Infrastructure** | +1 ACM cert (when requested); +ALB 443 SG rules for VPN |
-| **Deployment** | Multi-step: apply → public DNS validate → chart ARN → sync |
-| **Security** | TLS on private admin entry; ALB still not internet-facing |
-| **CloudFront** | Unchanged (still HTTP origin :80) |
+| **Application behavior** | HTTPS when ARN set on both Terraform outputs and chart Ingress |
+| **Infrastructure** | No ACM resource ownership in this stack |
+| **Deployment** | Issue cert → set ARN in tfvars + values-prod → apply + sync |
 
 ## Validation
 
@@ -68,31 +64,26 @@ Private DNS already resolves `internal.hungtran.id.vn` to the internal ALB over 
 
 ### Manual Verification
 
-1. Apply; output validation CNAMEs; create in public DNS.
-2. Cert **ISSUED**; set chart `certificateArn`; sync.
+1. Issue ACM cert for `internal.hungtran.id.vn` (ISSUED).
+2. Set `private_dns_acm_certificate_arn` and chart `certificateArn`.
 3. On VPN: `curl -i https://internal.hungtran.id.vn/grafana/`
-
-### Remaining Verification (Post-Merge)
-
-* Operator completes public DNS validation and chart ARN cutover.
 
 ## Migration or Deployment Notes
 
 ```cmd
+REM After ACM cert is ISSUED:
+REM 1) Set private_dns_acm_certificate_arn in production terraform.tfvars
 cd /d techx-corp-infra
 terraform -chdir=environments/production plan -out=tfplan
 terraform -chdir=environments/production apply tfplan
-terraform -chdir=environments/production output private_dns_acm_validation_records
-terraform -chdir=environments/production output private_dns_acm_certificate_arn
-```
 
-Then chart (after ISSUED): set `components.frontend-proxy.publicAlb.certificateArn` in `values-prod.yaml` and sync.
+REM 2) Set the same ARN on chart values-prod publicAlb.certificateArn → Argo sync
+```
 
 ## Risks and Rollback
 
 | Risk | Likelihood | Severity | Mitigation / Rollback |
 |---|---|---|---|
-| Apply blocked if validation resource waited | Low | Medium | No wait resource; status polled by operator |
-| Accidental ssl-redirect | Low | High | Documented never-enable; not in template |
+| ARN set in tfvars but not chart | Medium | Medium | Docs require both; Ingress stays HTTP until chart ARN set |
 
-**Rollback:** `private_dns_request_acm_certificate = false` (destroys cert if no other dependents); remove chart `certificateArn`.
+**Rollback:** clear `private_dns_acm_certificate_arn` and chart `certificateArn`.
