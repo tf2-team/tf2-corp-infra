@@ -50,6 +50,7 @@ variable "service_paths" {
     loadgen     = "/loadgen/"
     feature     = "/feature/"
     flagservice = "/flagservice/"
+    argocd      = "/argocd/"
   }
   nullable = false
 

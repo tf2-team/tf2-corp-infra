@@ -257,9 +257,11 @@ Full runbook (ACM import + **local client setup/connect** + private DNS): **[doc
 ```cmd
 REM Public edge — expect 403
 curl -i https://<cloudfront-alias>/grafana/
+curl -i https://<cloudfront-alias>/argocd/
 
 REM After Client VPN connect (see client-vpn.md "Client setup and connect")
-curl -i http://internal.hungtran.id.vn/grafana/
+curl -i https://internal.hungtran.id.vn/grafana/
+curl -i https://internal.hungtran.id.vn/argocd/
 REM Fallback if private DNS off: curl -i http://<internal-alb-dns>/grafana/
 ```
 

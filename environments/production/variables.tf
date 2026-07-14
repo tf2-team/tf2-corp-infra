@@ -189,6 +189,33 @@ variable "argocd_chart_repo_url" {
   description = "Git URL of the Helm chart repo used by Argo CD Applications"
 }
 
+variable "argocd_server_rootpath" {
+  type        = string
+  default     = "/argocd"
+  nullable    = false
+  description = <<-EOT
+    Path prefix for Argo CD UI (must match frontend-proxy Envoy /argocd route and
+    CloudFront blocked prefix). Empty disables path prefix.
+  EOT
+}
+
+variable "argocd_server_insecure" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "Serve Argo CD over HTTP (TLS terminates at internal ALB / Envoy)."
+}
+
+variable "argocd_server_url" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = <<-EOT
+    Optional override for argocd-cm url. Empty + private_dns_enabled derives
+    https://<private_dns_zone_name><argocd_server_rootpath>.
+  EOT
+}
+
 # ──────────────────────────────────────────────
 # Storefront public ALB path blocking (Helm-applied)
 # ──────────────────────────────────────────────
@@ -464,12 +491,13 @@ variable "cloudfront_blocked_prefixes" {
     "/jaeger",
     "/loadgen",
     "/feature",
+    "/argocd",
   ]
   nullable    = false
   description = <<-EOT
     URI path prefixes blocked at CloudFront when cloudfront_block_sensitive_paths is true.
     /otlp-http and /flagservice are allowed so the storefront can use browser OTLP and
-    flagd evaluation EventStream via the public edge.
+    flagd evaluation EventStream via the public edge. /argocd is VPN/private-DNS only.
   EOT
 }
 
@@ -584,6 +612,7 @@ variable "private_dns_service_paths" {
     jaeger      = "/jaeger/"
     loadgen     = "/loadgen/"
     feature     = "/feature/"
+    argocd      = "/argocd/"
     flagservice = "/flagservice/"
   }
   nullable    = false

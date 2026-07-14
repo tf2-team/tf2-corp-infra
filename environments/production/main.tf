@@ -69,11 +69,25 @@ module "eks" {
 }
 
 # GitOps control plane (REL-09). Same enablement model as development (API access required at apply).
+# UI: https://internal.hungtran.id.vn/argocd via frontend-proxy Envoy (VPN + private DNS).
+# CloudFront must block /argocd (cloudfront_blocked_prefixes).
 module "argocd" {
   source = "../../modules/argocd"
 
-  enabled       = var.argocd_enabled
-  chart_version = var.argocd_chart_version
+  enabled         = var.argocd_enabled
+  chart_version   = var.argocd_chart_version
+  server_rootpath = var.argocd_server_rootpath
+  server_insecure = var.argocd_server_insecure
+  server_domain   = var.private_dns_enabled ? var.private_dns_zone_name : "argocd.local"
+  server_url = (
+    var.argocd_server_url != ""
+    ? var.argocd_server_url
+    : (
+      var.private_dns_enabled && var.argocd_server_rootpath != ""
+      ? "https://${var.private_dns_zone_name}${var.argocd_server_rootpath}"
+      : ""
+    )
+  )
 }
 
 # ──────────────────────────────────────────────

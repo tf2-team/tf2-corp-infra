@@ -189,6 +189,27 @@ variable "argocd_chart_repo_url" {
   description = "Git URL of the Helm chart repo used by Argo CD Applications"
 }
 
+variable "argocd_server_rootpath" {
+  type        = string
+  default     = "/argocd"
+  nullable    = false
+  description = "Path prefix for Argo CD UI (must match frontend-proxy Envoy /argocd route)."
+}
+
+variable "argocd_server_insecure" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "Serve Argo CD over HTTP (TLS terminates at ALB / Envoy when path-exposed)."
+}
+
+variable "argocd_server_url" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional argocd-cm url override (empty = unset; use port-forward in dev)."
+}
+
 # ──────────────────────────────────────────────
 # Storefront ALB (internal; no path blocks — blocking is on CloudFront)
 # ──────────────────────────────────────────────
@@ -466,6 +487,7 @@ variable "cloudfront_blocked_prefixes" {
     "/feature",
     "/flagservice",
     "/otlp-http",
+    "/argocd",
   ]
   nullable    = false
   description = "URI path prefixes blocked at CloudFront when cloudfront_block_sensitive_paths is true"

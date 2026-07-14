@@ -141,11 +141,13 @@ variable "blocked_prefixes" {
     "/jaeger",
     "/loadgen",
     "/feature",
+    "/argocd",
   ]
   description = <<-EOT
     URI path prefixes blocked at CloudFront when block_sensitive_paths is true.
     Does not include /otlp-http or /flagservice — storefront browser clients need
     public edge access for OTLP traces and flagd evaluation EventStream.
+    /argocd is VPN + private DNS only (GitOps control plane).
   EOT
   nullable    = false
 }
