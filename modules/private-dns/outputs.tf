@@ -29,15 +29,17 @@ output "hostname" {
 }
 
 output "base_url" {
-  description = "HTTP base URL for the internal entrypoint (empty when disabled)"
-  value       = var.enabled ? "http://${var.zone_name}" : ""
+  description = "HTTP or HTTPS base URL for the internal entrypoint (empty when disabled)"
+  value = var.enabled ? (
+    var.use_https_urls ? "https://${var.zone_name}" : "http://${var.zone_name}"
+  ) : ""
 }
 
 output "service_urls" {
-  description = "Map of service short name → full HTTP URL (hostname + path)"
+  description = "Map of service short name → full URL (hostname + path)"
   value = var.enabled ? {
     for name, path in var.service_paths :
-    name => "http://${var.zone_name}${path}"
+    name => "${var.use_https_urls ? "https" : "http"}://${var.zone_name}${path}"
   } : {}
 }
 
@@ -46,19 +48,46 @@ output "alb_dns_name" {
   value       = var.enabled && var.alb_arn != "" ? data.aws_lb.storefront[0].dns_name : null
 }
 
+output "acm_certificate_arn" {
+  description = "ACM certificate ARN for zone_name (null when not requested)"
+  value       = var.enabled && var.request_acm_certificate ? aws_acm_certificate.internal[0].arn : null
+}
+
+output "acm_certificate_status" {
+  description = "ACM certificate status (null when not requested)"
+  value       = var.enabled && var.request_acm_certificate ? aws_acm_certificate.internal[0].status : null
+}
+
+output "acm_validation_records" {
+  description = <<-EOT
+    DNS records to create in *public* DNS to validate the ACM certificate.
+    Map domain → { name, type, value }. Empty when certificate not requested.
+  EOT
+  value = var.enabled && var.request_acm_certificate ? {
+    for dvo in aws_acm_certificate.internal[0].domain_validation_options :
+    dvo.domain_name => {
+      name  = dvo.resource_record_name
+      type  = dvo.resource_record_type
+      value = dvo.resource_record_value
+    }
+  } : {}
+}
+
 output "operator_note" {
-  description = "Operator reminder for private DNS + Client VPN access"
+  description = "Operator reminder for private DNS + optional TLS + Client VPN access"
   value       = <<-EOT
     Private DNS (${var.zone_name}):
     1) Client VPN must push AmazonProvidedDNS (module default) so laptops use VPC DNS.
     2) While connected: nslookup ${var.zone_name}
-    3) Open path-based service URLs (frontend-proxy routes by path):
-         http://${var.zone_name}/grafana/
-         http://${var.zone_name}/jaeger/
-         http://${var.zone_name}/loadgen/
-         http://${var.zone_name}/feature/
-    4) Public storefront remains https://shop… (CloudFront); not this hostname.
-    5) Off VPN: private zone is not public; ${var.zone_name} does not resolve on the internet.
-    6) After ALB recreate: update cloudfront_origin_alb_arn (same ARN used here) and apply.
+    3) Path-based service URLs (frontend-proxy):
+         ${var.use_https_urls ? "https" : "http"}://${var.zone_name}/grafana/
+         ${var.use_https_urls ? "https" : "http"}://${var.zone_name}/jaeger/
+    4) HTTPS (optional): set request_acm_certificate=true → apply → create public DNS
+       validation CNAMEs from acm_validation_records → wait ISSUED → set chart
+       publicAlb.certificateArn + listenPorts HTTP+HTTPS (keep HTTP:80 for CloudFront).
+       Do NOT enable ALB ssl-redirect (breaks CloudFront VPC origin HTTP).
+    5) Public storefront remains https://shop… (CloudFront); not this hostname.
+    6) Off VPN: private zone is not public; ${var.zone_name} does not resolve on the internet.
+    7) After ALB recreate: update cloudfront_origin_alb_arn (same ARN used here) and apply.
   EOT
 }

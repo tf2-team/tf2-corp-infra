@@ -231,6 +231,10 @@ client_vpn_alb_security_group_ids = ["sg-085f3775c0408abb0", "sg-0bd7e89c21dffcd
 # ──────────────────────────────────────────────
 private_dns_enabled   = true
 private_dns_zone_name = "internal.hungtran.id.vn"
+# Request ACM for https://internal.hungtran.id.vn (DNS validation in *public* DNS).
+# After ISSUED: set chart publicAlb.certificateArn + listenPorts HTTP+HTTPS; set use_https_urls=true.
+private_dns_request_acm_certificate = true
+private_dns_use_https_urls          = true
 
 access_entries = {
   "chinh_nguyen" = {

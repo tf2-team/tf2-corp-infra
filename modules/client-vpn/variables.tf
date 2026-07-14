@@ -136,10 +136,10 @@ variable "alb_security_group_ids" {
   type        = list(string)
   description = <<-EOT
     Optional security group IDs of the internal storefront ALB.
-    When non-empty and enabled, adds ingress TCP 80 from this module's Client VPN
-    association security group (SG-to-SG) so VPN clients can reach the existing
-    internal ALB without taking SG ownership via Ingress annotations (avoids
-    fighting CloudFront VPC-origin SG automation).
+    When non-empty and enabled, adds ingress TCP for alb_ingress_ports from this
+    module's Client VPN association security group (SG-to-SG) so VPN clients can
+    reach the existing internal ALB without taking SG ownership via Ingress
+    annotations (avoids fighting CloudFront VPC-origin SG automation).
   EOT
   default     = []
   nullable    = false
@@ -147,8 +147,15 @@ variable "alb_security_group_ids" {
 
 variable "alb_ingress_port" {
   type        = number
-  description = "Port opened on alb_security_group_ids for VPN clients (HTTP 80)"
+  description = "Deprecated: use alb_ingress_ports. Single port (kept for backward compatibility)."
   default     = 80
+  nullable    = false
+}
+
+variable "alb_ingress_ports" {
+  type        = list(number)
+  description = "TCP ports opened on alb_security_group_ids for VPN clients (HTTP 80 + HTTPS 443)"
+  default     = [80, 443]
   nullable    = false
 }
 

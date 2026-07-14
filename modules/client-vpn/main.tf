@@ -169,21 +169,35 @@ resource "aws_ec2_client_vpn_authorization_rule" "vpc" {
 }
 
 # ──────────────────────────────────────────────
-# Optional: allow Client VPN ENI SG to internal ALB SG (TCP 80)
+# Optional: allow Client VPN ENI SG to internal ALB SG (HTTP/HTTPS)
 # AWS evaluates association ENI membership (not client CIDR alone) for SG rules
 # on targets. Does not replace CloudFront VPC-origin rules on the same SG.
 # ──────────────────────────────────────────────
 
+locals {
+  # Prefer alb_ingress_ports; if caller only set legacy alb_ingress_port via default
+  # both ports 80+443 are used so HTTPS on internal.hungtran.id.vn works on VPN.
+  alb_ingress_ports_effective = length(var.alb_ingress_ports) > 0 ? var.alb_ingress_ports : [var.alb_ingress_port]
+
+  alb_sg_port_pairs = local.create ? {
+    for pair in setproduct(toset(var.alb_security_group_ids), toset([for p in local.alb_ingress_ports_effective : tostring(p)])) :
+    "${pair[0]}:${pair[1]}" => {
+      sg_id = pair[0]
+      port  = tonumber(pair[1])
+    }
+  } : {}
+}
+
 resource "aws_vpc_security_group_ingress_rule" "alb_from_vpn_clients" {
   #checkov:skip=CKV_AWS_260:False positive - source is referenced security group (client VPN SG), not 0.0.0.0/0
-  for_each = local.create ? toset(var.alb_security_group_ids) : toset([])
+  for_each = local.alb_sg_port_pairs
 
-  security_group_id = each.value
+  security_group_id = each.value.sg_id
   # EC2 SG rule descriptions allow only ASCII from a fixed set (no Unicode).
-  description                  = "Client VPN ENI SG to storefront internal ALB HTTP"
+  description                  = "Client VPN ENI SG to storefront internal ALB TCP ${each.value.port}"
   ip_protocol                  = "tcp"
-  from_port                    = var.alb_ingress_port
-  to_port                      = var.alb_ingress_port
+  from_port                    = each.value.port
+  to_port                      = each.value.port
   referenced_security_group_id = aws_security_group.client_vpn[0].id
 }
 
