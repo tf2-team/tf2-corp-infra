@@ -147,7 +147,7 @@ variable "blocked_prefixes" {
     URI path prefixes blocked at CloudFront when block_sensitive_paths is true.
     Does not include /otlp-http — browser RUM/web OTLP traces post to the public edge.
   EOT
-  nullable = false
+  nullable    = false
 }
 
 variable "block_function_name" {
