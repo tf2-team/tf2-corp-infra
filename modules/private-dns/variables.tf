@@ -62,6 +62,32 @@ variable "service_paths" {
   }
 }
 
+variable "request_acm_certificate" {
+  type        = bool
+  description = <<-EOT
+    When true (and enabled), request a public ACM certificate for zone_name (DNS validation).
+    Create the validation CNAME records in *public* DNS for the parent domain, then wait for
+    ISSUED. Attach the ARN to the chart Ingress (HTTPS:443). Private zone A records do not
+    satisfy ACM DNS validation — validation must be public.
+  EOT
+  default     = false
+  nullable    = false
+}
+
+variable "acm_subject_alternative_names" {
+  type        = list(string)
+  description = "Optional SANs on the ACM certificate (in addition to zone_name)"
+  default     = []
+  nullable    = false
+}
+
+variable "use_https_urls" {
+  type        = bool
+  description = "When true, service_urls/base_url outputs use https:// (after ALB TLS is enabled)"
+  default     = false
+  nullable    = false
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags applied to the private hosted zone"

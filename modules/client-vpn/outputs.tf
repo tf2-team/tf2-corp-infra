@@ -54,14 +54,14 @@ output "operator_note" {
     2) ACM Import (us-east-1), NOT Request public cert (both need --private-key):
          - server.crt+key (+ca chain) → client_vpn_server_certificate_arn
          - ca.crt+ca.key              → client_vpn_client_ca_arn  (two different ARNs)
-    3) Recommended: client_vpn_alb_security_group_ids from storefront ALB SGs (TCP 80 from VPN ENI SG).
+    3) Recommended: client_vpn_alb_security_group_ids from storefront ALB SGs (TCP 80+443 from VPN ENI SG).
     4) EKS cluster SG TCP 443 from Client VPN association SG is wired automatically
          (eks_cluster_security_group_ids ← module.eks.cluster_security_group_id; SG-to-SG).
     5) client_vpn_enabled=true → terraform apply → wait association available.
     6) Local connect (docs/client-vpn.md "Client setup and connect"):
          export .ovpn → append client1 cert/key/ca → AWS VPN Client Connect.
-    7) curl http://internal.hungtran.id.vn/grafana/ via private DNS (or raw ALB DNS);
-         not CF 403; CloudFront alias still 403 when blocking on.
+    7) curl https://internal.hungtran.id.vn/grafana/ via private DNS after TLS cutover
+         (or http:// / raw ALB DNS); not CF 403; CloudFront alias still 403 when blocking on.
     8) kubectl get ns works on VPN (private API) and off VPN (public EKS endpoint, if enabled).
     9) Disconnect when done; disable with client_vpn_enabled=false to stop association charges.
   EOT

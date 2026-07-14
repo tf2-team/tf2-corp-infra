@@ -446,6 +446,21 @@ output "private_dns_operator_note" {
   description = "Operator reminder for private DNS + Client VPN access"
 }
 
+output "private_dns_acm_certificate_arn" {
+  value       = module.private_dns.acm_certificate_arn
+  description = "ACM ARN for internal hostname TLS (null when certificate not requested)"
+}
+
+output "private_dns_acm_certificate_status" {
+  value       = module.private_dns.acm_certificate_status
+  description = "ACM certificate status (null when not requested)"
+}
+
+output "private_dns_acm_validation_records" {
+  value       = module.private_dns.acm_validation_records
+  description = "Public DNS CNAME records required to validate the internal ACM certificate"
+}
+
 output "cost_budgets_sns_topic_arn" {
   value       = module.cost_budgets.sns_topic_arn
   description = "SNS topic ARN for cost budget alerts (null when disabled)"

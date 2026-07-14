@@ -31,7 +31,7 @@ Module: `modules/client-vpn`
 Wired in: `environments/development` and `environments/production` as `module.client_vpn`  
 Default: **`client_vpn_enabled = false`** (no resources until you opt in)
 
-**Private DNS** (single host `internal.hungtran.id.vn/<service>`): `modules/private-dns` — production `private_dns_enabled = true`. Resolves via AmazonProvidedDNS while on VPN.
+**Private DNS** (single host `internal.hungtran.id.vn/<service>`): `modules/private-dns` — production `private_dns_enabled = true`. Resolves via AmazonProvidedDNS while on VPN. Optional **HTTPS** via ACM + ALB listener (see [TLS for internal hostname](#tls-for-internal-hostname-https)).
 **Do not** create a second admin ALB. Reuse the CloudFront VPC-origin ALB. See [ADR: internal ALB](./adr/storefront-edge-internal-alb.md).
 ---
 
@@ -490,15 +490,15 @@ Admin UIs use one **private DNS** hostname: **`internal.hungtran.id.vn`** (Route
 Terraform module: `modules/private-dns`  
 Env: `private_dns_enabled` (production default **true**); zone default `internal.hungtran.id.vn`
 
-| Service | URL |
+| Service | URL (HTTPS after TLS cutover; HTTP until then) |
 |---|---|
-| Grafana | `http://internal.hungtran.id.vn/grafana/` |
-| Jaeger | `http://internal.hungtran.id.vn/jaeger/` |
-| Load generator | `http://internal.hungtran.id.vn/loadgen/` |
-| Feature flags UI | `http://internal.hungtran.id.vn/feature/` |
-| Flagd API | `http://internal.hungtran.id.vn/flagservice/` |
+| Grafana | `https://internal.hungtran.id.vn/grafana/` |
+| Jaeger | `https://internal.hungtran.id.vn/jaeger/` |
+| Load generator | `https://internal.hungtran.id.vn/loadgen/` |
+| Feature flags UI | `https://internal.hungtran.id.vn/feature/` |
+| Flagd API | `https://internal.hungtran.id.vn/flagservice/` |
 
-Single apex Alias A → internal storefront ALB. No per-service DNS records.
+Single apex Alias A → internal storefront ALB. No per-service DNS records. Prefer **HTTPS** once ACM + chart `certificateArn` are configured.
 
 ```cmd
 nslookup internal.hungtran.id.vn
@@ -516,22 +516,61 @@ Or `cloudfront_origin_domain_name` in production tfvars (update after ALB recrea
 
 ### 7. Open admin paths (while VPN is connected)
 
-Browser (preferred private DNS):
+Browser (preferred private DNS; use **https** after TLS cutover):
 
 ```text
-http://internal.hungtran.id.vn/grafana/
-http://internal.hungtran.id.vn/jaeger/
-http://internal.hungtran.id.vn/loadgen/
-http://internal.hungtran.id.vn/feature/
+https://internal.hungtran.id.vn/grafana/
+https://internal.hungtran.id.vn/jaeger/
+https://internal.hungtran.id.vn/loadgen/
+https://internal.hungtran.id.vn/feature/
 ```
 
 CMD:
 
 ```cmd
-curl -i http://internal.hungtran.id.vn/grafana/
-curl -i http://internal.hungtran.id.vn/jaeger/
-curl -i http://internal.hungtran.id.vn/loadgen/
+curl -i https://internal.hungtran.id.vn/grafana/
+curl -i https://internal.hungtran.id.vn/jaeger/
+curl -i https://internal.hungtran.id.vn/loadgen/
 ```
+
+Until the ACM cert is **ISSUED** and the chart has `certificateArn` + HTTPS:443, use `http://` instead.
+
+### TLS for internal hostname (HTTPS)
+
+Enable HTTPS on the **same** internal ALB for `https://internal.hungtran.id.vn` (VPN only). Keep **HTTP:80** for CloudFront VPC origin. **Do not** enable ALB `ssl-redirect` — CloudFront origin is `http-only` on port 80.
+
+| Step | Action |
+|---|---|
+| 1 | Production tfvars: `private_dns_request_acm_certificate = true` → `terraform apply` |
+| 2 | `terraform -chdir=environments/production output private_dns_acm_validation_records` |
+| 3 | Create those **CNAME** records in **public** DNS for `hungtran.id.vn` (not the private zone) |
+| 4 | Wait until cert status is **ISSUED** (`output private_dns_acm_certificate_status` or ACM console) |
+| 5 | Chart `values-prod.yaml`: set `certificateArn` to the ARN; `listenPorts: '[{"HTTP":80},{"HTTPS":443}]'` → Argo sync |
+| 6 | Client VPN already opens ALB **TCP 80 + 443** (module default `alb_ingress_ports`) |
+| 7 | Optional: `private_dns_use_https_urls = true` in tfvars so outputs show `https://` |
+| 8 | Browse `https://internal.hungtran.id.vn/grafana/` on VPN |
+
+```cmd
+cd /d techx-corp-infra
+terraform -chdir=environments/production apply
+terraform -chdir=environments/production output private_dns_acm_validation_records
+terraform -chdir=environments/production output private_dns_acm_certificate_arn
+terraform -chdir=environments/production output private_dns_acm_certificate_status
+```
+
+Public DNS validation example (name/value from the output; your DNS host may differ):
+
+```text
+Name:  _abc123.internal.hungtran.id.vn
+Type:  CNAME
+Value: _xyz.acm-validations.aws.
+```
+
+| Check | Expect |
+|---|---|
+| `https://internal.hungtran.id.vn/grafana/` on VPN | 200 or app login (valid cert) |
+| CloudFront storefront still works | Origin still HTTP:80 to ALB |
+| `https://shop…/grafana/` | Still **403** at edge |
 
 ### 8. Dual-path verification
 
@@ -562,7 +601,7 @@ The private zone is only `internal.hungtran.id.vn` (not the public `hungtran.id.
 2. Export `.ovpn`
 3. Append `<cert>` / `<key>` / `<ca>` from **client1** (+ CA)
 4. AWS VPN Client → Add Profile → **Connect**
-5. Use private DNS (`http://internal.hungtran.id.vn/grafana/`), not the shop hostname for admin
+5. Use private DNS (`https://internal.hungtran.id.vn/grafana/` after TLS; else `http://`), not the shop hostname for admin
 6. Optional: `kubectl get ns` (private API on VPN; public API still works with VPN disconnected)
 7. **Disconnect** when done
 

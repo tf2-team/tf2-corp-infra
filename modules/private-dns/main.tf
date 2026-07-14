@@ -72,3 +72,24 @@ resource "aws_route53_record" "apex" {
     evaluate_target_health = true
   }
 }
+
+# ──────────────────────────────────────────────
+# Optional ACM certificate for HTTPS on internal ALB
+# Validation CNAMEs must be created in *public* DNS (not this private zone).
+# ──────────────────────────────────────────────
+
+resource "aws_acm_certificate" "internal" {
+  count = local.create && var.request_acm_certificate ? 1 : 0
+
+  domain_name               = var.zone_name
+  subject_alternative_names = var.acm_subject_alternative_names
+  validation_method         = "DNS"
+
+  tags = merge(var.tags, {
+    Name = "${var.zone_name}-internal-alb"
+  })
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
