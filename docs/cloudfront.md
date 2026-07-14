@@ -194,8 +194,8 @@ bash scripts/smoke-test.sh -n techx-corp -h https://shop.example.com -a https://
 
 Default blocked prefixes:
 
-* `/grafana`, `/jaeger`, `/loadgen`, `/feature`, `/flagservice`  
-  (`/otlp-http` is **not** blocked — browser web OTLP traces use the public edge)
+* `/grafana`, `/jaeger`, `/loadgen`, `/feature`  
+  (`/otlp-http` and `/flagservice` are **not** blocked — browser OTLP and flagd EventStream use the public edge)
 
 Toggle:
 
