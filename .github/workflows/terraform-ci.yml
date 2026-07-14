@@ -84,7 +84,6 @@ jobs:
           quiet: true
           soft_fail: false
           config_file: .checkov.yaml
-          skip_check: CKV_AWS_50
 
   plan:
     name: Plan ${{ matrix.environment }}
