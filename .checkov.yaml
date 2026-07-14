@@ -61,8 +61,3 @@ skip-check:
   # Client VPN: Ingress to port 80 false positive (source is client VPN SG, not 0.0.0.0/0)
   - CKV_AWS_260
 
-  # SNS (modules/cost-budgets): cost-alerts topic carries no sensitive data (email-json budget
-  # notifications only). KMS encryption adds per-API cost with no security benefit for alert
-  # payloads. Topic policy already restricts publish to budgets.amazonaws.com with SourceAccount.
-  - CKV_AWS_50
-
