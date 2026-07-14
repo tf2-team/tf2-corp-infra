@@ -170,8 +170,8 @@ variable "disruption_budget_nodes" {
 
 variable "instance_categories" {
   type        = list(string)
-  default     = ["c", "m", "r"]
-  description = "karpenter.k8s.aws/instance-category allow-list"
+  default     = ["t"]
+  description = "karpenter.k8s.aws/instance-category allow-list (default: burstable t-family only)"
 }
 
 variable "min_instance_cpu" {
@@ -243,3 +243,5 @@ variable "tags" {
   description = "Tags for IAM / SQS resources"
   default     = {}
 }
+# Change trail: @hungxqt - 2026-07-14 - Restrict Karpenter instance categories default to t-family only.
+
