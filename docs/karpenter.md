@@ -150,7 +150,7 @@ EC2NodeClass selects both by tag so nodes land in private subnets and use the cl
 
 See `modules/karpenter/variables.tf`. Important knobs:
 
-* `instance_categories` — default `["c","m","r"]`
+* `instance_categories` — default `["t"]` (burstable T-family only; with `arch=arm64` → primarily `t4g.*`)
 * `ami_alias` — default `al2023@latest` (matches AL2023 managed NGs)
 * `expire_after` / `consolidate_after` — disruption tuning
 * `node_taints` / `nodepool_weights` / `disruption_budget_nodes` — hard placement + per-pool budgets
@@ -361,3 +361,6 @@ That document covers workload classification, node labels/taints, chart `schedul
 * `docs/cluster-autoscaler.md` — optional CA-only alternative (off by default)
 * [Karpenter docs](https://karpenter.sh/docs/)
 * [Karpenter CloudFormation / IAM reference](https://karpenter.sh/docs/reference/cloudformation/)
+
+<!-- Change trail: @hungxqt - 2026-07-14 - Document Karpenter instance_categories default as t-family only. -->
+

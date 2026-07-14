@@ -97,7 +97,7 @@ Switching `t3.large` → `t4g.medium` changes **both** architecture **and** memo
 | **MNG instance + AMI** | `environments/{development,production}/terraform.tfvars` → `node_groups.*.instance_types` + `ami_type` | Per node group |
 | **Karpenter node arch** | `modules/karpenter/main.tf` → `kubernetes.io/arch` requirement | **Shared module default** (affects every env that creates NodePools) |
 | **Karpenter AMI** | `modules/karpenter` → `ami_alias` default `al2023@latest` | Follows instance arch from requirements |
-| **Karpenter instance families** | `instance_categories` default `["c","m","r"]` | Does **not** include `t` (so Karpenter will not pick `t4g`; it picks Graviton `c`/`m`/`r` when arch=arm64) |
+| **Karpenter instance families** | `instance_categories` default `["t"]` | Burstable T-family only; with `arch=arm64` → primarily `t4g.*` (not Graviton `c`/`m`/`r`) |
 | **App images** | `techx-corp-platform/docker-bake.hcl` | `platforms = ["linux/amd64", "linux/arm64"]` for release group |
 | **Pod placement** | `techx-corp-chart` `schedulingRules` | Arch-agnostic (`workload-class` only) |
 
@@ -312,7 +312,7 @@ Mirror §7 Phase 3 with expected arch `amd64` and x86 instance types (`t3`, `m5`
 | Node group create/update fails on AMI/instance | `ami_type` does not match instance family | Align per §3.2 |
 | Pod `CrashLoopBackOff`, events mention `exec format error` | Image layer wrong arch / single-arch tag | Rebuild multi-arch; roll tag |
 | ImagePullBackOff only on new arch nodes | Manifest lacks that platform | Bake both platforms; re-push |
-| Karpenter never launches / wrong family | Arch requirement vs instance categories | `arm64` + categories `c,m,r` → Graviton c/m/r, not `t4g` |
+| Karpenter never launches / wrong family | Arch requirement vs instance categories | `arm64` + categories `t` → primarily `t4g.*`; restore `c,m,r` if broader families needed |
 | Pending on critical MNG after switch | Not enough CPU/RAM on medium | Scale size (`t4g.large`) or reduce critical pack / raise `desired_size` via reviewed TF |
 | Load-generator fails only on arm64 | Playwright/Chromium platform issue | Disable load-gen temporarily; pin to remaining amd64; or fix image deps |
 | DaemonSet not Ready on new nodes | Taints / maxPods / CNI | See `karpenter.md` pod density; not usually arch-specific |
@@ -377,3 +377,6 @@ Mirror §7 Phase 3 with expected arch `amd64` and x86 instance types (`t3`, `m5`
 | **Compatibility** | Platform bake is multi-arch; charts are arch-agnostic; nodes + AMI + Karpenter arch must align |
 | **Migration** | Verify images → change MNG + Karpenter together → dual-run/drain → smoke → document |
 | **Rollback** | Reverse of forward path; keep multi-arch images so either direction stays possible |
+
+<!-- Change trail: @hungxqt - 2026-07-14 - Align Karpenter family docs with t-category default. -->
+
