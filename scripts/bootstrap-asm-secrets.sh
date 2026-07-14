@@ -33,6 +33,12 @@ OPENAI_API_KEY="${OPENAI_API_KEY:-dummy}"
 GRAFANA_USER="${GRAFANA_USER:-admin}"
 GRAFANA_PASSWORD="${GRAFANA_PASSWORD:-admin}"
 
+# SEC-06: OpenSearch security plugin credentials
+# Override: OPENSEARCH_ADMIN_USER, OPENSEARCH_ADMIN_PASSWORD
+# Password MUST be alphanumeric length >= 24 (OpenSearch requirement).
+OPENSEARCH_ADMIN_USER="${OPENSEARCH_ADMIN_USER:-admin}"
+OPENSEARCH_ADMIN_PASSWORD="${OPENSEARCH_ADMIN_PASSWORD:-ChangeMe000000000000000000}"
+
 put_json() {
   local name="$1"
   local json="$2"
@@ -57,6 +63,10 @@ put_json "${PREFIX}/product-reviews" \
 
 put_json "${PREFIX}/grafana" \
   "{\"admin-user\":\"${GRAFANA_USER}\",\"admin-password\":\"${GRAFANA_PASSWORD}\"}"
+
+# SEC-06: OpenSearch security plugin admin credentials
+put_json "${PREFIX}/opensearch" \
+  "{\"username\":\"${OPENSEARCH_ADMIN_USER}\",\"password\":\"${OPENSEARCH_ADMIN_PASSWORD}\"}"
 
 echo "Done. Bootstrap complete for prefix=${PREFIX} region=${REGION}"
 echo "Next: install ESO + ClusterSecretStore, then helm techx-corp-secrets, wait Ready, then app chart."

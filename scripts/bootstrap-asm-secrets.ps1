@@ -53,6 +53,13 @@ $openAiApiKey = Get-EnvOrDefault "OPENAI_API_KEY" "dummy"
 $grafanaUser = Get-EnvOrDefault "GRAFANA_USER" "admin"
 $grafanaPassword = Get-EnvOrDefault "GRAFANA_PASSWORD" "admin"
 
+# SEC-06: OpenSearch security plugin credentials
+# Override: $env:OPENSEARCH_ADMIN_USER, $env:OPENSEARCH_ADMIN_PASSWORD
+# Password MUST be alphanumeric length >= 24 (OpenSearch requirement).
+# Do NOT use the placeholder below for production.
+$opensearchUser = Get-EnvOrDefault "OPENSEARCH_ADMIN_USER" "admin"
+$opensearchPassword = Get-EnvOrDefault "OPENSEARCH_ADMIN_PASSWORD" "ChangeMe000000000000000000"
+
 if (-not (Get-Command aws -ErrorAction SilentlyContinue)) {
     Write-Error "AWS CLI not found on PATH."
     exit 1
@@ -105,6 +112,12 @@ Put-SecretJson -SecretId "$Prefix/product-reviews" -Data @{
 Put-SecretJson -SecretId "$Prefix/grafana" -Data @{
     "admin-user"     = $grafanaUser
     "admin-password" = $grafanaPassword
+}
+
+# SEC-06: OpenSearch security plugin admin credentials
+Put-SecretJson -SecretId "$Prefix/opensearch" -Data @{
+    username = $opensearchUser
+    password = $opensearchPassword
 }
 
 Write-Host "Done. Bootstrap complete for prefix=$Prefix region=$Region"
