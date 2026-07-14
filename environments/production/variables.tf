@@ -107,6 +107,24 @@ variable "cluster_name" {
   description = "Tên EKS cluster"
 }
 
+variable "commerce_valkey_node_type" {
+  type        = string
+  default     = "cache.t4g.micro"
+  description = "Node class for each of the two Multi-AZ cart Valkey nodes."
+}
+
+variable "commerce_valkey_engine_version" {
+  type        = string
+  default     = "8.0"
+  description = "ElastiCache Valkey engine version for the cart replication group."
+}
+
+variable "commerce_private_dns_zone" {
+  type        = string
+  default     = "techx.internal"
+  description = "Private Route53 zone providing the stable managed Valkey application address."
+}
+
 variable "kubernetes_version" {
   type        = string
   default     = "1.31"

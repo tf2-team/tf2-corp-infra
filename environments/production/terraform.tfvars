@@ -79,6 +79,12 @@ nat_gateways = {
 cluster_name       = "techx-tf2-prod"
 kubernetes_version = "1.36"
 
+# Directive #3 managed stateful dependencies. Two small Valkey nodes span the
+# private subnets/AZs; DynamoDB outbox is on-demand and has no idle capacity fee.
+commerce_valkey_node_type      = "cache.t4g.micro"
+commerce_valkey_engine_version = "8.0"
+commerce_private_dns_zone      = "techx.internal"
+
 node_groups = {
   "system-1a" = {
     instance_types = ["t4g.large"]

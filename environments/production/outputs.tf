@@ -275,6 +275,30 @@ output "external_secrets_bootstrap_note" {
   description = "Operator bootstrap order for ESO cutover"
 }
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Directive #3 commerce HA
+# ─────────────────────────────────────────────────────────────────────────────
+
+output "commerce_valkey_primary_endpoint" {
+  value       = module.commerce_ha.valkey_primary_endpoint
+  description = "Managed Multi-AZ Valkey primary endpoint"
+}
+
+output "commerce_valkey_application_address" {
+  value       = module.commerce_ha.valkey_application_address
+  description = "Stable private address configured in cart VALKEY_ADDR"
+}
+
+output "checkout_outbox_table_name" {
+  value       = module.commerce_ha.checkout_outbox_table_name
+  description = "DynamoDB checkout outbox table"
+}
+
+output "checkout_outbox_role_arn" {
+  value       = module.commerce_ha.checkout_outbox_role_arn
+  description = "IRSA role ARN configured on the checkout ServiceAccount"
+}
+
 # ──────────────────────────────────────────────
 # Karpenter
 # ──────────────────────────────────────────────
