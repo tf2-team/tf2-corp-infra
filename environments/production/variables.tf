@@ -465,10 +465,12 @@ variable "cloudfront_blocked_prefixes" {
     "/loadgen",
     "/feature",
     "/flagservice",
-    "/otlp-http",
   ]
-  nullable    = false
-  description = "URI path prefixes blocked at CloudFront when cloudfront_block_sensitive_paths is true"
+  nullable = false
+  description = <<-EOT
+    URI path prefixes blocked at CloudFront when cloudfront_block_sensitive_paths is true.
+    /otlp-http is allowed so the storefront can POST browser OTLP traces via the public edge.
+  EOT
 }
 
 variable "cloudfront_web_acl_id" {
@@ -550,6 +552,42 @@ variable "client_vpn_alb_security_group_ids" {
     Discover with: aws elbv2 describe-load-balancers / describe-security-groups.
     Do not take exclusive SG ownership via Ingress annotations (CloudFront VPC origin).
   EOT
+}
+
+# ──────────────────────────────────────────────
+# Private DNS — internal.<domain>/<service> for Client VPN operators
+# ──────────────────────────────────────────────
+
+variable "private_dns_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = <<-EOT
+    When true, create a Route 53 private hosted zone associated with the VPC and
+    an apex Alias A to the internal storefront ALB (e.g. internal.hungtran.id.vn).
+    Services are path-based on frontend-proxy. Resolvable from Client VPN
+    (AmazonProvidedDNS). See docs/client-vpn.md.
+  EOT
+}
+
+variable "private_dns_zone_name" {
+  type        = string
+  default     = "internal.hungtran.id.vn"
+  nullable    = false
+  description = "Private hosted zone apex / operator hostname (e.g. internal.hungtran.id.vn)"
+}
+
+variable "private_dns_service_paths" {
+  type = map(string)
+  default = {
+    grafana     = "/grafana/"
+    jaeger      = "/jaeger/"
+    loadgen     = "/loadgen/"
+    feature     = "/feature/"
+    flagservice = "/flagservice/"
+  }
+  nullable    = false
+  description = "Service short name → URL path (documentation/outputs; DNS is a single apex record)"
 }
 
 variable "access_entries" {

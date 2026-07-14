@@ -194,7 +194,8 @@ bash scripts/smoke-test.sh -n techx-corp -h https://shop.example.com -a https://
 
 Default blocked prefixes:
 
-* `/grafana`, `/jaeger`, `/loadgen`, `/feature`, `/flagservice`, `/otlp-http`
+* `/grafana`, `/jaeger`, `/loadgen`, `/feature`, `/flagservice`  
+  (`/otlp-http` is **not** blocked — browser web OTLP traces use the public edge)
 
 Toggle:
 
@@ -249,16 +250,17 @@ Prefer CloudFront for production edge posture.
 
 ## Operator admin access (Client VPN)
 
-CloudFront **must** keep blocking admin prefixes for public users. Operators open those paths by connecting to **AWS Client VPN** and calling the **internal ALB** hostname (bypass CloudFront). There is no second admin ALB.
+CloudFront **must** keep blocking admin prefixes for public users. Operators open those paths by connecting to **AWS Client VPN** and using **private DNS** (`internal.hungtran.id.vn/<service>` → internal ALB; `modules/private-dns`). There is no second admin ALB.
 
-Full runbook (ACM import + **local client setup/connect**): **[docs/client-vpn.md](./client-vpn.md)**.
+Full runbook (ACM import + **local client setup/connect** + private DNS): **[docs/client-vpn.md](./client-vpn.md)**.
 
 ```cmd
 REM Public edge — expect 403
 curl -i https://<cloudfront-alias>/grafana/
 
-REM After Client VPN connect (see client-vpn.md "Client setup and connect") — internal ALB
-curl -i http://<internal-alb-dns>/grafana/
+REM After Client VPN connect (see client-vpn.md "Client setup and connect")
+curl -i http://internal.hungtran.id.vn/grafana/
+REM Fallback if private DNS off: curl -i http://<internal-alb-dns>/grafana/
 ```
 
 ---

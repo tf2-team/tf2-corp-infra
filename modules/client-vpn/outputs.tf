@@ -60,7 +60,8 @@ output "operator_note" {
     5) client_vpn_enabled=true → terraform apply → wait association available.
     6) Local connect (docs/client-vpn.md "Client setup and connect"):
          export .ovpn → append client1 cert/key/ca → AWS VPN Client Connect.
-    7) curl http://<INTERNAL_ALB_DNS>/grafana/ (not CF 403); CloudFront alias still 403 when blocking on.
+    7) curl http://internal.hungtran.id.vn/grafana/ via private DNS (or raw ALB DNS);
+         not CF 403; CloudFront alias still 403 when blocking on.
     8) kubectl get ns works on VPN (private API) and off VPN (public EKS endpoint, if enabled).
     9) Disconnect when done; disable with client_vpn_enabled=false to stop association charges.
   EOT

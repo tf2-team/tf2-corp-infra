@@ -407,6 +407,45 @@ output "client_vpn_operator_note" {
   description = "Operator enable sequence for Client VPN admin access"
 }
 
+# ──────────────────────────────────────────────
+# Private DNS (internal.<domain>/<service> → ALB)
+# ──────────────────────────────────────────────
+
+output "private_dns_enabled" {
+  value       = module.private_dns.enabled
+  description = "Whether private DNS resources are managed"
+}
+
+output "private_dns_zone_id" {
+  value       = module.private_dns.zone_id
+  description = "Private hosted zone ID (null when disabled)"
+}
+
+output "private_dns_zone_name" {
+  value       = module.private_dns.zone_name
+  description = "Private hosted zone / operator hostname (empty when disabled)"
+}
+
+output "private_dns_hostname" {
+  value       = module.private_dns.hostname
+  description = "Operator internal hostname (zone apex)"
+}
+
+output "private_dns_base_url" {
+  value       = module.private_dns.base_url
+  description = "HTTP base URL for the internal entrypoint"
+}
+
+output "private_dns_service_urls" {
+  value       = module.private_dns.service_urls
+  description = "Map of service short name → full HTTP URL (hostname + path)"
+}
+
+output "private_dns_operator_note" {
+  value       = module.private_dns.operator_note
+  description = "Operator reminder for private DNS + Client VPN access"
+}
+
 output "cost_budgets_sns_topic_arn" {
   value       = module.cost_budgets.sns_topic_arn
   description = "SNS topic ARN for cost budget alerts (null when disabled)"

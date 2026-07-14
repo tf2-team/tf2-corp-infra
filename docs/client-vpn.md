@@ -31,8 +31,8 @@ Module: `modules/client-vpn`
 Wired in: `environments/development` and `environments/production` as `module.client_vpn`  
 Default: **`client_vpn_enabled = false`** (no resources until you opt in)
 
+**Private DNS** (single host `internal.hungtran.id.vn/<service>`): `modules/private-dns` — production `private_dns_enabled = true`. Resolves via AmazonProvidedDNS while on VPN.
 **Do not** create a second admin ALB. Reuse the CloudFront VPC-origin ALB. See [ADR: internal ALB](./adr/storefront-edge-internal-alb.md).
-
 ---
 
 ## Cost posture
@@ -368,7 +368,7 @@ Mutual TLS: the **laptop** authenticates with a **client** certificate (`client1
 
 ```text
 Generate client1 cert → export .ovpn → embed cert/key/CA → AWS VPN Client Connect
-  → curl/browser http://<INTERNAL_ALB>/grafana/
+  → curl/browser http://internal.hungtran.id.vn/grafana/
 ```
 
 ### 1. Install a VPN client
@@ -483,41 +483,54 @@ When connected:
 
 **Disconnect** when finished (connection hours are billed): AWS VPN Client → **Disconnect**.
 
-### 6. Resolve the internal ALB hostname
+### 6. Resolve private internal DNS (preferred)
 
-Admin UIs are on the **internal ALB**, not the CloudFront shop URL.
+Admin UIs use one **private DNS** hostname: **`internal.hungtran.id.vn`** (Route 53 private hosted zone, VPC-associated). Services are selected by **path** on frontend-proxy (same as the raw ALB). Client VPN pushes **AmazonProvidedDNS**, so this name resolves only while on VPN (and inside the VPC).
+
+Terraform module: `modules/private-dns`  
+Env: `private_dns_enabled` (production default **true**); zone default `internal.hungtran.id.vn`
+
+| Service | URL |
+|---|---|
+| Grafana | `http://internal.hungtran.id.vn/grafana/` |
+| Jaeger | `http://internal.hungtran.id.vn/jaeger/` |
+| Load generator | `http://internal.hungtran.id.vn/loadgen/` |
+| Feature flags UI | `http://internal.hungtran.id.vn/feature/` |
+| Flagd API | `http://internal.hungtran.id.vn/flagservice/` |
+
+Single apex Alias A → internal storefront ALB. No per-service DNS records.
+
+```cmd
+nslookup internal.hungtran.id.vn
+terraform -chdir=environments/production output private_dns_service_urls
+```
+
+**Raw ALB hostname** (fallback if private DNS is disabled):
 
 ```cmd
 kubectl get ingress frontend-proxy-public -n techx-corp ^
   -o jsonpath="{.status.loadBalancer.ingress[0].hostname}"
 ```
 
-Or use the live value of `cloudfront_origin_domain_name` in production tfvars (must match current Ingress hostname after ALB recreates).
-
-Example form:
-
-```text
-internal-k8s-techxcor-frontend-….us-east-1.elb.amazonaws.com
-```
+Or `cloudfront_origin_domain_name` in production tfvars (update after ALB recreate).
 
 ### 7. Open admin paths (while VPN is connected)
 
-Browser:
+Browser (preferred private DNS):
 
 ```text
-http://<INTERNAL_ALB_DNS>/
-http://<INTERNAL_ALB_DNS>/grafana/
-http://<INTERNAL_ALB_DNS>/jaeger/
-http://<INTERNAL_ALB_DNS>/loadgen/
-http://<INTERNAL_ALB_DNS>/feature/
+http://internal.hungtran.id.vn/grafana/
+http://internal.hungtran.id.vn/jaeger/
+http://internal.hungtran.id.vn/loadgen/
+http://internal.hungtran.id.vn/feature/
 ```
 
 CMD:
 
 ```cmd
-curl -i http://internal-k8s-….us-east-1.elb.amazonaws.com/
-curl -i http://internal-k8s-….us-east-1.elb.amazonaws.com/grafana/
-curl -i http://internal-k8s-….us-east-1.elb.amazonaws.com/jaeger/
+curl -i http://internal.hungtran.id.vn/grafana/
+curl -i http://internal.hungtran.id.vn/jaeger/
+curl -i http://internal.hungtran.id.vn/loadgen/
 ```
 
 ### 8. Dual-path verification
@@ -526,25 +539,30 @@ curl -i http://internal-k8s-….us-east-1.elb.amazonaws.com/jaeger/
 REM Public edge — admin still blocked (no VPN required)
 curl -i https://shop.hungtran.id.vn/grafana/
 
-REM On VPN — internal ALB full surface
-curl -i http://internal-k8s-….us-east-1.elb.amazonaws.com/grafana/
+REM On VPN — private DNS → internal ALB full surface
+curl -i http://internal.hungtran.id.vn/grafana/
+
+REM Public storefront still via CloudFront (public DNS; not the private zone)
+curl -i https://shop.hungtran.id.vn/
 ```
 
 | Entry | Expect |
 |---|---|
 | `https://shop…/grafana/` (CloudFront) | **403** when `cloudfront_block_sensitive_paths=true` |
-| `http://<internal-alb>/grafana/` **with VPN connected** | **200** or app login (not edge 403) |
-| Same internal ALB URL **without** VPN | Timeout / unreachable from the public internet |
+| `http://internal.hungtran.id.vn/grafana/` **with VPN connected** | **200** or app login (not edge 403) |
+| `internal.hungtran.id.vn` **without** VPN | NXDOMAIN or no answer (zone is private) |
+| Raw internal ALB URL **without** VPN | Timeout / unreachable from the public internet |
 
 Grafana/Jaeger still use their own credentials (ESO secrets). VPN only provides network access.
 
+The private zone is only `internal.hungtran.id.vn` (not the public `hungtran.id.vn` apex), so public names like `shop.hungtran.id.vn` keep using normal public DNS even on VPN.
 ### Client connect quick checklist
 
 1. Endpoint + association **available**
 2. Export `.ovpn`
 3. Append `<cert>` / `<key>` / `<ca>` from **client1** (+ CA)
 4. AWS VPN Client → Add Profile → **Connect**
-5. Use **internal ALB** DNS for `/grafana`, not the shop hostname
+5. Use private DNS (`http://internal.hungtran.id.vn/grafana/`), not the shop hostname for admin
 6. Optional: `kubectl get ns` (private API on VPN; public API still works with VPN disconnected)
 7. **Disconnect** when done
 
@@ -585,7 +603,8 @@ Both should succeed when:
 | Profile import error | Incomplete PEM blocks or wrong encoding | Re-paste full `BEGIN`/`END` blocks; save `.ovpn` as UTF-8/ASCII without BOM |
 | Connects but no route to `10.0.x.x` | Not fully connected, or authorization rule missing | Confirm Connected; check VPC authorization rule exists |
 | Overlap error on create | Client CIDR overlaps VPC | Use `10.100.0.0/22` (prod) / `10.101.0.0/22` (dev) |
-| Admin still 403 | Hitting CloudFront URL | Use **internal ALB** hostname on VPN, not the shop alias |
+| Admin still 403 | Hitting CloudFront URL | Use **private DNS** (`http://internal.hungtran.id.vn/grafana/`) or raw internal ALB on VPN, not the shop alias path |
+| `nslookup internal.hungtran.id.vn` fails on VPN | Private DNS disabled, wrong zone, or VPN not using AmazonProvidedDNS | Enable `private_dns_enabled`; confirm Client VPN `dns_servers` is VPC DNS; re-connect VPN |
 | ACM import missing private key | `import-certificate` without `--private-key` | Import `ca.crt` **with** `ca.key` (and server with `server.key`) |
 
 **Do not** set Ingress `alb.ingress.kubernetes.io/inbound-cidrs` to only the VPN client CIDR — that can break CloudFront VPC origin access to the same ALB.
