@@ -168,8 +168,9 @@ Cluster-wide durable settings (MNG + Karpenter):
 1. VPC CNI `ENABLE_PREFIX_DELEGATION=true` (`addons.vpc-cni.configuration_values` in env tfvars).
 2. MNG `max_pods = 110` (launch template AL2023 NodeConfig).
 3. Karpenter `node_max_pods = 110` on EC2NodeClass + `min_instance_cpu = 2`.
+4. **Node private subnets `/20`** (`priv-1a-nodes` / `priv-1b-nodes`) with `karpenter.sh/discovery`. Legacy `/24` `priv-1a`/`priv-1b` keep internal-elb/cluster tags but **disable** Karpenter discovery so new nodes do not land on prefix-fragmented CIDRs.
 
-After apply, **recycle** existing Karpenter nodes so new maxPods takes effect. See `docs/DEPLOYMENT.md` → *Pod density*.
+After apply, **recycle** existing Karpenter nodes so new maxPods and subnet selection take effect. See `docs/DEPLOYMENT.md` → *Pod density*.
 
 ### 4.3 Outputs
 
@@ -186,7 +187,7 @@ After apply, **recycle** existing Karpenter nodes so new maxPods takes effect. S
 
 1. EKS cluster and system managed node groups healthy.
 2. `aws eks update-kubeconfig` works for the target cluster when `install_helm` / `create_node_resources` are true.
-3. Private subnets and cluster SG will receive discovery tags on apply.
+3. Private **node** subnets (`priv-*-nodes`) and cluster SG receive discovery tags on apply. Legacy `/24` private subnets intentionally omit `karpenter.sh/discovery`.
 
 ### 5.2 Development (full install)
 
@@ -362,5 +363,4 @@ That document covers workload classification, node labels/taints, chart `schedul
 * [Karpenter docs](https://karpenter.sh/docs/)
 * [Karpenter CloudFormation / IAM reference](https://karpenter.sh/docs/reference/cloudformation/)
 
-<!-- Change trail: @hungxqt - 2026-07-14 - Document Karpenter instance_categories default as t-family only. -->
-
+<!-- Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom. -->

@@ -80,12 +80,14 @@ variable "public_subnets" {
 
 variable "private_subnets" {
   type = map(object({
-    cidr_block        = string
-    availability_zone = string
-    nat_gateway_key   = optional(string)
+    cidr_block                 = string
+    availability_zone          = string
+    nat_gateway_key            = optional(string)
+    enable_karpenter_discovery = optional(bool, true)
+    enable_eks_internal_elb    = optional(bool, true)
   }))
   default     = {}
-  description = "Bản đồ các Private Subnet"
+  description = "Private subnets. Prefer /20+ for node/pod IPs under VPC CNI prefix delegation; set enable_karpenter_discovery=false on legacy small CIDRs after migration."
 }
 
 variable "nat_gateways" {
@@ -573,4 +575,4 @@ variable "client_vpn_alb_security_group_ids" {
     Do not take exclusive SG ownership via Ingress annotations (CloudFront VPC origin).
   EOT
 }
-
+# Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.

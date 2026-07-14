@@ -20,6 +20,8 @@ ecr_force_delete           = true
 # ──────────────────────────────────────────────
 # VPC Configuration
 # Non-overlapping CIDR with production (10.0.0.0/16)
+# Node/pod capacity on /20 priv-*-nodes (prefix-delegation needs free /28s).
+# Legacy /24 priv-1a/1b kept; Karpenter discovery disabled on them.
 # ──────────────────────────────────────────────
 vpc_cidr_block = "10.1.0.0/16"
 
@@ -36,12 +38,24 @@ public_subnets = {
 
 private_subnets = {
   "priv-1a" = {
-    cidr_block        = "10.1.10.0/24"
+    cidr_block                 = "10.1.10.0/24"
+    availability_zone          = "us-east-1a"
+    nat_gateway_key            = "nat-1a"
+    enable_karpenter_discovery = false
+  }
+  "priv-1b" = {
+    cidr_block                 = "10.1.11.0/24"
+    availability_zone          = "us-east-1b"
+    nat_gateway_key            = "nat-1a"
+    enable_karpenter_discovery = false
+  }
+  "priv-1a-nodes" = {
+    cidr_block        = "10.1.16.0/20"
     availability_zone = "us-east-1a"
     nat_gateway_key   = "nat-1a"
   }
-  "priv-1b" = {
-    cidr_block        = "10.1.11.0/24"
+  "priv-1b-nodes" = {
+    cidr_block        = "10.1.32.0/20"
     availability_zone = "us-east-1b"
     nat_gateway_key   = "nat-1a"
   }
@@ -73,7 +87,7 @@ node_groups = {
     min_size       = 1
     max_size       = 2
     max_pods       = 110
-    subnet_keys    = ["priv-1a"]
+    subnet_keys    = ["priv-1a-nodes"]
     labels = {
       role           = "critical"
       workload-class = "critical"
@@ -90,7 +104,7 @@ node_groups = {
     min_size       = 1
     max_size       = 2
     max_pods       = 110
-    subnet_keys    = ["priv-1b"]
+    subnet_keys    = ["priv-1b-nodes"]
     labels = {
       role           = "critical"
       workload-class = "critical"
@@ -218,3 +232,4 @@ client_vpn_client_cidr_block = "10.101.0.0/22"
 # Trigger CICD
 
 # -----------------------------------------------
+# Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.

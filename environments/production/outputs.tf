@@ -51,6 +51,16 @@ output "private_subnet_ids" {
   description = "Bản đồ ID các Private Subnet"
 }
 
+output "private_subnet_cidrs" {
+  value       = module.vpc.private_subnet_cidrs
+  description = "Map of private subnet CIDR blocks by key"
+}
+
+output "karpenter_subnet_ids" {
+  value       = module.vpc.karpenter_subnet_ids
+  description = "Private subnets eligible for Karpenter (discovery tag enabled)"
+}
+
 # ──────────────────────────────────────────────
 # EKS Outputs
 # ──────────────────────────────────────────────
@@ -505,4 +515,4 @@ output "cost_anomaly_operator_note" {
   value       = module.cost_anomaly.operator_note
   description = "Post-apply steps for Cost Anomaly Detection"
 }
-
+# Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.
