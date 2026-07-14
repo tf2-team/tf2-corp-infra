@@ -14,6 +14,9 @@ locals {
     "flagd-ui",
     "product-reviews",
     "grafana",
+    # SEC-06: OpenSearch security plugin admin credentials
+    # Consumed by: techx-corp-chart secrets-chart → K8s Secret techx-corp-opensearch
+    "opensearch",
   ])
 }
 

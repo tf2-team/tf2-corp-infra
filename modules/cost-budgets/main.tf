@@ -47,7 +47,9 @@ locals {
 resource "aws_sns_topic" "cost_alerts" {
   count = local.create ? 1 : 0
 
-  name = local.topic_name
+  name              = local.topic_name
+  # Use AWS-managed SNS key (alias/aws/sns) — satisfies CKV_AWS_50 without CMK cost.
+  kms_master_key_id = "alias/aws/sns"
 
   tags = merge(var.tags, {
     Name = local.topic_name
