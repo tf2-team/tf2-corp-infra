@@ -289,6 +289,16 @@ output "commerce_valkey_application_address" {
   description = "Stable private address configured in cart VALKEY_ADDR"
 }
 
+output "commerce_valkey_auth_secret_arn" {
+  value       = module.commerce_ha.valkey_auth_secret_arn
+  description = "Secrets Manager ARN consumed by External Secrets for Cart Valkey authentication"
+}
+
+output "commerce_kms_key_arn" {
+  value       = module.commerce_ha.commerce_kms_key_arn
+  description = "Customer-managed KMS key protecting commerce state"
+}
+
 output "checkout_outbox_table_name" {
   value       = module.commerce_ha.checkout_outbox_table_name
   description = "DynamoDB checkout outbox table"

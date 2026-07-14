@@ -8,6 +8,16 @@ output "valkey_application_address" {
   description = "Stable private address consumed by cart"
 }
 
+output "valkey_auth_secret_arn" {
+  value       = aws_secretsmanager_secret.valkey_auth.arn
+  description = "Secrets Manager ARN containing the managed Valkey password"
+}
+
+output "commerce_kms_key_arn" {
+  value       = aws_kms_key.commerce.arn
+  description = "Customer-managed KMS key used by Valkey, DynamoDB, and its authentication secret"
+}
+
 output "checkout_outbox_table_name" {
   value       = aws_dynamodb_table.checkout_outbox.name
   description = "DynamoDB durable checkout outbox table"

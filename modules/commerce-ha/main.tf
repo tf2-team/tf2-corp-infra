@@ -5,6 +5,38 @@ locals {
   checkout_role_name = "${var.name}-checkout-outbox"
 }
 
+resource "aws_kms_key" "commerce" {
+  description             = "Encrypt Directive 03 commerce state for ${var.name}"
+  deletion_window_in_days = 30
+  enable_key_rotation     = true
+
+  tags = merge(var.tags, { Name = "${var.name}-commerce-ha" })
+}
+
+resource "aws_kms_alias" "commerce" {
+  name          = "alias/${var.name}-commerce-ha"
+  target_key_id = aws_kms_key.commerce.key_id
+}
+
+resource "random_password" "valkey_auth" {
+  length  = 48
+  special = false
+}
+
+resource "aws_secretsmanager_secret" "valkey_auth" {
+  name                    = "${var.name}/valkey-cart"
+  description             = "TLS authentication token for the managed cart Valkey replication group"
+  recovery_window_in_days = 7
+  kms_key_id              = aws_kms_key.commerce.arn
+
+  tags = merge(var.tags, { Name = "${var.name}/valkey-cart" })
+}
+
+resource "aws_secretsmanager_secret_version" "valkey_auth" {
+  secret_id     = aws_secretsmanager_secret.valkey_auth.id
+  secret_string = jsonencode({ password = random_password.valkey_auth.result })
+}
+
 resource "aws_security_group" "valkey" {
   name        = "${var.name}-valkey"
   description = "Allow cart traffic from EKS workers to managed Valkey"
@@ -44,7 +76,10 @@ resource "aws_elasticache_replication_group" "cart" {
   security_group_ids = [aws_security_group.valkey.id]
 
   at_rest_encryption_enabled = true
-  transit_encryption_enabled = false
+  kms_key_id                 = aws_kms_key.commerce.arn
+  transit_encryption_enabled = true
+  auth_token                 = random_password.valkey_auth.result
+  auth_token_update_strategy = "SET"
   apply_immediately          = true
 
   snapshot_retention_limit = 1
@@ -104,7 +139,8 @@ resource "aws_dynamodb_table" "checkout_outbox" {
   }
 
   server_side_encryption {
-    enabled = true
+    enabled     = true
+    kms_key_arn = aws_kms_key.commerce.arn
   }
 
   tags = var.tags
