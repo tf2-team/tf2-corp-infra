@@ -227,14 +227,14 @@ module "client_vpn" {
 module "private_dns" {
   source = "../../modules/private-dns"
 
-  enabled                 = var.private_dns_enabled
-  zone_name               = var.private_dns_zone_name
-  vpc_id                  = module.vpc.vpc_id
-  alb_arn                 = var.cloudfront_origin_alb_arn
-  service_paths           = var.private_dns_service_paths
-  request_acm_certificate = var.private_dns_request_acm_certificate
-  use_https_urls          = var.private_dns_use_https_urls
-  tags                    = var.tags
+  enabled             = var.private_dns_enabled
+  zone_name           = var.private_dns_zone_name
+  vpc_id              = module.vpc.vpc_id
+  alb_arn             = var.cloudfront_origin_alb_arn
+  service_paths       = var.private_dns_service_paths
+  acm_certificate_arn = var.private_dns_acm_certificate_arn
+  use_https_urls      = var.private_dns_use_https_urls
+  tags                = var.tags
 }
 
 # ──────────────────────────────────────────────

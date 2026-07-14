@@ -590,14 +590,14 @@ variable "private_dns_service_paths" {
   description = "Service short name → URL path (documentation/outputs; DNS is a single apex record)"
 }
 
-variable "private_dns_request_acm_certificate" {
-  type        = bool
-  default     = false
+variable "private_dns_acm_certificate_arn" {
+  type        = string
+  default     = ""
   nullable    = false
   description = <<-EOT
-    When true, request ACM certificate for private_dns_zone_name (DNS validation).
-    Create validation CNAMEs in public DNS, wait ISSUED, then set chart
-    components.frontend-proxy.publicAlb.certificateArn and dual listen ports.
+    Existing ACM certificate ARN covering private_dns_zone_name (us-east-1 / ALB region).
+    Same pattern as cloudfront_acm_certificate_arn: issue the cert outside Terraform,
+    then set this ARN. Also set chart publicAlb.certificateArn to the same value.
   EOT
 }
 
@@ -605,7 +605,7 @@ variable "private_dns_use_https_urls" {
   type        = bool
   default     = false
   nullable    = false
-  description = "When true, terraform outputs use https:// for internal service URLs"
+  description = "When true, force https:// in outputs even if acm_certificate_arn is empty (not recommended)"
 }
 
 variable "access_entries" {

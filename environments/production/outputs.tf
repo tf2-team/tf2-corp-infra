@@ -448,17 +448,12 @@ output "private_dns_operator_note" {
 
 output "private_dns_acm_certificate_arn" {
   value       = module.private_dns.acm_certificate_arn
-  description = "ACM ARN for internal hostname TLS (null when certificate not requested)"
+  description = "Operator-supplied ACM ARN for internal hostname TLS (empty when unset)"
 }
 
-output "private_dns_acm_certificate_status" {
-  value       = module.private_dns.acm_certificate_status
-  description = "ACM certificate status (null when not requested)"
-}
-
-output "private_dns_acm_validation_records" {
-  value       = module.private_dns.acm_validation_records
-  description = "Public DNS CNAME records required to validate the internal ACM certificate"
+output "private_dns_https_enabled" {
+  value       = module.private_dns.https_enabled
+  description = "True when private_dns_acm_certificate_arn is set"
 }
 
 output "cost_budgets_sns_topic_arn" {

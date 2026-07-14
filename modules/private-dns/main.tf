@@ -7,16 +7,20 @@
 #   internal.hungtran.id.vn  →  ALB
 #
 # Path routing stays on frontend-proxy (unchanged):
-#   http://internal.hungtran.id.vn/grafana/
-#   http://internal.hungtran.id.vn/jaeger/
-#   …
+#   https://internal.hungtran.id.vn/grafana/  (when ACM ARN + chart certificateArn set)
+#   http://internal.hungtran.id.vn/grafana/   (HTTP:80 always kept for CloudFront origin)
 #
 # Zone is dedicated (e.g. internal.hungtran.id.vn), not the public apex, so no
 # split-horizon is required for shop.hungtran.id.vn.
+#
+# TLS: pass an existing ACM certificate ARN (same region as the ALB). This module
+# does not request certificates — operator issues ACM (like CloudFront).
 # ──────────────────────────────────────────────
 
 locals {
-  create = var.enabled
+  create     = var.enabled
+  use_https  = var.enabled && var.acm_certificate_arn != ""
+  url_scheme = local.use_https || var.use_https_urls ? "https" : "http"
 }
 
 data "aws_lb" "storefront" {
@@ -73,23 +77,3 @@ resource "aws_route53_record" "apex" {
   }
 }
 
-# ──────────────────────────────────────────────
-# Optional ACM certificate for HTTPS on internal ALB
-# Validation CNAMEs must be created in *public* DNS (not this private zone).
-# ──────────────────────────────────────────────
-
-resource "aws_acm_certificate" "internal" {
-  count = local.create && var.request_acm_certificate ? 1 : 0
-
-  domain_name               = var.zone_name
-  subject_alternative_names = var.acm_subject_alternative_names
-  validation_method         = "DNS"
-
-  tags = merge(var.tags, {
-    Name = "${var.zone_name}-internal-alb"
-  })
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}

@@ -231,10 +231,11 @@ client_vpn_alb_security_group_ids = ["sg-085f3775c0408abb0", "sg-0bd7e89c21dffcd
 # ──────────────────────────────────────────────
 private_dns_enabled   = true
 private_dns_zone_name = "internal.hungtran.id.vn"
-# Request ACM for https://internal.hungtran.id.vn (DNS validation in *public* DNS).
-# After ISSUED: set chart publicAlb.certificateArn + listenPorts HTTP+HTTPS; set use_https_urls=true.
-private_dns_request_acm_certificate = true
-private_dns_use_https_urls          = true
+# HTTPS for https://internal.hungtran.id.vn — pass existing ISSUED ACM ARN (us-east-1).
+# Issue cert outside Terraform (DNS validation in public DNS), same pattern as CloudFront.
+# Also set chart values-prod publicAlb.certificateArn to the same ARN.
+# private_dns_acm_certificate_arn = "arn:aws:acm:us-east-1:493499579600:certificate/<ID>"
+private_dns_acm_certificate_arn = "arn:aws:acm:us-east-1:493499579600:certificate/043175b8-99f5-492f-a258-ff280e0b9a75"
 
 access_entries = {
   "chinh_nguyen" = {
