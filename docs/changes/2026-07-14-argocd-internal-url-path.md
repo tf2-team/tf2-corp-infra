@@ -19,7 +19,7 @@ Argo CD was installed ClusterIP-only with documented port-forward access. Other 
 
 * Argo CD serves HTTP with `server.rootpath` / `server.basehref` = `/argocd` (default).
 * Production sets `argocd-cm` `url` to `https://internal.hungtran.id.vn/argocd` when private DNS is enabled.
-* Port-forward break-glass uses HTTP:80 (`8080:80`).
+* Localhost port-forward remains fully supported: `kubectl port-forward service/argocd-server 8080:80 -n argocd` → `http://localhost:8080/argocd/`.
 * CloudFront default blocked list includes `/argocd`.
 * Private DNS outputs document `/argocd/`.
 

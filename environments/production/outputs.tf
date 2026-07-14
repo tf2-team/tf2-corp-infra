@@ -171,7 +171,12 @@ output "argocd_chart_version" {
 
 output "argocd_port_forward_command" {
   value       = module.argocd.port_forward_command
-  description = "Break-glass local port-forward to Argo CD UI (prefer private DNS path)"
+  description = "Localhost kubectl port-forward to Argo CD (always supported)"
+}
+
+output "argocd_port_forward_ui_url" {
+  value       = module.argocd.port_forward_ui_url
+  description = "Browser URL after port-forward (includes /argocd/ when rootpath is set)"
 }
 
 output "argocd_server_url" {

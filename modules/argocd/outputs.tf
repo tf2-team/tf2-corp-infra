@@ -26,10 +26,19 @@ output "server_url" {
 output "port_forward_command" {
   value = var.enabled ? (
     var.server_insecure
-    ? "kubectl -n ${var.namespace} port-forward svc/argocd-server 8080:80"
-    : "kubectl -n ${var.namespace} port-forward svc/argocd-server 8080:443"
+    ? "kubectl port-forward service/argocd-server 8080:80 -n ${var.namespace}"
+    : "kubectl port-forward service/argocd-server 8080:443 -n ${var.namespace}"
   ) : null
-  description = "Break-glass local access to Argo CD UI/API (prefer private DNS path when configured)"
+  description = "Localhost UI via kubectl port-forward (always supported). Open http://localhost:8080/argocd/ when rootpath is /argocd."
+}
+
+output "port_forward_ui_url" {
+  value = var.enabled ? (
+    var.server_rootpath != ""
+    ? "http://localhost:8080${var.server_rootpath}/"
+    : "http://localhost:8080/"
+  ) : null
+  description = "Browser URL after running port_forward_command"
 }
 
 output "ui_path" {
