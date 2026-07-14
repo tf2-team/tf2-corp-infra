@@ -67,6 +67,11 @@ locals {
         operator = "In"
         values   = var.availability_zones
       },
+      {
+        key      = "karpenter.k8s.aws/instance-size"
+        operator = "NotIn"
+        values   = ["nano", "micro", "small"]
+      }
     ],
     local.min_cpu_requirement,
   )
