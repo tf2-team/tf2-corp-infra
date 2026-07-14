@@ -82,7 +82,7 @@ node_groups = {
     }
   }
   "system-1b" = {
-    instance_types = ["t4g.medium"]
+    instance_types = ["t4g.large"]
     capacity_type  = "ON_DEMAND"
     ami_type       = "AL2023_ARM_64_STANDARD"
     disk_size      = 30
