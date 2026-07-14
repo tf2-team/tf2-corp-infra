@@ -44,14 +44,13 @@ locals {
   }
 }
 
+# checkov:skip=CKV_AWS_50: cost-alerts topic carries no sensitive data (email-json budget
+# notifications only). KMS adds per-API cost with no security benefit here.
+# Topic policy restricts publish to budgets.amazonaws.com with SourceAccount condition.
 resource "aws_sns_topic" "cost_alerts" {
   count = local.create ? 1 : 0
 
   name = local.topic_name
-
-  # checkov:skip=CKV_AWS_50: cost-alerts topic carries no sensitive data (email-json
-  # budget notifications only). KMS adds per-API cost with no security benefit here.
-  # Topic policy restricts publish to budgets.amazonaws.com with SourceAccount condition.
 
   tags = merge(var.tags, {
     Name = local.topic_name
