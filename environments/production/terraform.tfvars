@@ -225,6 +225,13 @@ client_vpn_alb_security_group_ids = ["sg-085f3775c0408abb0", "sg-0bd7e89c21dffcd
 # Optional: omit for first private subnet only (cheapest). Explicit multi-AZ increases cost.
 # client_vpn_subnet_ids = ["subnet-0ab17749536b34693"]
 
+# ──────────────────────────────────────────────
+# Private DNS — internal.hungtran.id.vn → ALB; services via path
+# Requires cloudfront_origin_alb_arn (apex alias target). See docs/client-vpn.md
+# ──────────────────────────────────────────────
+private_dns_enabled   = true
+private_dns_zone_name = "internal.hungtran.id.vn"
+
 access_entries = {
   "chinh_nguyen" = {
     principal_arn = "arn:aws:iam::493499579600:user/chinh-nguyen"

@@ -142,10 +142,12 @@ variable "blocked_prefixes" {
     "/loadgen",
     "/feature",
     "/flagservice",
-    "/otlp-http",
   ]
-  description = "URI path prefixes blocked at CloudFront when block_sensitive_paths is true"
-  nullable    = false
+  description = <<-EOT
+    URI path prefixes blocked at CloudFront when block_sensitive_paths is true.
+    Does not include /otlp-http — browser RUM/web OTLP traces post to the public edge.
+  EOT
+  nullable = false
 }
 
 variable "block_function_name" {

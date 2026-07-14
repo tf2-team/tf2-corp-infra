@@ -220,6 +220,22 @@ module "client_vpn" {
 }
 
 # ──────────────────────────────────────────────
+# Private DNS — internal.<domain> → ALB; services via path (/grafana, /jaeger, …)
+# See docs/client-vpn.md
+# ──────────────────────────────────────────────
+
+module "private_dns" {
+  source = "../../modules/private-dns"
+
+  enabled       = var.private_dns_enabled
+  zone_name     = var.private_dns_zone_name
+  vpc_id        = module.vpc.vpc_id
+  alb_arn       = var.cloudfront_origin_alb_arn
+  service_paths = var.private_dns_service_paths
+  tags          = var.tags
+}
+
+# ──────────────────────────────────────────────
 # Cost budgets — onboarding ~$300/week × ~3 weeks → monthly $900
 # AWS Budgets has no WEEKLY time_unit (only DAILY/MONTHLY/…).
 # SNS protocol email-json; confirm subscription after apply.
