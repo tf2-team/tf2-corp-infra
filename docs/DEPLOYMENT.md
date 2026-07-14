@@ -500,7 +500,17 @@ terraform -chdir=environments/development output -raw argocd_admin_password_comm
 terraform -chdir=environments/development output -raw argocd_bootstrap_apply_commands
 ```
 
+Production UI (Client VPN + private DNS; not public):
+
+```text
+https://internal.hungtran.id.vn/argocd/
+```
+
+Break-glass still uses port-forward (`argocd_port_forward_command`; HTTP:80 when `server.insecure=true`).
+
 - Module: `modules/argocd` (pinned argo-cd chart, ClusterIP, **no** public Ingress).  
+- Path access: frontend-proxy Envoy `/argocd` → `argocd-server.argocd.svc` (rootpath `/argocd`).  
+- CloudFront blocks `/argocd` (same list as Grafana/Jaeger).  
 - Applications live in **chart** repo: `techx-corp-chart/gitops/clusters/{dev,prod}/`.  
 - Repo credentials: create Secret in `argocd` NS (not in Git).  
 - Full plan: workspace `docs/gitops-argocd.md`.

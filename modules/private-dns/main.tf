@@ -8,6 +8,7 @@
 #
 # Path routing stays on frontend-proxy (unchanged):
 #   https://internal.hungtran.id.vn/grafana/  (when ACM ARN + chart certificateArn set)
+#   https://internal.hungtran.id.vn/argocd/   (Argo CD UI; VPN only; CF blocks /argocd)
 #   http://internal.hungtran.id.vn/grafana/   (HTTP:80 always kept for CloudFront origin)
 #
 # Zone is dedicated (e.g. internal.hungtran.id.vn), not the public apex, so no

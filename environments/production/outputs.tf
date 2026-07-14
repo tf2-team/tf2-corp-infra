@@ -171,7 +171,17 @@ output "argocd_chart_version" {
 
 output "argocd_port_forward_command" {
   value       = module.argocd.port_forward_command
-  description = "Local access to Argo CD UI (no public Ingress)"
+  description = "Break-glass local port-forward to Argo CD UI (prefer private DNS path)"
+}
+
+output "argocd_server_url" {
+  value       = module.argocd.server_url
+  description = "Configured external Argo CD base URL (null when unset)"
+}
+
+output "argocd_ui_path" {
+  value       = module.argocd.ui_path
+  description = "UI path on the internal hostname (e.g. /argocd/)"
 }
 
 output "argocd_admin_password_command" {

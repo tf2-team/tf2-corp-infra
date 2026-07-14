@@ -497,6 +497,7 @@ Env: `private_dns_enabled` (production default **true**); zone default `internal
 | Load generator | `https://internal.hungtran.id.vn/loadgen/` |
 | Feature flags UI | `https://internal.hungtran.id.vn/feature/` |
 | Flagd API | `https://internal.hungtran.id.vn/flagservice/` |
+| Argo CD | `https://internal.hungtran.id.vn/argocd/` |
 
 Single apex Alias A → internal storefront ALB. No per-service DNS records. Prefer **HTTPS** once ACM + chart `certificateArn` are configured.
 
@@ -523,6 +524,7 @@ https://internal.hungtran.id.vn/grafana/
 https://internal.hungtran.id.vn/jaeger/
 https://internal.hungtran.id.vn/loadgen/
 https://internal.hungtran.id.vn/feature/
+https://internal.hungtran.id.vn/argocd/
 ```
 
 CMD:
@@ -531,6 +533,7 @@ CMD:
 curl -i https://internal.hungtran.id.vn/grafana/
 curl -i https://internal.hungtran.id.vn/jaeger/
 curl -i https://internal.hungtran.id.vn/loadgen/
+curl -i https://internal.hungtran.id.vn/argocd/
 ```
 
 Until the ACM cert is **ISSUED** and the chart has `certificateArn` + HTTPS:443, use `http://` instead.
