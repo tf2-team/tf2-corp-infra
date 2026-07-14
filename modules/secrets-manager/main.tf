@@ -14,6 +14,7 @@ locals {
     "flagd-ui",
     "product-reviews",
     "grafana",
+    "opensearch", # SEC-06: OpenSearch security plugin admin credentials
   ])
 }
 
