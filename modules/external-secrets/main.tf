@@ -24,6 +24,16 @@ data "aws_iam_policy_document" "eso_secrets" {
     ]
     resources = var.secret_arns
   }
+
+  dynamic "statement" {
+    for_each = length(var.kms_key_arns) > 0 ? [1] : []
+    content {
+      sid       = "DecryptSecretKeys"
+      effect    = "Allow"
+      actions   = ["kms:Decrypt"]
+      resources = var.kms_key_arns
+    }
+  }
 }
 
 resource "aws_iam_policy" "eso" {

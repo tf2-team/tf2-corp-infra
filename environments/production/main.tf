@@ -110,12 +110,33 @@ module "external_secrets" {
   cluster_name                = module.eks.cluster_name
   oidc_provider_arn           = module.eks.oidc_provider_arn
   oidc_issuer_url             = module.eks.oidc_issuer
-  secret_arns                 = module.secrets_manager.secret_arns_list
+  secret_arns                 = concat(module.secrets_manager.secret_arns_list, [module.commerce_ha.valkey_auth_secret_arn])
+  kms_key_arns                = [module.commerce_ha.commerce_kms_key_arn]
   aws_region                  = var.aws_region
   install_helm                = var.external_secrets_install_helm
   create_cluster_secret_store = var.external_secrets_create_cluster_secret_store
   chart_version               = var.external_secrets_chart_version
   tags                        = var.tags
+}
+
+# DIRECTIVE #3: remove stateful single points of failure from the customer
+# money path. Cart uses managed Multi-AZ Valkey; checkout persists Kafka events
+# to a DynamoDB outbox through a least-privilege IRSA role.
+module "commerce_ha" {
+  source = "../../modules/commerce-ha"
+
+  name                         = var.project_name
+  vpc_id                       = module.vpc.vpc_id
+  private_subnet_ids           = module.vpc.private_subnet_ids_list
+  eks_client_security_group_id = module.eks.cluster_security_group_id
+  oidc_provider_arn            = module.eks.oidc_provider_arn
+  oidc_issuer_url              = module.eks.oidc_issuer
+  checkout_namespace           = "techx-corp-prod"
+  checkout_service_account     = "checkout"
+  valkey_node_type             = var.commerce_valkey_node_type
+  valkey_engine_version        = var.commerce_valkey_engine_version
+  private_dns_zone             = var.commerce_private_dns_zone
+  tags                         = var.tags
 }
 
 # ──────────────────────────────────────────────
