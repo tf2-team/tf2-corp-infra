@@ -189,8 +189,10 @@ karpenter_disruption_budget_nodes = {
   spot      = "1"
   on_demand = "1"
 }
-# Short reclaim window (WhenEmptyOrUnderutilized) — same as production.
-karpenter_consolidate_after = "5m"
+# Immediate reclaim once a node is empty or underutilized (WhenEmptyOrUnderutilized).
+# DaemonSet-only nodes (otel-collector agent, aws-node, kube-proxy, ebs-csi, …) are empty
+# and consolidate without a settle delay; underutilized packing is also eligible at 0s.
+karpenter_consolidate_after = "0s"
 
 # ──────────────────────────────────────────────
 # Cluster Autoscaler — OFF by default
@@ -236,4 +238,4 @@ client_vpn_client_cidr_block = "10.101.0.0/22"
 # Trigger CICD
 
 # -----------------------------------------------
-# Change trail: @hungxqt - 2026-07-15 - Pin dev Karpenter AMI and use c-m-r capacity with five-minute consolidation.
+# Change trail: @hungxqt - 2026-07-15 - Set Karpenter consolidateAfter to 0s for immediate empty (DaemonSet-only) reclaim.

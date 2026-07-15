@@ -42,7 +42,7 @@ CPU architecture (**amd64** vs **arm64**) is orthogonal to `workload-class` plac
 | **NodePools** | `stateless-spot` (weight 100) + `stateless-on-demand` (weight 10) in both environments |
 | **NodePool contract** | Labels + taint `workload-class=spot-tolerant:NoSchedule` |
 | **Disruption budgets** | Per NodePool; steady state **`"1"` / `"1"`** in development and production; freeze at `"0"` during controlled migrations |
-| **Lifecycle** | Exact `al2023@v20260709` alias; categories `c`/`m`/`r` (development) and `c`/`m`/`r`/`t` (production); `expireAfter: 720h`, `terminationGracePeriod: 1h`; consolidation after `5m` in development and `10m` in production |
+| **Lifecycle** | Exact `al2023@v20260709` alias; categories `c`/`m`/`r` (development) and `c`/`m`/`r`/`t` (production); `expireAfter: 720h`, `terminationGracePeriod: 1h`; consolidation `consolidateAfter: 0s` (DaemonSet-only / empty nodes, including otel agent only, reclaim immediately) |
 | **App chart** | Hard selectors + Karpenter toleration for stateless; critical list without Karpenter toleration; base/development soft topology and production hard topology |
 | **System pins** | CoreDNS + EBS CSI controller add-on config; Karpenter controller; Argo CD; ESO; ALB controller helm note |
 
@@ -124,7 +124,7 @@ taints:
 
 **Weight** encodes Spot-first preference. Do not infer primary/fallback from shared labels alone.
 
-**Disruption budgets are per NodePool**, not a global “one node in the whole cluster” limit. Steady state `"1"` + `"1"` allows up to one voluntary disruption **per pool** (two cluster-wide if both fire). The budget limits voluntary disruption only; it cannot prevent Spot interruption, forced expiry, or termination after the grace period. Consolidation reclaims idle or underutilized nodes after `5m` in development and `10m` in production.
+**Disruption budgets are per NodePool**, not a global “one node in the whole cluster” limit. Steady state `"1"` + `"1"` allows up to one voluntary disruption **per pool** (two cluster-wide if both fire). The budget limits voluntary disruption only; it cannot prevent Spot interruption, forced expiry, or termination after the grace period. Consolidation uses `consolidateAfter: 0s`: nodes with only zero-disruption-cost pods (DaemonSets such as the otel-collector agent, aws-node, kube-proxy, ebs-csi-node) are empty and reclaim immediately; underutilized packing is also eligible without a settle delay.
 
 Variables:
 
@@ -184,4 +184,4 @@ REM Saved plan required before apply; post-apply plan must be empty for promotio
 * Change record: `docs/changes/2026-07-11-enforce-managed-karpenter-pod-placement.md`
 * Chart topology balancing: `techx-corp-chart/docs/changes/2026-07-11-pod-topology-spread-balancing.md`
 
-<!-- Change trail: @hungxqt - 2026-07-15 - Note production Karpenter may select burstable t alongside c/m/r. -->
+<!-- Change trail: @hungxqt - 2026-07-15 - Document consolidateAfter 0s for immediate DaemonSet-only empty reclaim. -->

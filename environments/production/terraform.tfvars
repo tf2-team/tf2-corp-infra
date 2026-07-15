@@ -198,8 +198,10 @@ karpenter_disruption_budget_nodes = {
   spot      = "1"
   on_demand = "1"
 }
-# Short reclaim window (WhenEmptyOrUnderutilized) — same as development.
-karpenter_consolidate_after = "10m"
+# Immediate reclaim once a node is empty or underutilized (WhenEmptyOrUnderutilized).
+# DaemonSet-only nodes (otel-collector agent, aws-node, kube-proxy, ebs-csi, …) are empty
+# and consolidate without a settle delay; underutilized packing is also eligible at 0s.
+karpenter_consolidate_after = "0s"
 
 # ──────────────────────────────────────────────
 # Cluster Autoscaler — OFF by default
@@ -292,4 +294,4 @@ cost_anomaly_alert_email         = "ctran13904@gmail.com"
 cost_anomaly_frequency           = "DAILY"
 cost_anomaly_impact_absolute_usd = "25"
 cost_anomaly_impact_percentage   = "40"
-# Change trail: @hungxqt - 2026-07-15 - Allow production Karpenter t-series alongside c/m/r for Spot diversity and cost.
+# Change trail: @hungxqt - 2026-07-15 - Set Karpenter consolidateAfter to 0s for immediate empty (DaemonSet-only) reclaim.
