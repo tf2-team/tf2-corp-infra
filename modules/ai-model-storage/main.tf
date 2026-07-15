@@ -11,6 +11,22 @@ resource "aws_s3_bucket" "models" {
   tags   = var.tags
 }
 
+resource "aws_s3_bucket_lifecycle_configuration" "models" {
+  bucket = aws_s3_bucket.models.id
+
+  rule {
+    id     = "abort-incomplete-multipart-uploads"
+    status = "Enabled"
+
+    filter {}
+
+    # Keeps stale multipart uploads from accumulating storage cost.
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+
 resource "aws_s3_bucket_public_access_block" "models" {
   bucket                  = aws_s3_bucket.models.id
   block_public_acls       = true
@@ -37,7 +53,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "models" {
   bucket = aws_s3_bucket.models.id
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = "alias/aws/s3"
     }
   }
 }
