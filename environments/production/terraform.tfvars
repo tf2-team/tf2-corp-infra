@@ -165,14 +165,18 @@ secrets_manager_recovery_window_in_days = 0
 # Default capacity model: critical MNG floor + Karpenter elastic (do not enable CA Helm with this).
 # CRD and controller must share chart_version; upgrade CRD before controller.
 # ──────────────────────────────────────────────
-karpenter_enabled               = true
-karpenter_install_helm          = true
-karpenter_create_node_resources = true
-karpenter_chart_version         = "1.13.1"
-karpenter_spot_preferred        = true
-karpenter_nodepool_cpu_limit    = "32"
-karpenter_nodepool_memory_limit = "64Gi"
-karpenter_availability_zones    = ["us-east-1a", "us-east-1b"]
+karpenter_enabled                  = true
+karpenter_install_helm             = true
+karpenter_create_node_resources    = true
+karpenter_chart_version            = "1.13.1"
+karpenter_spot_preferred           = true
+karpenter_ami_alias                = "al2023@v20260709"
+karpenter_instance_categories      = ["c", "m", "r"]
+karpenter_expire_after             = "720h"
+karpenter_termination_grace_period = "1h"
+karpenter_nodepool_cpu_limit       = "32"
+karpenter_nodepool_memory_limit    = "64Gi"
+karpenter_availability_zones       = ["us-east-1a", "us-east-1b"]
 # Match MNG density + avoid 1-vCPU nodes (~8 max pods, no room for DaemonSets)
 karpenter_node_max_pods    = 110
 karpenter_min_instance_cpu = 2
@@ -195,7 +199,7 @@ karpenter_disruption_budget_nodes = {
   on_demand = "1"
 }
 # Short reclaim window (WhenEmptyOrUnderutilized) — same as development.
-karpenter_consolidate_after = "1m"
+karpenter_consolidate_after = "10m"
 
 # ──────────────────────────────────────────────
 # Cluster Autoscaler — OFF by default
@@ -288,4 +292,4 @@ cost_anomaly_alert_email         = "ctran13904@gmail.com"
 cost_anomaly_frequency           = "DAILY"
 cost_anomaly_impact_absolute_usd = "25"
 cost_anomaly_impact_percentage   = "40"
-# Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.
+# Change trail: @hungxqt - 2026-07-15 - Pin prod Karpenter AMI and use c-m-r capacity with ten-minute consolidation.

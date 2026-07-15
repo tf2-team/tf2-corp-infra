@@ -18,6 +18,7 @@ spec:
         kind: EC2NodeClass
         name: {{ .Values.ec2nodeclassName }}
       expireAfter: {{ .Values.expireAfter | quote }}
+      terminationGracePeriod: {{ .Values.terminationGracePeriod | quote }}
       {{- with .Values.nodeTaints }}
       taints:
         {{- range . }}
@@ -44,3 +45,4 @@ spec:
     budgets:
       - nodes: {{ .Values.disruptionBudgetNodes.spot | quote }}
 {{- end }}
+{{/* Change trail: @hungxqt - 2026-07-15 - Render the bounded Spot NodePool termination grace period. */}}

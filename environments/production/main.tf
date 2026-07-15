@@ -159,27 +159,31 @@ module "commerce_ha" {
 module "karpenter" {
   source = "../../modules/karpenter"
 
-  enabled                 = var.karpenter_enabled
-  cluster_name            = module.eks.cluster_name
-  cluster_endpoint        = module.eks.cluster_endpoint
-  oidc_provider_arn       = module.eks.oidc_provider_arn
-  oidc_issuer_url         = module.eks.oidc_issuer
-  aws_region              = var.aws_region
-  discovery_tag_value     = module.eks.cluster_name
-  install_helm            = var.karpenter_install_helm
-  create_node_resources   = var.karpenter_create_node_resources
-  chart_version           = var.karpenter_chart_version
-  spot_preferred          = var.karpenter_spot_preferred
-  node_taints             = var.karpenter_node_taints
-  nodepool_weights        = var.karpenter_nodepool_weights
-  disruption_budget_nodes = var.karpenter_disruption_budget_nodes
-  consolidate_after       = var.karpenter_consolidate_after
-  nodepool_cpu_limit      = var.karpenter_nodepool_cpu_limit
-  nodepool_memory_limit   = var.karpenter_nodepool_memory_limit
-  availability_zones      = var.karpenter_availability_zones
-  node_max_pods           = var.karpenter_node_max_pods
-  min_instance_cpu        = var.karpenter_min_instance_cpu
-  tags                    = var.tags
+  enabled                  = var.karpenter_enabled
+  cluster_name             = module.eks.cluster_name
+  cluster_endpoint         = module.eks.cluster_endpoint
+  oidc_provider_arn        = module.eks.oidc_provider_arn
+  oidc_issuer_url          = module.eks.oidc_issuer
+  aws_region               = var.aws_region
+  discovery_tag_value      = module.eks.cluster_name
+  install_helm             = var.karpenter_install_helm
+  create_node_resources    = var.karpenter_create_node_resources
+  chart_version            = var.karpenter_chart_version
+  spot_preferred           = var.karpenter_spot_preferred
+  ami_alias                = var.karpenter_ami_alias
+  instance_categories      = var.karpenter_instance_categories
+  expire_after             = var.karpenter_expire_after
+  termination_grace_period = var.karpenter_termination_grace_period
+  node_taints              = var.karpenter_node_taints
+  nodepool_weights         = var.karpenter_nodepool_weights
+  disruption_budget_nodes  = var.karpenter_disruption_budget_nodes
+  consolidate_after        = var.karpenter_consolidate_after
+  nodepool_cpu_limit       = var.karpenter_nodepool_cpu_limit
+  nodepool_memory_limit    = var.karpenter_nodepool_memory_limit
+  availability_zones       = var.karpenter_availability_zones
+  node_max_pods            = var.karpenter_node_max_pods
+  min_instance_cpu         = var.karpenter_min_instance_cpu
+  tags                     = var.tags
 }
 
 # ──────────────────────────────────────────────
@@ -285,6 +289,7 @@ module "private_dns" {
   tags                = var.tags
 }
 
+
 # ──────────────────────────────────────────────
 # Cost budgets — onboarding ~$300/week × ~3 weeks → monthly $900
 # AWS Budgets has no WEEKLY time_unit (only DAILY/MONTHLY/…).
@@ -320,3 +325,5 @@ module "cost_anomaly" {
   impact_percentage   = var.cost_anomaly_impact_percentage
   tags                = var.tags
 }
+
+# Change trail: @hungxqt - 2026-07-15 - Wire bounded production Karpenter lifecycle settings.
