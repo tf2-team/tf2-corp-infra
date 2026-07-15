@@ -171,7 +171,7 @@ karpenter_create_node_resources    = true
 karpenter_chart_version            = "1.13.1"
 karpenter_spot_preferred           = true
 karpenter_ami_alias                = "al2023@v20260709"
-karpenter_instance_categories      = ["c", "m", "r"]
+karpenter_instance_categories      = ["c", "m", "r", "t"]
 karpenter_expire_after             = "720h"
 karpenter_termination_grace_period = "1h"
 karpenter_nodepool_cpu_limit       = "32"
@@ -292,4 +292,4 @@ cost_anomaly_alert_email         = "ctran13904@gmail.com"
 cost_anomaly_frequency           = "DAILY"
 cost_anomaly_impact_absolute_usd = "25"
 cost_anomaly_impact_percentage   = "40"
-# Change trail: @hungxqt - 2026-07-15 - Pin prod Karpenter AMI and use c-m-r capacity with ten-minute consolidation.
+# Change trail: @hungxqt - 2026-07-15 - Allow production Karpenter t-series alongside c/m/r for Spot diversity and cost.

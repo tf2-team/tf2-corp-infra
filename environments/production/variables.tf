@@ -355,16 +355,16 @@ variable "karpenter_ami_alias" {
 
 variable "karpenter_instance_categories" {
   type        = list(string)
-  default     = ["c", "m", "r"]
-  description = "Approved Karpenter Graviton instance categories."
+  default     = ["c", "m", "r", "t"]
+  description = "Approved Karpenter Graviton instance categories (production includes burstable t for cost/capacity)."
 
   validation {
     condition = (
       length(var.karpenter_instance_categories) > 0 &&
       length(var.karpenter_instance_categories) == length(distinct(var.karpenter_instance_categories)) &&
-      alltrue([for category in var.karpenter_instance_categories : contains(["c", "m", "r"], category)])
+      alltrue([for category in var.karpenter_instance_categories : contains(["c", "m", "r", "t"], category)])
     )
-    error_message = "karpenter_instance_categories must be a non-empty, duplicate-free subset of c, m, and r."
+    error_message = "karpenter_instance_categories must be a non-empty, duplicate-free subset of c, m, r, and t."
   }
 }
 
@@ -803,4 +803,4 @@ variable "cost_anomaly_impact_percentage" {
   nullable    = false
   description = "Alert when anomaly impact >= this percent vs expected (AND with absolute USD)"
 }
-# Change trail: @hungxqt - 2026-07-15 - Expose pinned Karpenter AMI, category, and lifecycle inputs.
+# Change trail: @hungxqt - 2026-07-15 - Allow production Karpenter categories c/m/r/t including burstable t.
