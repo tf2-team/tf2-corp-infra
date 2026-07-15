@@ -137,7 +137,7 @@ EC2NodeClass selects both by tag so nodes land in private subnets and use the cl
 | `karpenter_chart_version` | **`1.13.1`** | **`1.13.1`** | Pin **both** karpenter-crd and karpenter (Kubernetes 1.36 needs ≥ 1.13) |
 | `karpenter_spot_preferred` | **`true`** | **`true`** | Spot pool plus On-Demand fallback |
 | `karpenter_ami_alias` | `al2023@v20260709` | same | Exact versioned alias; `@latest` is rejected |
-| `karpenter_instance_categories` | `c,m,r` | same | ARM compute, general-purpose, and memory families |
+| `karpenter_instance_categories` | `c,m,r` | **`c,m,r,t`** | ARM compute, general-purpose, memory; production also allows burstable **t** (`t4g.*`) |
 | `karpenter_node_taints` | spot-tolerant NoSchedule | same | Taints on both NodePools for hard placement |
 | `karpenter_nodepool_weights` | spot=100, on_demand=10 | same | Scheduling preference (Spot first when both exist) |
 | `karpenter_disruption_budget_nodes` | **`"1"`/`"1"`** | same | Per-NodePool voluntary limit; production rejects values above one |
@@ -154,7 +154,7 @@ EC2NodeClass selects both by tag so nodes land in private subnets and use the cl
 
 See `modules/karpenter/variables.tf`. Important knobs:
 
-* `instance_categories` — non-empty duplicate-free subset of `["c", "m", "r"]`
+* `instance_categories` — non-empty duplicate-free subset of `["c", "m", "r", "t"]` (module default remains `c,m,r`; production tfvars adds `t`)
 * `ami_alias` — exact `al2023@vYYYYMMDD`; floating aliases fail validation
 * `expire_after` / `termination_grace_period` / `consolidate_after` — bounded lifecycle and consolidation tuning
 * `node_taints` / `nodepool_weights` / `disruption_budget_nodes` — hard placement + per-pool budgets
@@ -373,4 +373,4 @@ That document covers workload classification, node labels/taints, chart `schedul
 * [Karpenter docs](https://karpenter.sh/docs/)
 * [Karpenter CloudFormation / IAM reference](https://karpenter.sh/docs/reference/cloudformation/)
 
-<!-- Change trail: @hungxqt - 2026-07-15 - Document pinned c-m-r Karpenter policy and staged disruption gates. -->
+<!-- Change trail: @hungxqt - 2026-07-15 - Document production Karpenter c/m/r/t categories including burstable t. -->

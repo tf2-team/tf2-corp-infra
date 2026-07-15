@@ -171,15 +171,15 @@ variable "disruption_budget_nodes" {
 variable "instance_categories" {
   type        = list(string)
   default     = ["c", "m", "r"]
-  description = "Approved Graviton instance categories for elastic workloads (compute, general-purpose, memory)."
+  description = "Approved Graviton instance categories for elastic workloads (compute, general-purpose, memory, optional burstable t)."
 
   validation {
     condition = (
       length(var.instance_categories) > 0 &&
       length(var.instance_categories) == length(distinct(var.instance_categories)) &&
-      alltrue([for category in var.instance_categories : contains(["c", "m", "r"], category)])
+      alltrue([for category in var.instance_categories : contains(["c", "m", "r", "t"], category)])
     )
-    error_message = "instance_categories must be a non-empty, duplicate-free subset of c, m, and r."
+    error_message = "instance_categories must be a non-empty, duplicate-free subset of c, m, r, and t."
   }
 }
 
@@ -273,4 +273,4 @@ variable "tags" {
   description = "Tags for IAM / SQS resources"
   default     = {}
 }
-# Change trail: @hungxqt - 2026-07-15 - Pin Karpenter AMIs and constrain lifecycle and Graviton category inputs.
+# Change trail: @hungxqt - 2026-07-15 - Allow optional t category alongside c/m/r for Karpenter NodePools.

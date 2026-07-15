@@ -42,7 +42,7 @@ CPU architecture (**amd64** vs **arm64**) is orthogonal to `workload-class` plac
 | **NodePools** | `stateless-spot` (weight 100) + `stateless-on-demand` (weight 10) in both environments |
 | **NodePool contract** | Labels + taint `workload-class=spot-tolerant:NoSchedule` |
 | **Disruption budgets** | Per NodePool; steady state **`"1"` / `"1"`** in development and production; freeze at `"0"` during controlled migrations |
-| **Lifecycle** | Exact `al2023@v20260709` alias, `c`/`m`/`r` categories, `expireAfter: 720h`, `terminationGracePeriod: 1h`; consolidation after `5m` in development and `10m` in production |
+| **Lifecycle** | Exact `al2023@v20260709` alias; categories `c`/`m`/`r` (development) and `c`/`m`/`r`/`t` (production); `expireAfter: 720h`, `terminationGracePeriod: 1h`; consolidation after `5m` in development and `10m` in production |
 | **App chart** | Hard selectors + Karpenter toleration for stateless; critical list without Karpenter toleration; base/development soft topology and production hard topology |
 | **System pins** | CoreDNS + EBS CSI controller add-on config; Karpenter controller; Argo CD; ESO; ALB controller helm note |
 
@@ -184,4 +184,4 @@ REM Saved plan required before apply; post-apply plan must be empty for promotio
 * Change record: `docs/changes/2026-07-11-enforce-managed-karpenter-pod-placement.md`
 * Chart topology balancing: `techx-corp-chart/docs/changes/2026-07-11-pod-topology-spread-balancing.md`
 
-<!-- Change trail: @hungxqt - 2026-07-15 - Align workload placement with production Spot fallback and controlled disruption gates. -->
+<!-- Change trail: @hungxqt - 2026-07-15 - Note production Karpenter may select burstable t alongside c/m/r. -->
