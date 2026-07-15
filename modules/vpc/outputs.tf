@@ -42,6 +42,11 @@ output "private_subnet_cidrs" {
   description = "Map of private subnet CIDR blocks by key"
 }
 
+output "private_route_table_ids" {
+  value       = [for route_table in aws_route_table.private : route_table.id]
+  description = "Private route table IDs for gateway VPC endpoints"
+}
+
 output "karpenter_subnet_ids" {
   value = {
     for k, v in aws_subnet.private : k => v.id
