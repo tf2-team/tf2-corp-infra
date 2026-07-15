@@ -18,6 +18,7 @@ spec:
         kind: EC2NodeClass
         name: {{ .Values.ec2nodeclassName }}
       expireAfter: {{ .Values.expireAfter | quote }}
+      terminationGracePeriod: {{ .Values.terminationGracePeriod | quote }}
       {{- with .Values.nodeTaints }}
       taints:
         {{- range . }}
@@ -43,3 +44,4 @@ spec:
     consolidateAfter: {{ .Values.consolidateAfter | quote }}
     budgets:
       - nodes: {{ .Values.disruptionBudgetNodes.onDemand | quote }}
+{{/* Change trail: @hungxqt - 2026-07-15 - Render the bounded On-Demand NodePool termination grace period. */}}
