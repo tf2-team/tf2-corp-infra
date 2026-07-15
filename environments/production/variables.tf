@@ -236,6 +236,39 @@ variable "argocd_server_url" {
   EOT
 }
 
+# Gatekeeper admission policy (MANDATE-05)
+
+variable "gatekeeper_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "Install Gatekeeper via Terraform before bootstrapping Argo CD policies."
+}
+
+variable "gatekeeper_chart_version" {
+  type        = string
+  default     = "3.23.0"
+  nullable    = false
+  description = "Pinned Gatekeeper Helm chart version."
+
+  validation {
+    condition     = can(regex("^[0-9]+\\.[0-9]+\\.[0-9]+$", var.gatekeeper_chart_version))
+    error_message = "gatekeeper_chart_version must be an exact semantic version such as 3.23.0."
+  }
+}
+
+variable "gatekeeper_controller_replicas" {
+  type        = number
+  default     = 2
+  nullable    = false
+  description = "Gatekeeper admission controller replicas."
+
+  validation {
+    condition     = var.gatekeeper_controller_replicas >= 2
+    error_message = "gatekeeper_controller_replicas must be at least 2."
+  }
+}
+
 # ──────────────────────────────────────────────
 # Storefront public ALB path blocking (Helm-applied)
 # ──────────────────────────────────────────────

@@ -90,7 +90,17 @@ Rates change over time. Re-validate against [AWS Pricing Calculator](https://cal
 | ECR catalog | `modules/ecr` (default service list) |
 | Secrets shells | `modules/secrets-manager` |
 | Argo CD | `modules/argocd` (`argocd_enabled`) |
+| Gatekeeper | `modules/gatekeeper` (`gatekeeper_enabled`) |
 | App + observability | `techx-corp-chart/values.yaml` + `values-public-alb.yaml` + `values-dev.yaml` / `values-prod.yaml` |
+
+### 2.5 Gatekeeper capacity and cost
+
+Gatekeeper uses the existing production Critical MNG and creates no separately
+billed AWS resource. Its steady-state reservation is three pods: two admission
+controllers plus one audit pod. Each reserves `100m` CPU and `256Mi` memory and
+is capped at `500m` CPU and `512Mi` memory, for a total reservation of `300m`
+CPU and `768Mi` memory. Confirm this headroom before enabling the fail-closed
+webhook; adding nodes solely for Gatekeeper is outside this mandate.
 
 ---
 

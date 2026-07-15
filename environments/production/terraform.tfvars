@@ -152,6 +152,11 @@ argocd_chart_version = "7.8.28"
 # Override if chart lives under a different GitHub path:
 argocd_chart_repo_url = "https://github.com/tf2-team/tf2-corp-chart/tree/main"
 
+# Gatekeeper admission guardrails (MANDATE-05)
+gatekeeper_enabled             = true
+gatekeeper_chart_version       = "3.23.0"
+gatekeeper_controller_replicas = 2
+
 # Storefront ALB is internal (chart values-public-alb.yaml); no ALB path blocks.
 # Path blocking is at CloudFront (cloudfront_block_sensitive_paths below).
 storefront_alb_scheme = "internal"
