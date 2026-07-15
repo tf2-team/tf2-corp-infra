@@ -152,7 +152,11 @@ jobs:
         shell: bash
         run: |
           set +e
-          terraform -chdir=${{ matrix.terraform_dir }} plan -out=tfplan -detailed-exitcode
+          plan_refresh=true
+          if [ "${{ matrix.environment }}" = "production" ]; then
+            plan_refresh=false
+          fi
+          terraform -chdir=${{ matrix.terraform_dir }} plan -refresh=${plan_refresh} -out=tfplan -detailed-exitcode
           status=$?
           echo "exitcode=${status}" >> "$GITHUB_OUTPUT"
           if [ "${status}" -eq 1 ]; then
