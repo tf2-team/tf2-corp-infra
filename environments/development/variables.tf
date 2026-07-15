@@ -406,9 +406,9 @@ variable "karpenter_disruption_budget_nodes" {
 
 variable "karpenter_consolidate_after" {
   type        = string
-  default     = "1m"
+  default     = "0s"
   nullable    = false
-  description = "NodePool disruption consolidateAfter (how long underutilized/empty nodes wait before reclaim)."
+  description = "NodePool disruption consolidateAfter. 0s consolidates empty nodes (DaemonSet-only, e.g. otel agent) immediately; also applies to underutilized packing."
 }
 
 variable "karpenter_nodepool_cpu_limit" {
@@ -623,4 +623,4 @@ variable "client_vpn_alb_security_group_ids" {
     Do not take exclusive SG ownership via Ingress annotations (CloudFront VPC origin).
   EOT
 }
-# Change trail: @hungxqt - 2026-07-15 - Expose pinned Karpenter AMI, category, and lifecycle inputs.
+# Change trail: @hungxqt - 2026-07-15 - Default karpenter_consolidate_after to 0s for immediate empty reclaim.

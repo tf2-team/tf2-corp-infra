@@ -141,7 +141,7 @@ EC2NodeClass selects both by tag so nodes land in private subnets and use the cl
 | `karpenter_node_taints` | spot-tolerant NoSchedule | same | Taints on both NodePools for hard placement |
 | `karpenter_nodepool_weights` | spot=100, on_demand=10 | same | Scheduling preference (Spot first when both exist) |
 | `karpenter_disruption_budget_nodes` | **`"1"`/`"1"`** | same | Per-NodePool voluntary limit; production rejects values above one |
-| `karpenter_consolidate_after` | **`5m`** | **`10m`** | Delay before consolidating empty/underutilized nodes |
+| `karpenter_consolidate_after` | **`0s`** | **`0s`** | Settle delay before consolidating empty/underutilized nodes; `0s` reclaims DaemonSet-only (e.g. otel agent) nodes immediately |
 | `karpenter_expire_after` | `720h` | same | Maximum NodeClaim lifetime |
 | `karpenter_termination_grace_period` | `1h` | same | Graceful drain deadline before forced termination |
 | `karpenter_nodepool_cpu_limit` | `32` | `32` | Per-NodePool CPU limit |
@@ -259,7 +259,7 @@ REM Interruption queue
 aws sqs get-queue-url --queue-name <cluster-name>
 ```
 
-Development scale testing creates and deletes cluster resources, so it requires an approved, tightly bounded test procedure. Use the chart repository's `docs/operations/autoscaling-validation.md`; expect Spot-first scale-out with `stateless-on-demand` fallback and consolidation only after `5m` in development or `10m` in production.
+Development scale testing creates and deletes cluster resources, so it requires an approved, tightly bounded test procedure. Use the chart repository's `docs/operations/autoscaling-validation.md`; expect Spot-first scale-out with `stateless-on-demand` fallback and consolidation with `consolidateAfter: 0s` (DaemonSet-only / empty nodes reclaim immediately; underutilized packing is also eligible without a settle delay).
 
 Terraform outputs:
 
@@ -318,14 +318,14 @@ terraform -chdir=environments/development output karpenter_controller_role_arn
 
 ### Unwanted consolidation
 
-* Change `karpenter_consolidate_after` through reviewed Git/Terraform policy (`5m` development, `10m` production by default).
+* Change `karpenter_consolidate_after` through reviewed Git/Terraform policy (`0s` development and production by default for immediate empty reclaim).
 * Freeze voluntary disruption through Git with `karpenter_disruption_budget_nodes = { spot = "0", on_demand = "0" }`, then review the saved Terraform plan and obtain immediate approval before apply.
 * Critical StatefulSets: PDBs + topology spread.
 
 ### Underutilized Karpenter nodes not reclaiming
 
 1. Confirm NodePool budgets are not `"0"` (`kubectl get nodepool -o yaml` → `spec.disruption.budgets`).
-2. Confirm `consolidationPolicy: WhenEmptyOrUnderutilized` and `consolidateAfter` (`5m` development; `10m` production).
+2. Confirm `consolidationPolicy: WhenEmptyOrUnderutilized` and `consolidateAfter` (`0s` development and production). DaemonSet-only nodes (otel-collector agent plus system DaemonSets) count as empty.
 3. Check PDBs / do-not-disrupt annotations blocking drain.
 4. Controller logs for consolidation decisions.
 
@@ -373,4 +373,4 @@ That document covers workload classification, node labels/taints, chart `schedul
 * [Karpenter docs](https://karpenter.sh/docs/)
 * [Karpenter CloudFormation / IAM reference](https://karpenter.sh/docs/reference/cloudformation/)
 
-<!-- Change trail: @hungxqt - 2026-07-15 - Document production Karpenter c/m/r/t categories including burstable t. -->
+<!-- Change trail: @hungxqt - 2026-07-15 - Document consolidateAfter 0s for immediate DaemonSet-only empty reclaim. -->

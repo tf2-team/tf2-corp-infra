@@ -5,7 +5,7 @@ amiAlias: al2023@v20260709
 spotPreferred: false
 expireAfter: 720h
 terminationGracePeriod: 1h
-consolidateAfter: 1m
+consolidateAfter: 0s
 cpuLimit: "32"
 memoryLimit: "64Gi"
 # kubelet maxPods (null/omit = AMI default). Pair with VPC CNI prefix delegation.
@@ -28,4 +28,4 @@ nodeTaints: []
 # List of requirement objects: { key, operator, values }
 spotRequirements: []
 onDemandRequirements: []
-# Change trail: @hungxqt - 2026-07-15 - Default node resources to a pinned AMI and one-hour termination grace.
+# Change trail: @hungxqt - 2026-07-15 - Default consolidateAfter to 0s for immediate empty reclaim.

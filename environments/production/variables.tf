@@ -440,9 +440,9 @@ variable "karpenter_disruption_budget_nodes" {
 
 variable "karpenter_consolidate_after" {
   type        = string
-  default     = "1m"
+  default     = "0s"
   nullable    = false
-  description = "NodePool disruption consolidateAfter (how long underutilized/empty nodes wait before reclaim)."
+  description = "NodePool disruption consolidateAfter. 0s consolidates empty nodes (DaemonSet-only, e.g. otel agent) immediately; also applies to underutilized packing."
 }
 
 variable "karpenter_nodepool_cpu_limit" {
@@ -803,4 +803,4 @@ variable "cost_anomaly_impact_percentage" {
   nullable    = false
   description = "Alert when anomaly impact >= this percent vs expected (AND with absolute USD)"
 }
-# Change trail: @hungxqt - 2026-07-15 - Allow production Karpenter categories c/m/r/t including burstable t.
+# Change trail: @hungxqt - 2026-07-15 - Default karpenter_consolidate_after to 0s for immediate empty reclaim.

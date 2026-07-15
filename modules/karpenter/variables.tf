@@ -252,8 +252,8 @@ variable "termination_grace_period" {
 
 variable "consolidate_after" {
   type        = string
-  default     = "1m"
-  description = "NodePool disruption consolidateAfter"
+  default     = "0s"
+  description = "NodePool disruption consolidateAfter (0s = immediate empty/underutilized reclaim; DaemonSet-only nodes count as empty)"
 }
 
 variable "availability_zones" {
@@ -273,4 +273,4 @@ variable "tags" {
   description = "Tags for IAM / SQS resources"
   default     = {}
 }
-# Change trail: @hungxqt - 2026-07-15 - Allow optional t category alongside c/m/r for Karpenter NodePools.
+# Change trail: @hungxqt - 2026-07-15 - Default consolidate_after to 0s for immediate empty reclaim.
