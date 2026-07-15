@@ -178,6 +178,7 @@ module "karpenter" {
   nodepool_weights         = var.karpenter_nodepool_weights
   disruption_budget_nodes  = var.karpenter_disruption_budget_nodes
   consolidate_after        = var.karpenter_consolidate_after
+  feature_gates            = var.karpenter_feature_gates
   nodepool_cpu_limit       = var.karpenter_nodepool_cpu_limit
   nodepool_memory_limit    = var.karpenter_nodepool_memory_limit
   availability_zones       = var.karpenter_availability_zones
