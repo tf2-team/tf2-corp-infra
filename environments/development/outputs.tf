@@ -250,6 +250,10 @@ output "external_secrets_role_arn" {
   description = "IRSA role ARN for ESO controller"
 }
 
+output "ai_model_bucket_name" { value = module.ai_model_storage.bucket_name }
+output "ai_model_service_account_role_arn" { value = module.ai_model_storage.service_account_role_arn }
+output "ai_model_s3_vpc_endpoint_id" { value = module.ai_model_storage.s3_vpc_endpoint_id }
+
 output "external_secrets_helm_command" {
   value       = module.external_secrets.helm_command
   description = "Install ESO when external_secrets_install_helm=false"
