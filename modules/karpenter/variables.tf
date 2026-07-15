@@ -170,8 +170,17 @@ variable "disruption_budget_nodes" {
 
 variable "instance_categories" {
   type        = list(string)
-  default     = ["t"]
-  description = "karpenter.k8s.aws/instance-category allow-list (default: burstable t-family only)"
+  default     = ["c", "m", "r"]
+  description = "Approved Graviton instance categories for elastic workloads (compute, general-purpose, memory)."
+
+  validation {
+    condition = (
+      length(var.instance_categories) > 0 &&
+      length(var.instance_categories) == length(distinct(var.instance_categories)) &&
+      alltrue([for category in var.instance_categories : contains(["c", "m", "r"], category)])
+    )
+    error_message = "instance_categories must be a non-empty, duplicate-free subset of c, m, and r."
+  }
 }
 
 variable "min_instance_cpu" {
@@ -198,8 +207,13 @@ variable "node_max_pods" {
 
 variable "ami_alias" {
   type        = string
-  default     = "al2023@latest"
-  description = "EC2NodeClass amiSelectorTerms alias (e.g. al2023@latest)"
+  default     = "al2023@v20260709"
+  description = "Pinned EC2NodeClass AL2023 alias. Floating @latest aliases are rejected."
+
+  validation {
+    condition     = can(regex("^al2023@v[0-9]{8}$", var.ami_alias))
+    error_message = "ami_alias must be pinned as al2023@vYYYYMMDD; @latest is not allowed."
+  }
 }
 
 variable "nodepool_cpu_limit" {
@@ -217,7 +231,23 @@ variable "nodepool_memory_limit" {
 variable "expire_after" {
   type        = string
   default     = "720h"
-  description = "NodePool expireAfter (empty string disables)"
+  description = "NodePool expireAfter duration."
+
+  validation {
+    condition     = can(regex("^[1-9][0-9]*(s|m|h)$", var.expire_after))
+    error_message = "expire_after must be a positive duration using s, m, or h (for example 720h)."
+  }
+}
+
+variable "termination_grace_period" {
+  type        = string
+  default     = "1h"
+  description = "Maximum graceful drain duration before Karpenter forcefully terminates a node."
+
+  validation {
+    condition     = can(regex("^[1-9][0-9]*(s|m|h)$", var.termination_grace_period))
+    error_message = "termination_grace_period must be a positive duration using s, m, or h (for example 1h)."
+  }
 }
 
 variable "consolidate_after" {
@@ -243,5 +273,4 @@ variable "tags" {
   description = "Tags for IAM / SQS resources"
   default     = {}
 }
-# Change trail: @hungxqt - 2026-07-14 - Restrict Karpenter instance categories default to t-family only.
-
+# Change trail: @hungxqt - 2026-07-15 - Pin Karpenter AMIs and constrain lifecycle and Graviton category inputs.

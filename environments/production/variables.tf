@@ -342,6 +342,54 @@ variable "karpenter_spot_preferred" {
   description = "Prefer Spot NodePool with On-Demand fallback (aligned with development)"
 }
 
+variable "karpenter_ami_alias" {
+  type        = string
+  default     = "al2023@v20260709"
+  description = "Pinned AL2023 alias for Karpenter EC2NodeClass."
+
+  validation {
+    condition     = can(regex("^al2023@v[0-9]{8}$", var.karpenter_ami_alias))
+    error_message = "karpenter_ami_alias must be pinned as al2023@vYYYYMMDD."
+  }
+}
+
+variable "karpenter_instance_categories" {
+  type        = list(string)
+  default     = ["c", "m", "r"]
+  description = "Approved Karpenter Graviton instance categories."
+
+  validation {
+    condition = (
+      length(var.karpenter_instance_categories) > 0 &&
+      length(var.karpenter_instance_categories) == length(distinct(var.karpenter_instance_categories)) &&
+      alltrue([for category in var.karpenter_instance_categories : contains(["c", "m", "r"], category)])
+    )
+    error_message = "karpenter_instance_categories must be a non-empty, duplicate-free subset of c, m, and r."
+  }
+}
+
+variable "karpenter_expire_after" {
+  type        = string
+  default     = "720h"
+  description = "Karpenter NodePool expiry duration."
+
+  validation {
+    condition     = can(regex("^[1-9][0-9]*(s|m|h)$", var.karpenter_expire_after))
+    error_message = "karpenter_expire_after must be a positive duration using s, m, or h."
+  }
+}
+
+variable "karpenter_termination_grace_period" {
+  type        = string
+  default     = "1h"
+  description = "Maximum Karpenter graceful drain duration before forced termination."
+
+  validation {
+    condition     = can(regex("^[1-9][0-9]*(s|m|h)$", var.karpenter_termination_grace_period))
+    error_message = "karpenter_termination_grace_period must be a positive duration using s, m, or h."
+  }
+}
+
 variable "karpenter_node_taints" {
   type = list(object({
     key    = string
@@ -378,6 +426,16 @@ variable "karpenter_disruption_budget_nodes" {
     Steady state "1"/"1" allows consolidation under WhenEmptyOrUnderutilized.
     Use "0"/"0" only to freeze voluntary disruption during upgrades/migrations.
   EOT
+
+  validation {
+    condition = alltrue([
+      for budget in [
+        var.karpenter_disruption_budget_nodes.spot,
+        var.karpenter_disruption_budget_nodes.on_demand,
+      ] : contains(["0", "1"], budget)
+    ])
+    error_message = "Production Karpenter disruption budgets must be absolute node counts of 0 or 1 per pool."
+  }
 }
 
 variable "karpenter_consolidate_after" {
@@ -745,4 +803,4 @@ variable "cost_anomaly_impact_percentage" {
   nullable    = false
   description = "Alert when anomaly impact >= this percent vs expected (AND with absolute USD)"
 }
-# Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.
+# Change trail: @hungxqt - 2026-07-15 - Expose pinned Karpenter AMI, category, and lifecycle inputs.

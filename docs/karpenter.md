@@ -12,8 +12,8 @@ Karpenter watches unschedulable pods and launches **right-sized EC2 instances** 
 
 | Environment | System MNG | Karpenter capacity policy |
 |-------------|------------|---------------------------|
-| **development** (`techx-dev`) | `general-1a` + `general-1b` (Spot MNG today) | **Spot preferred** + lower-weight On-Demand fallback |
-| **production** (`techx-tf2`) | `general-1a` + `general-1b` (On-Demand MNG) | **On-Demand only** (default) |
+| **development** (`techx-dev`) | `system-1a` + `system-1b`, fixed ARM On-Demand | **Spot preferred** + lower-weight On-Demand fallback |
+| **production** (`techx-tf2`) | `system-1a` + `system-1b`, fixed ARM On-Demand | **Spot preferred** + lower-weight On-Demand fallback |
 
 Implementation lives in:
 
@@ -82,7 +82,7 @@ An **optional** Cluster Autoscaler module exists (`modules/cluster-autoscaler`, 
 | Ops ownership of nodes | High | Medium | Low |
 | Migration risk from current MNG | Low | **Low (additive)** | Higher |
 
-**Decision:** introduce **Karpenter** beside existing managed node groups; Spot-preferred in development; On-Demand in production.
+**Decision:** keep a fixed Critical managed-node floor and use Karpenter Spot-preferred elastic capacity with an On-Demand fallback in both environments.
 
 ---
 
@@ -132,16 +132,20 @@ EC2NodeClass selects both by tag so nodes land in private subnets and use the cl
 | Variable | Dev default | Prod default | Meaning |
 |----------|-------------|--------------|---------|
 | `karpenter_enabled` | `true` | `true` | Create AWS prerequisites |
-| `karpenter_install_helm` | `true` | `false` | Install controller via Helm (needs API at apply) |
-| `karpenter_create_node_resources` | `true` | `false` | Apply EC2NodeClass + NodePool |
+| `karpenter_install_helm` | `true` | `true` | Install controller via Helm (needs API at apply) |
+| `karpenter_create_node_resources` | `true` | `true` | Apply EC2NodeClass + NodePool |
 | `karpenter_chart_version` | **`1.13.1`** | **`1.13.1`** | Pin **both** karpenter-crd and karpenter (Kubernetes 1.36 needs ≥ 1.13) |
-| `karpenter_spot_preferred` | **`true`** | **`false`** | Spot + OD pools vs OD-only (`stateless-on-demand`) |
+| `karpenter_spot_preferred` | **`true`** | **`true`** | Spot pool plus On-Demand fallback |
+| `karpenter_ami_alias` | `al2023@v20260709` | same | Exact versioned alias; `@latest` is rejected |
+| `karpenter_instance_categories` | `c,m,r` | same | ARM compute, general-purpose, and memory families |
 | `karpenter_node_taints` | spot-tolerant NoSchedule | same | Taints on both NodePools for hard placement |
 | `karpenter_nodepool_weights` | spot=100, on_demand=10 | same | Scheduling preference (Spot first when both exist) |
-| `karpenter_disruption_budget_nodes` | **`"1"`/`"1"`** (steady state) | `"0"`/`"0"` (migration freeze until install) | **Per-NodePool** voluntary disruption limits; `"0"` blocks consolidation |
-| `karpenter_consolidate_after` | **`1m`** | module default `1m` (not wired in prod tfvars yet) | Delay before consolidating empty/underutilized nodes |
-| `karpenter_nodepool_cpu_limit` | `32` | `64` | CPU spend cap |
-| `karpenter_nodepool_memory_limit` | `64Gi` | `128Gi` | Memory spend cap |
+| `karpenter_disruption_budget_nodes` | **`"1"`/`"1"`** | same | Per-NodePool voluntary limit; production rejects values above one |
+| `karpenter_consolidate_after` | **`5m`** | **`10m`** | Delay before consolidating empty/underutilized nodes |
+| `karpenter_expire_after` | `720h` | same | Maximum NodeClaim lifetime |
+| `karpenter_termination_grace_period` | `1h` | same | Graceful drain deadline before forced termination |
+| `karpenter_nodepool_cpu_limit` | `32` | `32` | Per-NodePool CPU limit |
+| `karpenter_nodepool_memory_limit` | `64Gi` | `64Gi` | Per-NodePool memory limit |
 | `karpenter_availability_zones` | `us-east-1a/b` | same | Zone allow-list |
 | `karpenter_node_max_pods` | `110` | `110` | EC2NodeClass `kubelet.maxPods` (needs VPC CNI prefix delegation) |
 | `karpenter_min_instance_cpu` | `2` | `2` | Min vCPU (`instance-cpu Gt 1`); blocks 1-vCPU / ~8-pod nodes |
@@ -150,16 +154,30 @@ EC2NodeClass selects both by tag so nodes land in private subnets and use the cl
 
 See `modules/karpenter/variables.tf`. Important knobs:
 
-* `instance_categories` — default `["t"]` (burstable T-family only; with `arch=arm64` → primarily `t4g.*`)
-* `ami_alias` — default `al2023@latest` (matches AL2023 managed NGs)
-* `expire_after` / `consolidate_after` — disruption tuning
+* `instance_categories` — non-empty duplicate-free subset of `["c", "m", "r"]`
+* `ami_alias` — exact `al2023@vYYYYMMDD`; floating aliases fail validation
+* `expire_after` / `termination_grace_period` / `consolidate_after` — bounded lifecycle and consolidation tuning
 * `node_taints` / `nodepool_weights` / `disruption_budget_nodes` — hard placement + per-pool budgets
 * `node_max_pods` — kubelet maxPods on provisioned nodes (default `110`; set `null` for AMI default)
 * `min_instance_cpu` — minimum vCPU (default `2`; `0` disables the requirement)
 
 **NodePool names:** `stateless-spot` (when `spot_preferred`) and always `stateless-on-demand`. Both use label+taint `workload-class=spot-tolerant`.
 
-### 4.2.1 Pod density and DaemonSets
+The `v20260709` pin was resolved read-only from the live production EC2NodeClass before this change; its ARM64 standard image was `ami-02528e6dc2d28d305`. Future promotions must resolve and bake a new exact alias in development rather than restoring `@latest`.
+
+### 4.3 Critical headroom and disruption gates
+
+The fixed `system-1a` and `system-1b` groups remain at desired/minimum one with maximum two. They do not use Cluster Autoscaler. Before production promotion, requested CPU and memory must stay below 75% of allocatable capacity and pod density below 80% in each AZ. If a gate fails, set `desired_size=2` for both groups through a reviewed Terraform plan so AZ capacity remains symmetric.
+
+NodePool budgets limit voluntary disruptions per pool. They do not guarantee protection from Spot interruption, expiry, or a termination deadline. Use this rollout sequence for template, category, or AMI changes:
+
+1. Commit budgets `0/0`, review a saved plan, and apply the freeze after approval.
+2. Apply the pinned template change while frozen; validate a new development NodeClaim and bake for 24 hours.
+3. Restore Spot budget one, observe at least 60 minutes, then restore On-Demand budget one and observe again.
+
+Never run a direct production apply without the reviewed plan artifact and immediate approval.
+
+### 4.4 Pod density and DaemonSets
 
 Karpenter **cannot** schedule a DaemonSet pod onto an already-full existing node (DaemonSets are affinity-pinned per node). If you see `Too many pods` on a DaemonSet (e.g. `otel-collector-agent`), fix **maxPods / CNI density** on that node — not NodePool CPU limits.
 
@@ -191,7 +209,9 @@ After apply, **recycle** existing Karpenter nodes so new maxPods and subnet sele
 
 ### 5.2 Development (full install)
 
-```bash
+These commands create a plan and apply infrastructure. Run them only after reviewing the target and obtaining immediate approval for the exact command.
+
+```cmd
 terraform -chdir=environments/development plan
 terraform -chdir=environments/development apply
 ```
@@ -200,17 +220,13 @@ With current `terraform.tfvars`:
 
 * AWS resources + Helm + EC2NodeClass + Spot/OD NodePools are created.
 
-### 5.3 Production (IAM first, then enable install)
+### 5.3 Production (full install after development acceptance)
 
-Default prod tfvars create IAM/SQS only. When ready:
+Current production values enable the controller, EC2NodeClass, Spot NodePool, and On-Demand fallback. Promotion remains gated on development evidence and a reviewed production plan.
 
-```hcl
-karpenter_install_helm          = true
-karpenter_create_node_resources = true
-karpenter_spot_preferred        = false
-```
+These commands change state. Run them only after the development bake passes and after obtaining immediate approval for the exact production command.
 
-```bash
+```cmd
 terraform -chdir=environments/production plan
 terraform -chdir=environments/production apply
 ```
@@ -227,34 +243,27 @@ terraform -chdir=environments/production apply
 
 ## 6. Verification
 
-```bash
-# Controller
+```cmd
+REM Controller
 kubectl -n kube-system get pods -l app.kubernetes.io/name=karpenter
 kubectl -n kube-system logs -l app.kubernetes.io/name=karpenter --tail=50
 
-# CRs
+REM CRs
 kubectl get ec2nodeclass
 kubectl get nodepool
 
-# Nodes (system MNG + any Karpenter nodes)
+REM Nodes (system MNG + any Karpenter nodes)
 kubectl get nodes -L karpenter.sh/nodepool -L karpenter.sh/capacity-type -L topology.kubernetes.io/zone
 
-# Scale test (development)
-kubectl create deployment scale-test --image=public.ecr.aws/nginx/nginx:stable --replicas=1
-kubectl set resources deployment scale-test --requests=cpu=1,memory=1Gi
-kubectl scale deployment scale-test --replicas=6
-# Expect: brief Pending → new nodes (prefer capacity-type=spot in dev) → Running
-kubectl get nodes -L karpenter.sh/capacity-type
-kubectl delete deployment scale-test
-# Idle Karpenter nodes should consolidate after consolidateAfter (dev: 1m) when budgets are non-zero
-
-# Interruption queue
+REM Interruption queue
 aws sqs get-queue-url --queue-name <cluster-name>
 ```
 
+Development scale testing creates and deletes cluster resources, so it requires an approved, tightly bounded test procedure. Use the chart repository's `docs/operations/autoscaling-validation.md`; expect Spot-first scale-out with `stateless-on-demand` fallback and consolidation only after `5m` in development or `10m` in production.
+
 Terraform outputs:
 
-```bash
+```cmd
 terraform -chdir=environments/development output karpenter_bootstrap_note
 terraform -chdir=environments/development output karpenter_controller_role_arn
 ```
@@ -263,9 +272,9 @@ terraform -chdir=environments/development output karpenter_controller_role_arn
 
 ## 7. Cost notes
 
-* **System MNG** still bills at `desired_size` (today 2× `t3.large` desired).
+* **System MNG** still bills at fixed desired capacity (`t4g.medium` in development and `t4g.large` in production).
 * **Karpenter nodes** bill only while running; consolidation terminates empty/underutilized nodes.
-* **Dev Spot** is cheaper but interruptible; On-Demand fallback may run if Spot is thin (higher cost).
+* **Spot in both environments** is cheaper but interruptible; On-Demand fallback may run if Spot is thin (higher cost).
 * **NodePool limits** (`cpu` / `memory`) are the primary guardrail against runaway scale-out.
 * See also `docs/COST.md` (node count remains the dominant variable cost).
 
@@ -275,7 +284,7 @@ terraform -chdir=environments/development output karpenter_controller_role_arn
 
 | Risk | Mitigation |
 |------|------------|
-| Spot interruption (dev) | SQS interruption handling; OD fallback NodePool; use PDBs for critical apps |
+| Spot interruption | SQS interruption handling; `stateless-on-demand` fallback NodePool; use PDBs for multi-replica apps |
 | Cost runaway | NodePool limits; monitor node count / AWS Cost Explorer |
 | Helm apply needs live API | Same as Argo CD; set `install_helm=false` until kube path works |
 | IAM too broad | Tag-scoped controller policy; PassRole only to Karpenter node role |
@@ -284,10 +293,11 @@ terraform -chdir=environments/development output karpenter_controller_role_arn
 
 ### Rollback
 
-1. Set `karpenter_create_node_resources = false` and/or delete NodePools, or set `karpenter_enabled = false` after draining.
-2. Cordon/drain nodes with `karpenter.sh/nodepool` label; let Karpenter terminate or terminate EC2.
-3. Workloads reschedule on managed node groups (may need temporary MNG `desired_size` bump).
-4. Re-apply Terraform with Karpenter disabled once drained.
+1. Commit `karpenter_disruption_budget_nodes = { spot = "0", on_demand = "0" }`, review a saved plan, and obtain immediate approval before applying the freeze.
+2. Verify destination capacity, Critical-MNG headroom, and PDB allowed disruptions before changing the NodePool template.
+3. Revert the policy in Git, retaining a previously reviewed exact AMI alias; never roll back to `@latest`. Review and apply development first after immediate approval.
+4. Verify NodePool, NodeClaim, and workload health, then reopen Spot to `"1"`, observe for 60 minutes, reopen On-Demand to `"1"`, and observe again.
+5. Repeat the freeze, reviewed-plan, rollback, and sequential-unfreeze procedure in production only after development acceptance.
 
 ---
 
@@ -301,21 +311,21 @@ terraform -chdir=environments/development output karpenter_controller_role_arn
 4. Confirm discovery tags on private subnets and cluster SG.
 5. Confirm NodePool limits not already exhausted.
 
-### Spot exhaustion (dev)
+### Spot exhaustion
 
-* Fallback NodePool `on-demand-fallback` (weight 10) should provision On-Demand.
+* Fallback NodePool `stateless-on-demand` (weight 10) should provision On-Demand in both environments.
 * If still Pending, check limits and AZ capacity.
 
 ### Unwanted consolidation
 
-* Increase `karpenter_consolidate_after` (dev) or module `consolidate_after` (e.g. `5m`–`15m`).
-* Temporarily freeze voluntary disruption with `karpenter_disruption_budget_nodes = { spot = "0", on_demand = "0" }`.
+* Change `karpenter_consolidate_after` through reviewed Git/Terraform policy (`5m` development, `10m` production by default).
+* Freeze voluntary disruption through Git with `karpenter_disruption_budget_nodes = { spot = "0", on_demand = "0" }`, then review the saved Terraform plan and obtain immediate approval before apply.
 * Critical StatefulSets: PDBs + topology spread.
 
 ### Underutilized Karpenter nodes not reclaiming
 
 1. Confirm NodePool budgets are not `"0"` (`kubectl get nodepool -o yaml` → `spec.disruption.budgets`).
-2. Confirm `consolidationPolicy: WhenEmptyOrUnderutilized` and `consolidateAfter` (dev: `1m`).
+2. Confirm `consolidationPolicy: WhenEmptyOrUnderutilized` and `consolidateAfter` (`5m` development; `10m` production).
 3. Check PDBs / do-not-disrupt annotations blocking drain.
 4. Controller logs for consolidation decisions.
 
@@ -326,7 +336,7 @@ karpenter_install_helm          = false
 karpenter_create_node_resources = false
 ```
 
-Drain Karpenter nodes first; then apply. AWS roles/SQS remain for quick re-enable.
+This is a desired-state change: commit it, review a saved Terraform plan, verify destination capacity and PDB gates, and obtain immediate approval before drain or apply. AWS roles/SQS remain for quick re-enable.
 
 ---
 
@@ -363,4 +373,4 @@ That document covers workload classification, node labels/taints, chart `schedul
 * [Karpenter docs](https://karpenter.sh/docs/)
 * [Karpenter CloudFormation / IAM reference](https://karpenter.sh/docs/reference/cloudformation/)
 
-<!-- Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom. -->
+<!-- Change trail: @hungxqt - 2026-07-15 - Document pinned c-m-r Karpenter policy and staged disruption gates. -->

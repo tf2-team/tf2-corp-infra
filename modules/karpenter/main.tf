@@ -769,16 +769,17 @@ resource "helm_release" "node_resources" {
 
   values = [
     yamlencode({
-      ec2nodeclassName  = var.ec2nodeclass_name
-      nodeRoleName      = aws_iam_role.node[0].name
-      discoveryTagValue = local.discovery
-      amiAlias          = var.ami_alias
-      spotPreferred     = var.spot_preferred
-      expireAfter       = var.expire_after
-      consolidateAfter  = var.consolidate_after
-      cpuLimit          = var.nodepool_cpu_limit
-      memoryLimit       = var.nodepool_memory_limit
-      maxPods           = var.node_max_pods
+      ec2nodeclassName       = var.ec2nodeclass_name
+      nodeRoleName           = aws_iam_role.node[0].name
+      discoveryTagValue      = local.discovery
+      amiAlias               = var.ami_alias
+      spotPreferred          = var.spot_preferred
+      expireAfter            = var.expire_after
+      terminationGracePeriod = var.termination_grace_period
+      consolidateAfter       = var.consolidate_after
+      cpuLimit               = var.nodepool_cpu_limit
+      memoryLimit            = var.nodepool_memory_limit
+      maxPods                = var.node_max_pods
       nodepoolWeights = {
         spot     = var.nodepool_weights.spot
         onDemand = var.nodepool_weights.on_demand
@@ -798,3 +799,4 @@ resource "helm_release" "node_resources" {
     helm_release.karpenter,
   ]
 }
+# Change trail: @hungxqt - 2026-07-15 - Pass the bounded node termination grace period to NodePool resources.
