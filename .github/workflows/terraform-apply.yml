@@ -77,7 +77,13 @@ jobs:
             -backend-config="region=${TF_BACKEND_REGION}"
 
       - name: Terraform plan
-        run: terraform -chdir=${{ inputs.terraform_dir }} plan -out=tfplan
+        shell: bash
+        run: |
+          plan_refresh=true
+          if [ "${{ inputs.environment }}" = "production" ]; then
+            plan_refresh=false
+          fi
+          terraform -chdir=${{ inputs.terraform_dir }} plan -refresh=${plan_refresh} -out=tfplan
 
       - name: Upload plan artifact
         uses: actions/upload-artifact@v4
