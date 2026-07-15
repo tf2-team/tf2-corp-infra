@@ -68,5 +68,13 @@ put_json "${PREFIX}/grafana" \
 put_json "${PREFIX}/opensearch" \
   "{\"username\":\"${OPENSEARCH_ADMIN_USER}\",\"password\":\"${OPENSEARCH_ADMIN_PASSWORD}\"}"
 
+# Grafana Discord alert webhook
+# Override: DISCORD_WEBHOOK_URL
+DISCORD_WEBHOOK_URL="${DISCORD_WEBHOOK_URL:-}"
+if [ -n "${DISCORD_WEBHOOK_URL}" ]; then
+  put_json "${PREFIX}/grafana-discord" \
+    "{\"webhook-url\":\"${DISCORD_WEBHOOK_URL}\"}"
+fi
+
 echo "Done. Bootstrap complete for prefix=${PREFIX} region=${REGION}"
 echo "Next: install ESO + ClusterSecretStore, then helm techx-corp-secrets, wait Ready, then app chart."
