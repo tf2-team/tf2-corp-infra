@@ -202,6 +202,10 @@ karpenter_disruption_budget_nodes = {
 # DaemonSet-only nodes (otel-collector agent, aws-node, kube-proxy, ebs-csi, …) are empty
 # and consolidate without a settle delay; underutilized packing is also eligible at 0s.
 karpenter_consolidate_after = "0s"
+# Allow Karpenter to replace fragmented Spot capacity with better-packed Spot capacity.
+karpenter_feature_gates = {
+  spotToSpotConsolidation = true
+}
 
 # ──────────────────────────────────────────────
 # Cluster Autoscaler — OFF by default

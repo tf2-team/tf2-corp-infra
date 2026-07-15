@@ -256,6 +256,20 @@ variable "consolidate_after" {
   description = "NodePool disruption consolidateAfter (0s = immediate empty/underutilized reclaim; DaemonSet-only nodes count as empty)"
 }
 
+variable "feature_gates" {
+  type        = map(bool)
+  default     = {}
+  description = "Karpenter controller settings.featureGates overrides, using chart keys such as spotToSpotConsolidation."
+
+  validation {
+    condition = alltrue([
+      for k in keys(var.feature_gates) :
+      contains(["nodeRepair", "nodeOverlay", "reservedCapacity", "spotToSpotConsolidation", "staticCapacity"], k)
+    ])
+    error_message = "feature_gates keys must match supported Karpenter chart featureGates keys."
+  }
+}
+
 variable "availability_zones" {
   type        = list(string)
   default     = ["us-east-1a", "us-east-1b"]

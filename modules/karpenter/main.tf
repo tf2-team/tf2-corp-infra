@@ -719,11 +719,16 @@ resource "helm_release" "karpenter" {
 
   values = [
     yamlencode({
-      settings = {
-        clusterName       = var.cluster_name
-        clusterEndpoint   = var.cluster_endpoint
-        interruptionQueue = aws_sqs_queue.interruption[0].name
-      }
+      settings = merge(
+        {
+          clusterName       = var.cluster_name
+          clusterEndpoint   = var.cluster_endpoint
+          interruptionQueue = aws_sqs_queue.interruption[0].name
+        },
+        length(var.feature_gates) > 0 ? {
+          featureGates = var.feature_gates
+        } : {}
+      )
       serviceAccount = {
         create = true
         name   = var.service_account_name

@@ -445,6 +445,21 @@ variable "karpenter_consolidate_after" {
   description = "NodePool disruption consolidateAfter. 0s consolidates empty nodes (DaemonSet-only, e.g. otel agent) immediately; also applies to underutilized packing."
 }
 
+variable "karpenter_feature_gates" {
+  type        = map(bool)
+  default     = {}
+  nullable    = false
+  description = "Karpenter controller settings.featureGates overrides."
+
+  validation {
+    condition = alltrue([
+      for k in keys(var.karpenter_feature_gates) :
+      contains(["nodeRepair", "nodeOverlay", "reservedCapacity", "spotToSpotConsolidation", "staticCapacity"], k)
+    ])
+    error_message = "karpenter_feature_gates keys must match supported Karpenter chart featureGates keys."
+  }
+}
+
 variable "karpenter_nodepool_cpu_limit" {
   type        = string
   default     = "32"
