@@ -109,6 +109,19 @@ module "external_secrets" {
   tags                        = var.tags
 }
 
+module "ai_model_storage" {
+  source = "../../modules/ai-model-storage"
+
+  name                    = var.project_name
+  aws_region              = var.aws_region
+  vpc_id                  = module.vpc.vpc_id
+  private_route_table_ids = module.vpc.private_route_table_ids
+  oidc_provider_arn       = module.eks.oidc_provider_arn
+  oidc_issuer_url         = module.eks.oidc_issuer
+  namespace               = "techx-corp-dev"
+  tags                    = var.tags
+}
+
 # ──────────────────────────────────────────────
 # Karpenter — node autoscaling (Spot-preferred; same model as production)
 # ──────────────────────────────────────────────
