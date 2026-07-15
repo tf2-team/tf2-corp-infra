@@ -225,6 +225,28 @@ output "argocd_chart_repo_url" {
   description = "Expected chart Git repo URL for Argo CD Applications"
 }
 
+# Gatekeeper runtime-hardening admission controller
+
+output "gatekeeper_enabled" {
+  value       = module.gatekeeper.enabled
+  description = "Whether Terraform manages Gatekeeper."
+}
+
+output "gatekeeper_namespace" {
+  value       = module.gatekeeper.namespace
+  description = "Gatekeeper namespace."
+}
+
+output "gatekeeper_chart_version" {
+  value       = module.gatekeeper.chart_version
+  description = "Pinned Gatekeeper Helm chart version."
+}
+
+output "gatekeeper_helm_release_name" {
+  value       = module.gatekeeper.helm_release_name
+  description = "Gatekeeper Helm release name."
+}
+
 # ──────────────────────────────────────────────
 # SEC-05: Secrets Manager + External Secrets
 # ──────────────────────────────────────────────

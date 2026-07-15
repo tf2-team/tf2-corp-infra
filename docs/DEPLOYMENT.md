@@ -802,4 +802,40 @@ aws s3api list-object-versions \
 - `techx-corp-platform/docs/DEPLOYMENT.md` — E2E operator runbook  
 - `techx-corp-chart/docs/DEPLOYMENT.md` — Helm / smoke / rollback
 
+## Gatekeeper runtime hardening (MANDATE-05)
+
+Gatekeeper must be healthy before the Argo CD policy Application is created.
+Controllers and audit run on the existing `workload-class=critical` MNG; they do
+not tolerate the `spot-tolerant` Karpenter pool.
+
+```bash
+terraform -chdir=environments/production init
+terraform -chdir=environments/production plan -out=gatekeeper.tfplan
+terraform -chdir=environments/production apply "gatekeeper.tfplan"
+
+kubectl -n gatekeeper-system rollout status deployment/gatekeeper-controller-manager --timeout=10m
+kubectl -n gatekeeper-system rollout status deployment/gatekeeper-audit --timeout=10m
+kubectl -n gatekeeper-system get pod,pdb,svc,endpoints
+kubectl get validatingwebhookconfiguration gatekeeper-validating-webhook-configuration \
+  -o jsonpath='{.webhooks[*].failurePolicy}'
+```
+
+Bootstrap policy only after the CRDs exist:
+
+```bash
+kubectl apply -f techx-corp-chart/gitops/clusters/prod/gatekeeper-appproject.yaml
+kubectl apply -f techx-corp-chart/gitops/clusters/prod/gatekeeper-application.yaml
+kubectl get constrainttemplates
+kubectl get k8scontainerhardening,k8sallowedimagetags,k8srequiredresources
+```
+
+Keep constraints at `dryrun` for at least two 60-second audits. Require zero
+violations and healthy production smoke/SLO checks before a separate reviewed
+commit changes them to `deny`. For a false positive, Git-revert to `dryrun` and
+wait for Argo sync. For webhook unavailability, restore the two controllers and
+service endpoints first; fail-open requires break-glass approval and an audit
+trail. Detailed policy operations live in the chart repo at
+`docs/operations/runtime-hardening.md`.
+
+<!-- Change trail: @hungxqt - 2026-07-15 - Gatekeeper staged runtime-hardening rollout. -->
 <!-- Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom. -->

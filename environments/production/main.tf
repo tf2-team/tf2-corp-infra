@@ -90,6 +90,18 @@ module "argocd" {
   )
 }
 
+# Runtime admission guardrails (MANDATE-05). Terraform owns Gatekeeper/CRDs;
+# Argo CD owns only ConstraintTemplates and Constraints after this is healthy.
+module "gatekeeper" {
+  source = "../../modules/gatekeeper"
+
+  enabled             = var.gatekeeper_enabled
+  chart_version       = var.gatekeeper_chart_version
+  controller_replicas = var.gatekeeper_controller_replicas
+
+  depends_on = [module.eks]
+}
+
 # ──────────────────────────────────────────────
 # SEC-05: AWS Secrets Manager (metadata) + ESO IRSA
 # ──────────────────────────────────────────────
