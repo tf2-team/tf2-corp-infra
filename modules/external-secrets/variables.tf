@@ -24,6 +24,12 @@ variable "secret_arns" {
   description = "Exact ASM secret ARNs ESO may read (least privilege)"
 }
 
+variable "kms_key_arns" {
+  type        = list(string)
+  description = "Customer-managed KMS keys ESO may use to decrypt the configured secrets"
+  default     = []
+}
+
 variable "aws_region" {
   type        = string
   description = "AWS region for ClusterSecretStore"
