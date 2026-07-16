@@ -212,12 +212,13 @@ output "argocd_bootstrap_note" {
 output "argocd_bootstrap_apply_commands" {
   value       = <<-EOT
     # After argocd_enabled=true apply and Git credentials in argocd NS:
-    kubectl apply -f techx-corp-chart/gitops/clusters/prod/
-    argocd app sync techx-corp --dry-run
-    argocd app sync techx-corp
+    # Root app-of-apps owns child Application CRs under gitops/clusters/prod/
+    kubectl apply -f techx-corp-chart/gitops/bootstrap/prod/
+    argocd app wait root-prod --sync --health --timeout 300
+    argocd app wait techx-corp-secrets --sync --health --timeout 300
     argocd app wait techx-corp --sync --health --timeout 600
   EOT
-  description = "Prod bootstrap Application apply + sync wait (10m); start with manual sync"
+  description = "Prod root app-of-apps bootstrap + child wait (10m)"
 }
 
 output "argocd_chart_repo_url" {
@@ -553,4 +554,4 @@ output "cost_anomaly_operator_note" {
   value       = module.cost_anomaly.operator_note
   description = "Post-apply steps for Cost Anomaly Detection"
 }
-# Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.
+# Change trail: @hungxqt - 2026-07-16 - Point Argo bootstrap output at root app-of-apps path.
