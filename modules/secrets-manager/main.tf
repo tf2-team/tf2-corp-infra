@@ -20,6 +20,9 @@ locals {
     # Grafana Discord alert webhook
     # Consumed by: techx-corp-chart secrets-chart → K8s Secret techx-corp-grafana-discord
     "grafana-discord",
+    # AIOps inbound Grafana webhook shared secret
+    # Consumed by: techx-corp-chart secrets-chart → K8s Secret techx-corp-aiops-grafana-webhook
+    "aiops-grafana-webhook",
   ])
 }
 
