@@ -298,4 +298,12 @@ cost_anomaly_alert_email         = "ctran13904@gmail.com"
 cost_anomaly_frequency           = "DAILY"
 cost_anomaly_impact_absolute_usd = "25"
 cost_anomaly_impact_percentage   = "40"
+
+# ──────────────────────────────────────────────
+# Amazon MSK Configuration (Directive #8)
+# ──────────────────────────────────────────────
+msk_kafka_version        = "3.7.x"
+msk_broker_instance_type = "kafka.t3.small"
+msk_ebs_volume_size      = 10
+
 # Change trail: @hungxqt - 2026-07-15 - Set Karpenter consolidateAfter to 0s for immediate empty (DaemonSet-only) reclaim.
