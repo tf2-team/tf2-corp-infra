@@ -191,6 +191,18 @@ data "aws_iam_policy_document" "checkout_outbox" {
       "${aws_dynamodb_table.checkout_outbox.arn}/index/status-created-index",
     ]
   }
+
+  statement {
+    sid = "CheckoutOutboxKms"
+    actions = [
+      "kms:Decrypt",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+    ]
+    resources = [
+      aws_kms_key.commerce.arn,
+    ]
+  }
 }
 
 resource "aws_iam_role_policy" "checkout_outbox" {
