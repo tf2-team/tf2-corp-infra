@@ -110,8 +110,8 @@ module "external_secrets" {
   cluster_name                = module.eks.cluster_name
   oidc_provider_arn           = module.eks.oidc_provider_arn
   oidc_issuer_url             = module.eks.oidc_issuer
-  secret_arns                 = concat(module.secrets_manager.secret_arns_list, [module.commerce_ha.valkey_auth_secret_arn])
-  kms_key_arns                = [module.commerce_ha.commerce_kms_key_arn]
+  secret_arns                 = concat(module.secrets_manager.secret_arns_list, [module.commerce_ha.valkey_auth_secret_arn, module.msk.msk_bootstrap_secret_arn])
+  kms_key_arns                = [module.commerce_ha.commerce_kms_key_arn, module.msk.msk_kms_key_arn]
   aws_region                  = var.aws_region
   install_helm                = var.external_secrets_install_helm
   create_cluster_secret_store = var.external_secrets_create_cluster_secret_store
@@ -149,6 +149,21 @@ module "commerce_ha" {
   valkey_node_type             = var.commerce_valkey_node_type
   valkey_engine_version        = var.commerce_valkey_engine_version
   private_dns_zone             = var.commerce_private_dns_zone
+  tags                         = var.tags
+}
+
+# DIRECTIVE #8: Amazon MSK cluster replacement for in-cluster Kafka broker
+module "msk" {
+  source = "../../modules/msk"
+
+  name                         = var.project_name
+  vpc_id                       = module.vpc.vpc_id
+  subnet_ids                   = [module.vpc.private_subnet_ids["priv-1a-nodes"], module.vpc.private_subnet_ids["priv-1b-nodes"]]
+  eks_client_security_group_id = module.eks.cluster_security_group_id
+  kafka_version                = var.msk_kafka_version
+  broker_instance_type         = var.msk_broker_instance_type
+  ebs_volume_size              = var.msk_ebs_volume_size
+  vpc_cidr_block               = module.vpc.vpc_cidr_block
   tags                         = var.tags
 }
 

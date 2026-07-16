@@ -818,4 +818,26 @@ variable "cost_anomaly_impact_percentage" {
   nullable    = false
   description = "Alert when anomaly impact >= this percent vs expected (AND with absolute USD)"
 }
+
+# ──────────────────────────────────────────────
+# Amazon MSK Configuration (Directive #8)
+# ──────────────────────────────────────────────
+
+variable "msk_kafka_version" {
+  type        = string
+  default     = "3.7.x"
+  description = "Apache Kafka version for the MSK cluster"
+}
+
+variable "msk_broker_instance_type" {
+  type        = string
+  default     = "kafka.t3.small"
+  description = "EC2 instance type for the MSK brokers"
+}
+
+variable "msk_ebs_volume_size" {
+  type        = number
+  default     = 10
+  description = "EBS volume size in GiB for each broker node"
+}
 # Change trail: @hungxqt - 2026-07-15 - Default karpenter_consolidate_after to 0s for immediate empty reclaim.
