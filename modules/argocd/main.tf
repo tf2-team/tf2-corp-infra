@@ -75,16 +75,108 @@ resource "helm_release" "argocd" {
         ingress = {
           enabled = false
         }
+        resources = {
+          requests = {
+            cpu    = "50m"
+            memory = "64Mi"
+          }
+          limits = {
+            cpu    = "250m"
+            memory = "256Mi"
+          }
+        }
       }
       # Single-replica sufficient for v1; scale HA later.
       controller = {
         replicas = var.controller_replicas
+        # Sized above the observed production baseline so reconciliation bursts
+        # do not immediately throttle the GitOps control plane.
+        resources = {
+          requests = {
+            cpu    = "250m"
+            memory = "512Mi"
+          }
+          limits = {
+            cpu    = "1"
+            memory = "1Gi"
+          }
+        }
       }
       repoServer = {
         replicas = var.repo_server_replicas
+        # The chart applies this block to both repo-server and its copyutil init
+        # container, satisfying admission requirements for every container.
+        resources = {
+          requests = {
+            cpu    = "250m"
+            memory = "256Mi"
+          }
+          limits = {
+            cpu    = "1"
+            memory = "512Mi"
+          }
+        }
       }
       applicationSet = {
         enabled = var.enable_applicationset
+        resources = {
+          requests = {
+            cpu    = "25m"
+            memory = "64Mi"
+          }
+          limits = {
+            cpu    = "200m"
+            memory = "128Mi"
+          }
+        }
+      }
+      dex = {
+        resources = {
+          requests = {
+            cpu    = "25m"
+            memory = "64Mi"
+          }
+          limits = {
+            cpu    = "200m"
+            memory = "128Mi"
+          }
+        }
+        initImage = {
+          resources = {
+            requests = {
+              cpu    = "10m"
+              memory = "32Mi"
+            }
+            limits = {
+              cpu    = "100m"
+              memory = "64Mi"
+            }
+          }
+        }
+      }
+      redis = {
+        resources = {
+          requests = {
+            cpu    = "25m"
+            memory = "32Mi"
+          }
+          limits = {
+            cpu    = "200m"
+            memory = "128Mi"
+          }
+        }
+      }
+      redisSecretInit = {
+        resources = {
+          requests = {
+            cpu    = "10m"
+            memory = "32Mi"
+          }
+          limits = {
+            cpu    = "100m"
+            memory = "64Mi"
+          }
+        }
       }
       notifications = {
         enabled = var.enable_notifications
