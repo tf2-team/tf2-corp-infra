@@ -163,6 +163,7 @@ module "msk" {
   kafka_version                = var.msk_kafka_version
   broker_instance_type         = var.msk_broker_instance_type
   ebs_volume_size              = var.msk_ebs_volume_size
+  vpc_cidr_block               = module.vpc.vpc_cidr_block
   tags                         = var.tags
 }
 

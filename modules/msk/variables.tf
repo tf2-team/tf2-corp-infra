@@ -41,3 +41,8 @@ variable "tags" {
   default     = {}
   description = "Resource tags"
 }
+
+variable "vpc_cidr_block" {
+  type        = string
+  description = "VPC CIDR block for secure egress restriction"
+}

@@ -25,11 +25,11 @@ resource "aws_security_group" "msk" {
   }
 
   egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
+    description = "Allow secure egress to VPC CIDR only"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [var.vpc_cidr_block]
   }
 
   tags = merge(var.tags, { Name = "${var.name}-msk-sg" })
@@ -69,7 +69,23 @@ resource "aws_msk_cluster" "this" {
     }
   }
 
+  logging_info {
+    broker_logs {
+      cloudwatch_logs {
+        enabled   = true
+        log_group = aws_cloudwatch_log_group.msk.name
+      }
+    }
+  }
+
   tags = var.tags
+}
+
+resource "aws_cloudwatch_log_group" "msk" {
+  name              = "/aws/msk/${var.name}"
+  retention_in_days = 7
+
+  tags = merge(var.tags, { Name = "/aws/msk/${var.name}" })
 }
 
 # Store MSK bootstrap brokers TLS endpoints in Secrets Manager for dynamic sync to Kubernetes
