@@ -369,16 +369,21 @@ data "aws_iam_policy_document" "grafana_athena" {
   }
 
   statement {
-    sid = "ManageAthenaResults"
+    sid = "ListAthenaResults"
+    actions = [
+      "s3:GetBucketLocation",
+      "s3:ListBucket",
+    ]
+    resources = [aws_s3_bucket.athena_results[0].arn]
+  }
+
+  statement {
+    sid = "WriteAthenaResults"
     actions = [
       "s3:GetObject",
-      "s3:ListBucket",
       "s3:PutObject",
     ]
-    resources = [
-      aws_s3_bucket.athena_results[0].arn,
-      "${aws_s3_bucket.athena_results[0].arn}/*",
-    ]
+    resources = ["${aws_s3_bucket.athena_results[0].arn}/*"]
   }
 
   statement {
