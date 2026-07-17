@@ -37,7 +37,7 @@ locals {
     "estimated_savings_percentage_before_discount",
     "implementation_effort",
     "last_refresh_timestamp",
-    "recommendation_ID",
+    "recommendation_id",
     "recommendation_lookback_period_in_days",
     "recommendation_source",
     "recommended_resource_details",
