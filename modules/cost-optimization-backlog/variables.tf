@@ -31,6 +31,13 @@ variable "export_name" {
   description = "BCM Data Exports export name"
 }
 
+variable "create_export" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, create the BCM Data Export for COST_OPTIMIZATION_RECOMMENDATIONS. Set false when the account cannot create exports for this table yet."
+}
+
 variable "database_name" {
   type        = string
   default     = "finops_cost_optimization"
