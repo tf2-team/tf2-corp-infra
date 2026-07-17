@@ -1035,6 +1035,13 @@ variable "cost_optimization_backlog_export_name" {
   description = "BCM Data Exports export name for recommendations"
 }
 
+variable "cost_optimization_backlog_create_export" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, create the Cost Optimization Hub BCM Data Export. Keep false until this account can create exports against COST_OPTIMIZATION_RECOMMENDATIONS."
+}
+
 variable "cost_optimization_backlog_database_name" {
   type        = string
   default     = "finops_cost_optimization"
