@@ -45,7 +45,7 @@ output "monthly_budget_action_arn" {
 
 output "daily_budget_action_arn" {
   description = "Daily manual Budget Action ARN (null when disabled)"
-  value       = local.budget_actions_create && var.create_daily_budget ? aws_budgets_budget_action.daily_deny_scale_out[0].arn : null
+  value       = local.budget_actions_create && var.create_daily_budget && var.budget_action_daily_enabled ? aws_budgets_budget_action.daily_deny_scale_out[0].arn : null
 }
 
 output "operator_note" {
@@ -57,5 +57,6 @@ output "operator_note" {
     "4) Budget Actions enabled=${var.budget_actions_enabled}; approval model is MANUAL when enabled.",
     "5) Manual action target roles: ${length(var.budget_action_iam_target_role_names) > 0 ? join(", ", var.budget_action_iam_target_role_names) : "(none)"}",
     "6) Actions attach the deny scale-out policy only after operator approval; no prod auto-stop is configured.",
+    "7) Daily budget action enabled=${var.budget_action_daily_enabled}; keep false because AWS Budgets Actions do not support DAILY budgets.",
   ]) : "cost budgets disabled"
 }

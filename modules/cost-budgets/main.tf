@@ -318,7 +318,7 @@ resource "aws_budgets_budget_action" "monthly_deny_scale_out" {
 }
 
 resource "aws_budgets_budget_action" "daily_deny_scale_out" {
-  count = local.budget_actions_create && var.create_daily_budget ? 1 : 0
+  count = local.budget_actions_create && var.create_daily_budget && var.budget_action_daily_enabled ? 1 : 0
 
   budget_name        = aws_budgets_budget.daily[0].name
   action_type        = "APPLY_IAM_POLICY"

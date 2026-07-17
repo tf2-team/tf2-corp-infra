@@ -116,12 +116,19 @@ variable "budget_action_daily_threshold_percentage" {
   type        = number
   default     = 100
   nullable    = false
-  description = "Manual daily Budget Action threshold as a percentage of the daily budget"
+  description = "Manual daily Budget Action threshold as a percentage of the daily budget. AWS Budgets does not currently support actions on DAILY budgets, so keep budget_action_daily_enabled false."
 
   validation {
     condition     = var.budget_action_daily_threshold_percentage > 0 && var.budget_action_daily_threshold_percentage <= 1000
     error_message = "budget_action_daily_threshold_percentage must be between 0 and 1000."
   }
+}
+
+variable "budget_action_daily_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, create a manual Budget Action for the daily budget. Keep false until AWS Budgets supports actions on DAILY budgets."
 }
 
 variable "tags" {

@@ -326,6 +326,7 @@ module "cost_budgets" {
   budget_action_iam_target_role_names        = var.cost_budget_actions_enabled && module.karpenter.controller_role_name != null ? [module.karpenter.controller_role_name] : []
   budget_action_monthly_threshold_percentage = var.cost_budget_action_monthly_threshold_percentage
   budget_action_daily_threshold_percentage   = var.cost_budget_action_daily_threshold_percentage
+  budget_action_daily_enabled                = var.cost_budget_daily_action_enabled
   tags                                       = var.tags
 }
 
@@ -410,6 +411,7 @@ module "cost_optimization_backlog" {
   athena_workgroup_name       = var.cost_optimization_backlog_workgroup_name
   athena_bytes_cutoff         = var.cost_optimization_backlog_athena_bytes_cutoff
   include_member_accounts     = var.cost_optimization_backlog_include_member_accounts
+  manage_enrollment           = var.cost_optimization_backlog_manage_enrollment
   include_all_recommendations = var.cost_optimization_backlog_include_all_recommendations
   tags                        = var.tags
 }
