@@ -28,22 +28,49 @@ variable "oidc_issuer_url" {
   description = "EKS OIDC issuer URL"
 }
 
-variable "namespace" {
-  type        = string
-  default     = "techx-corp"
-  description = "Namespace containing product-reviews"
-}
+variable "consumers" {
+  type = map(object({
+    namespace            = string
+    service_account_name = string
+    model_prefix         = string
+    allow_list_bucket    = optional(bool, false)
+  }))
+  description = "Model consumers with an isolated IRSA role and least-privilege S3 prefix"
 
-variable "service_account_name" {
-  type        = string
-  default     = "product-reviews"
-  description = "IRSA-enabled product-reviews ServiceAccount"
-}
+  validation {
+    condition     = length(var.consumers) > 0
+    error_message = "At least one AI model consumer is required."
+  }
 
-variable "model_prefix" {
-  type        = string
-  default     = "protectai/deberta-v3-base-prompt-injection-v2/"
-  description = "Only S3 prefix the workload may read"
+  validation {
+    condition = alltrue([
+      for name, consumer in var.consumers :
+      can(regex("^[a-z0-9][a-z0-9-]*$", name)) &&
+      consumer.namespace != "" &&
+      consumer.service_account_name != "" &&
+      consumer.model_prefix != "" &&
+      endswith(consumer.model_prefix, "/")
+    ])
+    error_message = "Consumer keys must be DNS-style names and namespace, service account and slash-terminated model_prefix must be set."
+  }
+
+  validation {
+    condition = (
+      length(distinct([for consumer in values(var.consumers) : consumer.model_prefix])) ==
+      length(var.consumers)
+    )
+    error_message = "Each model consumer must use a distinct S3 prefix."
+  }
+
+  validation {
+    condition = (
+      length(distinct([
+        for consumer in values(var.consumers) :
+        "${consumer.namespace}/${consumer.service_account_name}"
+      ])) == length(var.consumers)
+    )
+    error_message = "Each model consumer must use a distinct namespace and ServiceAccount pair."
+  }
 }
 
 variable "tags" {
