@@ -123,6 +123,78 @@ resource "aws_kms_alias" "this" {
   target_key_id = aws_kms_key.this[0].key_id
 }
 
+data "aws_iam_policy_document" "kms" {
+  #checkov:skip=CKV_AWS_356:KMS key policies require Resource "*" because the policy is scoped to the key it is attached to.
+  #checkov:skip=CKV_AWS_109:KMS key administrator policy is scoped by the attached key policy document, account root principal, and source-account conditions for service use.
+  #checkov:skip=CKV_AWS_111:KMS key administrator policy is scoped by the attached key policy document, account root principal, and source-account conditions for service use.
+  count = local.create ? 1 : 0
+
+  statement {
+    sid    = "EnableAccountKeyAdministration"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:${local.partition}:iam::${local.account_id}:root"]
+    }
+
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowBCMDataExportsEncrypt"
+    effect = "Allow"
+
+    principals {
+      type = "Service"
+      identifiers = [
+        "billingreports.amazonaws.com",
+        "bcm-data-exports.amazonaws.com",
+      ]
+    }
+
+    actions = [
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey",
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [local.account_id]
+    }
+
+    condition {
+      test     = "ArnLike"
+      variable = "aws:SourceArn"
+      values = [
+        "arn:${local.partition}:cur:us-east-1:${local.account_id}:definition/*",
+        "arn:${local.partition}:bcm-data-exports:us-east-1:${local.account_id}:export/*",
+      ]
+    }
+  }
+}
+
+resource "aws_kms_key" "this" {
+  count = local.create ? 1 : 0
+
+  description             = "KMS key for Cost Optimization Hub exports, Athena results, and Glue crawler security configuration"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.kms[0].json
+  tags                    = var.tags
+}
+
+resource "aws_kms_alias" "this" {
+  count = local.create ? 1 : 0
+
+  name          = local.kms_alias_name
+  target_key_id = aws_kms_key.this[0].key_id
+}
+
 resource "aws_s3_bucket" "export" {
   #checkov:skip=CKV2_AWS_61:Lifecycle configuration is declared in aws_s3_bucket_lifecycle_configuration.export; Checkov does not correlate it reliably with counted resources.
   #checkov:skip=CKV_AWS_145:KMS default encryption is declared in aws_s3_bucket_server_side_encryption_configuration.export; Checkov does not correlate it reliably with counted resources.
