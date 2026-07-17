@@ -14,6 +14,10 @@ locals {
     "flagd-ui",
     "product-reviews",
     "grafana",
+    # Mem0 values are bootstrapped outside Terraform. Expected keys:
+    # GROQ_API_KEY, JWT_SECRET, ADMIN_API_KEY, POSTGRES_USER,
+    # POSTGRES_PASSWORD and POSTGRES_DB.
+    "mem0",
     # SEC-06: OpenSearch security plugin admin credentials
     # Consumed by: techx-corp-chart secrets-chart → K8s Secret techx-corp-opensearch
     "opensearch",
