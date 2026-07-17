@@ -1091,3 +1091,65 @@ variable "cost_optimization_backlog_include_all_recommendations" {
   description = "Export all recommendations for a resource rather than the de-duplicated recommendation"
 }
 # Change trail: @hungxqt - 2026-07-15 - Default karpenter_consolidate_after to 0s for immediate empty reclaim.
+
+# Mem0 managed PostgreSQL
+
+variable "mem0_postgresql_engine_version" {
+  type        = string
+  default     = "17"
+  description = "RDS PostgreSQL engine version for Mem0"
+}
+
+variable "mem0_postgresql_instance_class" {
+  type        = string
+  default     = "db.t4g.medium"
+  description = "RDS instance class for Mem0"
+}
+
+variable "mem0_postgresql_allocated_storage" {
+  type        = number
+  default     = 50
+  description = "Initial Mem0 RDS gp3 storage in GiB"
+}
+
+variable "mem0_postgresql_max_allocated_storage" {
+  type        = number
+  default     = 200
+  description = "Mem0 RDS storage autoscaling limit in GiB"
+}
+
+variable "mem0_postgresql_multi_az" {
+  type        = bool
+  default     = true
+  description = "Enable a Multi-AZ standby for Mem0 RDS"
+}
+
+variable "mem0_postgresql_backup_retention_period" {
+  type        = number
+  default     = 14
+  description = "Mem0 RDS automated backup retention in days"
+}
+
+variable "mem0_postgresql_deletion_protection" {
+  type        = bool
+  default     = true
+  description = "Protect production Mem0 RDS from deletion"
+}
+
+variable "mem0_postgresql_skip_final_snapshot" {
+  type        = bool
+  default     = false
+  description = "Whether production destroy may skip the final RDS snapshot"
+}
+
+variable "mem0_postgresql_performance_insights_enabled" {
+  type        = bool
+  default     = true
+  description = "Enable Performance Insights for Mem0 RDS"
+}
+
+variable "mem0_postgresql_kms_key_id" {
+  type        = string
+  default     = null
+  description = "Optional customer-managed KMS key for Mem0 RDS"
+}
