@@ -1,9 +1,34 @@
 data "aws_caller_identity" "current" {}
 
+# Preserve the existing product-reviews IAM resources while the module moves
+# from a single hard-coded consumer to the multi-consumer map.
+moved {
+  from = aws_iam_policy.model_read
+  to   = aws_iam_policy.model_read["product-reviews"]
+}
+
+moved {
+  from = aws_iam_role.model_read
+  to   = aws_iam_role.model_read["product-reviews"]
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.model_read
+  to   = aws_iam_role_policy_attachment.model_read["product-reviews"]
+}
+
 locals {
   bucket_name      = "${var.name}-ai-models-${data.aws_caller_identity.current.account_id}"
   oidc_issuer_path = replace(var.oidc_issuer_url, "https://", "")
-  sa_subject       = "system:serviceaccount:${var.namespace}:${var.service_account_name}"
+  consumer_access_contracts = {
+    for name, consumer in var.consumers : name => {
+      role_name               = "${var.name}-${name}-model-read"
+      service_account_subject = "system:serviceaccount:${consumer.namespace}:${consumer.service_account_name}"
+      model_prefix            = consumer.model_prefix
+      object_arn              = "${aws_s3_bucket.models.arn}/${consumer.model_prefix}*"
+      allow_list_bucket       = consumer.allow_list_bucket
+    }
+  }
 }
 
 resource "aws_s3_bucket" "models" {
@@ -94,32 +119,43 @@ resource "aws_vpc_endpoint" "s3" {
 }
 
 data "aws_iam_policy_document" "model_read" {
+  for_each = var.consumers
+
   statement {
     sid       = "ReadPinnedModelArtifacts"
     effect    = "Allow"
     actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.models.arn}/${var.model_prefix}*"]
+    resources = [local.consumer_access_contracts[each.key].object_arn]
   }
-  statement {
-    sid       = "ListPinnedModelPrefix"
-    effect    = "Allow"
-    actions   = ["s3:ListBucket"]
-    resources = [aws_s3_bucket.models.arn]
-    condition {
-      test     = "StringLike"
-      variable = "s3:prefix"
-      values   = ["${var.model_prefix}*"]
+
+  dynamic "statement" {
+    for_each = each.value.allow_list_bucket ? [true] : []
+
+    content {
+      sid       = "ListPinnedModelPrefix"
+      effect    = "Allow"
+      actions   = ["s3:ListBucket"]
+      resources = [aws_s3_bucket.models.arn]
+      condition {
+        test     = "StringLike"
+        variable = "s3:prefix"
+        values   = ["${each.value.model_prefix}*"]
+      }
     }
   }
 }
 
 resource "aws_iam_policy" "model_read" {
-  name   = "${var.name}-product-reviews-model-read"
-  policy = data.aws_iam_policy_document.model_read.json
+  for_each = var.consumers
+
+  name   = local.consumer_access_contracts[each.key].role_name
+  policy = data.aws_iam_policy_document.model_read[each.key].json
   tags   = var.tags
 }
 
 data "aws_iam_policy_document" "assume" {
+  for_each = var.consumers
+
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
     effect  = "Allow"
@@ -130,7 +166,7 @@ data "aws_iam_policy_document" "assume" {
     condition {
       test     = "StringEquals"
       variable = "${local.oidc_issuer_path}:sub"
-      values   = [local.sa_subject]
+      values   = [local.consumer_access_contracts[each.key].service_account_subject]
     }
     condition {
       test     = "StringEquals"
@@ -141,12 +177,16 @@ data "aws_iam_policy_document" "assume" {
 }
 
 resource "aws_iam_role" "model_read" {
-  name               = "${var.name}-product-reviews-model-read"
-  assume_role_policy = data.aws_iam_policy_document.assume.json
+  for_each = var.consumers
+
+  name               = local.consumer_access_contracts[each.key].role_name
+  assume_role_policy = data.aws_iam_policy_document.assume[each.key].json
   tags               = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "model_read" {
-  role       = aws_iam_role.model_read.name
-  policy_arn = aws_iam_policy.model_read.arn
+  for_each = var.consumers
+
+  role       = aws_iam_role.model_read[each.key].name
+  policy_arn = aws_iam_policy.model_read[each.key].arn
 }

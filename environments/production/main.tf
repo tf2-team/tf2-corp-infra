@@ -128,8 +128,20 @@ module "ai_model_storage" {
   private_route_table_ids = module.vpc.private_route_table_ids
   oidc_provider_arn       = module.eks.oidc_provider_arn
   oidc_issuer_url         = module.eks.oidc_issuer
-  namespace               = "techx-corp-prod"
-  tags                    = var.tags
+  consumers = {
+    product-reviews = {
+      namespace            = "techx-corp-prod"
+      service_account_name = "product-reviews"
+      model_prefix         = "protectai/deberta-v3-base-prompt-injection-v2/"
+      allow_list_bucket    = true
+    }
+    mem0 = {
+      namespace            = "techx-corp-prod"
+      service_account_name = "mem0"
+      model_prefix         = "fastembed/paraphrase-multilingual-MiniLM-L12-v2/"
+    }
+  }
+  tags = var.tags
 }
 
 # DIRECTIVE #3: remove stateful single points of failure from the customer
