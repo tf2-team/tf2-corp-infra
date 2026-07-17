@@ -38,6 +38,7 @@ variable "services" {
     "frontend-proxy",
     "image-provider",
     "load-generator",
+    "mem0",
     "payment",
     "product-catalog",
     "product-reviews",
