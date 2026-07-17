@@ -5,7 +5,7 @@ output "bucket_name" {
 
 output "export_arn" {
   description = "BCM Data Exports ARN for Cost Optimization Hub recommendations"
-  value       = var.enabled ? aws_bcmdataexports_export.recommendations[0].id : null
+  value       = var.enabled && var.create_export ? aws_bcmdataexports_export.recommendations[0].id : null
 }
 
 output "database_name" {
@@ -27,7 +27,7 @@ output "operator_note" {
   description = "Post-apply steps for Cost Optimization Hub backlog"
   value = var.enabled ? join("\n", [
     "1) Cost Optimization Hub must be opted in before recommendations are available; Terraform manages enrollment=${var.manage_enrollment}.",
-    "2) Export ${var.export_name} writes Parquet to s3://${var.bucket_name}/${var.s3_prefix}/${var.export_name}/data/.",
+    "2) BCM recommendation export create_export=${var.create_export}; when enabled, export ${var.export_name} writes Parquet to s3://${var.bucket_name}/${var.s3_prefix}/${var.export_name}/data/.",
     "3) Run Glue crawler ${local.crawler_name} after first export delivery, then query database ${var.database_name} with workgroup ${var.athena_workgroup_name}.",
   ]) : "cost optimization backlog disabled"
 }

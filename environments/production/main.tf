@@ -406,6 +406,7 @@ module "cost_optimization_backlog" {
   bucket_name                 = var.cost_optimization_backlog_bucket_name
   s3_prefix                   = var.cost_optimization_backlog_s3_prefix
   export_name                 = var.cost_optimization_backlog_export_name
+  create_export               = var.cost_optimization_backlog_create_export
   database_name               = var.cost_optimization_backlog_database_name
   crawler_name                = var.cost_optimization_backlog_crawler_name
   athena_workgroup_name       = var.cost_optimization_backlog_workgroup_name

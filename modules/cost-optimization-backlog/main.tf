@@ -11,7 +11,8 @@ data "aws_partition" "current" {
 }
 
 locals {
-  create = var.enabled
+  create        = var.enabled
+  create_export = local.create && var.create_export
 
   account_id = local.create ? data.aws_caller_identity.current[0].account_id : "000000000000"
   region     = local.create ? data.aws_region.current[0].name : "us-east-1"
@@ -274,7 +275,7 @@ resource "aws_costoptimizationhub_enrollment_status" "this" {
 }
 
 resource "aws_bcmdataexports_export" "recommendations" {
-  count = local.create ? 1 : 0
+  count = local.create_export ? 1 : 0
 
   export {
     name        = var.export_name
