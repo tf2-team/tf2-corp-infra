@@ -311,6 +311,7 @@ msk_ebs_volume_size      = 10
 cost_budget_actions_enabled                     = true
 cost_budget_action_monthly_threshold_percentage = 100
 cost_budget_action_daily_threshold_percentage   = 100
+cost_budget_daily_action_enabled                = false
 
 # ──────────────────────────────────────────────
 # P3 CUR + Athena + Grafana
@@ -350,5 +351,6 @@ cost_optimization_backlog_crawler_name                = "techx-prod-tf2-cost-opt
 cost_optimization_backlog_workgroup_name              = "cost-optimization-backlog"
 cost_optimization_backlog_athena_bytes_cutoff         = 1073741824
 cost_optimization_backlog_include_member_accounts     = false
+cost_optimization_backlog_manage_enrollment           = false
 cost_optimization_backlog_include_all_recommendations = false
 # Change trail: @hungxqt - 2026-07-15 - Set Karpenter consolidateAfter to 0s for immediate empty (DaemonSet-only) reclaim.

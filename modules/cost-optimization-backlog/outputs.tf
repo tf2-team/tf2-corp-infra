@@ -26,7 +26,7 @@ output "athena_workgroup_name" {
 output "operator_note" {
   description = "Post-apply steps for Cost Optimization Hub backlog"
   value = var.enabled ? join("\n", [
-    "1) Cost Optimization Hub enrollment is managed by Terraform.",
+    "1) Cost Optimization Hub must be opted in before recommendations are available; Terraform manages enrollment=${var.manage_enrollment}.",
     "2) Export ${var.export_name} writes Parquet to s3://${var.bucket_name}/${var.s3_prefix}/${var.export_name}/data/.",
     "3) Run Glue crawler ${local.crawler_name} after first export delivery, then query database ${var.database_name} with workgroup ${var.athena_workgroup_name}.",
   ]) : "cost optimization backlog disabled"

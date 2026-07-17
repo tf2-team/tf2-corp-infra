@@ -17,11 +17,88 @@ locals {
   region     = local.create ? data.aws_region.current[0].name : "us-east-1"
   partition  = local.create ? data.aws_partition.current[0].partition : "aws"
 
+  kms_alias_name = "alias/${var.name_prefix}-cost-optimization-backlog"
   crawler_name   = coalesce(var.crawler_name, "${var.name_prefix}-cost-optimization-backlog")
   export_s3_path = "s3://${var.bucket_name}/${var.s3_prefix}/${var.export_name}/data/"
 }
 
+data "aws_iam_policy_document" "kms" {
+  #checkov:skip=CKV_AWS_356:KMS key policies require Resource "*" because the policy is scoped to the key it is attached to.
+  #checkov:skip=CKV_AWS_109:KMS key administrator policy is scoped by the attached key policy document, account root principal, and source-account conditions for service use.
+  #checkov:skip=CKV_AWS_111:KMS key administrator policy is scoped by the attached key policy document, account root principal, and source-account conditions for service use.
+  count = local.create ? 1 : 0
+
+  statement {
+    sid    = "EnableAccountKeyAdministration"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:${local.partition}:iam::${local.account_id}:root"]
+    }
+
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowBCMDataExportsEncrypt"
+    effect = "Allow"
+
+    principals {
+      type = "Service"
+      identifiers = [
+        "billingreports.amazonaws.com",
+        "bcm-data-exports.amazonaws.com",
+      ]
+    }
+
+    actions = [
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey",
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [local.account_id]
+    }
+
+    condition {
+      test     = "ArnLike"
+      variable = "aws:SourceArn"
+      values = [
+        "arn:${local.partition}:cur:us-east-1:${local.account_id}:definition/*",
+        "arn:${local.partition}:bcm-data-exports:us-east-1:${local.account_id}:export/*",
+      ]
+    }
+  }
+}
+
+resource "aws_kms_key" "this" {
+  count = local.create ? 1 : 0
+
+  description             = "KMS key for Cost Optimization Hub exports, Athena results, and Glue crawler security configuration"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.kms[0].json
+  tags                    = var.tags
+}
+
+resource "aws_kms_alias" "this" {
+  count = local.create ? 1 : 0
+
+  name          = local.kms_alias_name
+  target_key_id = aws_kms_key.this[0].key_id
+}
+
 resource "aws_s3_bucket" "export" {
+  #checkov:skip=CKV2_AWS_61:Lifecycle configuration is declared in aws_s3_bucket_lifecycle_configuration.export; Checkov does not correlate it reliably with counted resources.
+  #checkov:skip=CKV_AWS_145:KMS default encryption is declared in aws_s3_bucket_server_side_encryption_configuration.export; Checkov does not correlate it reliably with counted resources.
+  #checkov:skip=CKV_AWS_21:Versioning is declared in aws_s3_bucket_versioning.export; Checkov does not correlate it reliably with counted resources.
+  #checkov:skip=CKV2_AWS_6:Public access block is declared in aws_s3_bucket_public_access_block.export; Checkov does not correlate it reliably with counted resources.
   count = local.create ? 1 : 0
 
   bucket = var.bucket_name
@@ -45,9 +122,71 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "export" {
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      kms_master_key_id = aws_kms_key.this[0].arn
+      sse_algorithm     = "aws:kms"
     }
   }
+}
+
+resource "aws_s3_bucket_versioning" "export" {
+  count = local.create ? 1 : 0
+
+  bucket = aws_s3_bucket.export[0].id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "export" {
+  #checkov:skip=CKV_AWS_300:Lifecycle rules include abort_incomplete_multipart_upload; Checkov does not correlate them reliably with counted resources.
+  count = local.create ? 1 : 0
+
+  bucket = aws_s3_bucket.export[0].id
+
+  rule {
+    id     = "expire-cost-optimization-exports"
+    status = "Enabled"
+
+    filter {
+      prefix = var.s3_prefix
+    }
+
+    expiration {
+      days = 180
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 30
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+
+  rule {
+    id     = "expire-athena-results"
+    status = "Enabled"
+
+    filter {
+      prefix = "athena-results/"
+    }
+
+    expiration {
+      days = 90
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 30
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+
+  depends_on = [aws_s3_bucket_versioning.export]
 }
 
 data "aws_iam_policy_document" "export_bucket" {
@@ -100,7 +239,7 @@ resource "aws_s3_bucket_policy" "export" {
 }
 
 resource "aws_costoptimizationhub_enrollment_status" "this" {
-  count = local.create ? 1 : 0
+  count = local.create && var.manage_enrollment ? 1 : 0
 
   include_member_accounts = var.include_member_accounts
 }
@@ -152,6 +291,29 @@ resource "aws_glue_catalog_database" "this" {
 
   name        = var.database_name
   description = "Cost Optimization Hub recommendation export catalog."
+}
+
+resource "aws_glue_security_configuration" "this" {
+  count = local.create ? 1 : 0
+
+  name = "${local.crawler_name}-security"
+
+  encryption_configuration {
+    cloudwatch_encryption {
+      cloudwatch_encryption_mode = "SSE-KMS"
+      kms_key_arn                = aws_kms_key.this[0].arn
+    }
+
+    s3_encryption {
+      s3_encryption_mode = "SSE-KMS"
+      kms_key_arn        = aws_kms_key.this[0].arn
+    }
+
+    job_bookmarks_encryption {
+      job_bookmarks_encryption_mode = "CSE-KMS"
+      kms_key_arn                   = aws_kms_key.this[0].arn
+    }
+  }
 }
 
 data "aws_iam_policy_document" "glue_assume" {
@@ -215,6 +377,17 @@ data "aws_iam_policy_document" "glue_crawler_s3" {
       values   = ["${var.s3_prefix}/${var.export_name}/data/*"]
     }
   }
+
+  statement {
+    sid = "UseCostOptimizationKmsKey"
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey",
+    ]
+    resources = [aws_kms_key.this[0].arn]
+  }
 }
 
 resource "aws_iam_role_policy" "glue_crawler_s3" {
@@ -228,10 +401,11 @@ resource "aws_iam_role_policy" "glue_crawler_s3" {
 resource "aws_glue_crawler" "this" {
   count = local.create ? 1 : 0
 
-  name          = local.crawler_name
-  role          = aws_iam_role.glue_crawler[0].arn
-  database_name = aws_glue_catalog_database.this[0].name
-  table_prefix  = "coh_"
+  name                   = local.crawler_name
+  role                   = aws_iam_role.glue_crawler[0].arn
+  database_name          = aws_glue_catalog_database.this[0].name
+  security_configuration = aws_glue_security_configuration.this[0].name
+  table_prefix           = "coh_"
 
   s3_target {
     path = local.export_s3_path
@@ -267,7 +441,8 @@ resource "aws_athena_workgroup" "this" {
       output_location = "s3://${aws_s3_bucket.export[0].bucket}/athena-results/"
 
       encryption_configuration {
-        encryption_option = "SSE_S3"
+        encryption_option = "SSE_KMS"
+        kms_key_arn       = aws_kms_key.this[0].arn
       }
     }
   }
