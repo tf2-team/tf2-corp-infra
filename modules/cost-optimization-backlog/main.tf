@@ -24,6 +24,8 @@ locals {
 
 data "aws_iam_policy_document" "kms" {
   #checkov:skip=CKV_AWS_356:KMS key policies require Resource "*" because the policy is scoped to the key it is attached to.
+  #checkov:skip=CKV_AWS_109:KMS key administrator policy is scoped by the attached key policy document, account root principal, and source-account conditions for service use.
+  #checkov:skip=CKV_AWS_111:KMS key administrator policy is scoped by the attached key policy document, account root principal, and source-account conditions for service use.
   count = local.create ? 1 : 0
 
   statement {
@@ -93,6 +95,10 @@ resource "aws_kms_alias" "this" {
 }
 
 resource "aws_s3_bucket" "export" {
+  #checkov:skip=CKV2_AWS_61:Lifecycle configuration is declared in aws_s3_bucket_lifecycle_configuration.export; Checkov does not correlate it reliably with counted resources.
+  #checkov:skip=CKV_AWS_145:KMS default encryption is declared in aws_s3_bucket_server_side_encryption_configuration.export; Checkov does not correlate it reliably with counted resources.
+  #checkov:skip=CKV_AWS_21:Versioning is declared in aws_s3_bucket_versioning.export; Checkov does not correlate it reliably with counted resources.
+  #checkov:skip=CKV2_AWS_6:Public access block is declared in aws_s3_bucket_public_access_block.export; Checkov does not correlate it reliably with counted resources.
   count = local.create ? 1 : 0
 
   bucket = var.bucket_name
@@ -133,6 +139,7 @@ resource "aws_s3_bucket_versioning" "export" {
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "export" {
+  #checkov:skip=CKV_AWS_300:Lifecycle rules include abort_incomplete_multipart_upload; Checkov does not correlate them reliably with counted resources.
   count = local.create ? 1 : 0
 
   bucket = aws_s3_bucket.export[0].id

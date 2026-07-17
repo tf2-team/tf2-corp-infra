@@ -26,6 +26,8 @@ locals {
 
 data "aws_iam_policy_document" "cur_athena_kms" {
   #checkov:skip=CKV_AWS_356:KMS key policies require Resource "*" because the policy is scoped to the key it is attached to.
+  #checkov:skip=CKV_AWS_109:KMS key administrator policy is scoped by the attached key policy document and account root principal.
+  #checkov:skip=CKV_AWS_111:KMS key administrator policy is scoped by the attached key policy document and account root principal.
   count = local.create ? 1 : 0
 
   statement {
@@ -100,6 +102,7 @@ resource "aws_s3_bucket_versioning" "athena_results" {
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "athena_results" {
+  #checkov:skip=CKV_AWS_300:Lifecycle rule includes abort_incomplete_multipart_upload; Checkov does not correlate it reliably with counted resources.
   count = local.create ? 1 : 0
 
   bucket = aws_s3_bucket.athena_results[0].id
