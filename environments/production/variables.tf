@@ -780,6 +780,27 @@ variable "cost_budgets_create_daily" {
   description = "When true, also create the daily budget"
 }
 
+variable "cost_budget_actions_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, create manual Budget Actions that attach a deny scale-out policy to the Karpenter controller role"
+}
+
+variable "cost_budget_action_monthly_threshold_percentage" {
+  type        = number
+  default     = 100
+  nullable    = false
+  description = "Manual Budget Action threshold for the monthly budget"
+}
+
+variable "cost_budget_action_daily_threshold_percentage" {
+  type        = number
+  default     = 100
+  nullable    = false
+  description = "Manual Budget Action threshold for the daily budget"
+}
+
 # ──────────────────────────────────────────────
 # Cost Anomaly Detection — account-level; production only
 # ──────────────────────────────────────────────
@@ -839,5 +860,213 @@ variable "msk_ebs_volume_size" {
   type        = number
   default     = 10
   description = "EBS volume size in GiB for each broker node"
+}
+
+# ──────────────────────────────────────────────
+# P3 CUR + Athena + Grafana IRSA — production only
+# ──────────────────────────────────────────────
+
+variable "cur_athena_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, create Athena/Glue/IRSA resources for the existing production CUR 2.0 export"
+}
+
+variable "cur_athena_region" {
+  type        = string
+  default     = "ap-southeast-1"
+  nullable    = false
+  description = "Region of the existing CUR S3 bucket and Athena catalog/workgroup"
+}
+
+variable "cur_athena_cur_bucket_name" {
+  type        = string
+  default     = "company-cdo-493499579600-telemetry"
+  nullable    = false
+  description = "Existing S3 bucket containing the CUR 2.0 Data Export"
+}
+
+variable "cur_athena_cur_s3_prefix" {
+  type        = string
+  default     = "cur"
+  nullable    = false
+  description = "Existing CUR export S3 prefix"
+}
+
+variable "cur_athena_cur_export_name" {
+  type        = string
+  default     = "finops-watch-cur"
+  nullable    = false
+  description = "Existing CUR 2.0 Data Export name"
+}
+
+variable "cur_athena_database_name" {
+  type        = string
+  default     = "finops_cur"
+  nullable    = false
+  description = "Glue database for CUR Athena queries"
+}
+
+variable "cur_athena_crawler_name" {
+  type        = string
+  default     = "techx-prod-tf2-cur-athena"
+  nullable    = false
+  description = "Glue crawler for existing CUR export"
+}
+
+variable "cur_athena_workgroup_name" {
+  type        = string
+  default     = "grafana-cur"
+  nullable    = false
+  description = "Athena workgroup for Grafana CUR queries"
+}
+
+variable "cur_athena_results_bucket_name" {
+  type        = string
+  default     = "techx-prod-tf2-athena-results-493499579600-ap-southeast-1"
+  nullable    = false
+  description = "S3 bucket for Grafana/Athena query results"
+}
+
+variable "cur_athena_bytes_cutoff" {
+  type        = number
+  default     = 1073741824
+  nullable    = false
+  description = "Per-query bytes scanned cutoff for Grafana CUR workgroup"
+}
+
+variable "cur_athena_grafana_namespace" {
+  type        = string
+  default     = "techx-corp-prod"
+  nullable    = false
+  description = "Namespace of the Grafana service account"
+}
+
+variable "cur_athena_grafana_service_account_name" {
+  type        = string
+  default     = "grafana"
+  nullable    = false
+  description = "Grafana service account name for IRSA trust"
+}
+
+# ──────────────────────────────────────────────
+# Overlay anomaly routing — email first
+# ──────────────────────────────────────────────
+
+variable "cost_anomaly_routing_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, route high-impact Cost Anomaly events through AWS User Notifications email"
+}
+
+variable "cost_anomaly_routing_email" {
+  type        = string
+  default     = "ctran13904@gmail.com"
+  nullable    = false
+  description = "Email contact for routed Cost Anomaly events"
+}
+
+variable "cost_anomaly_routing_regions" {
+  type        = set(string)
+  default     = ["us-east-1"]
+  nullable    = false
+  description = "Regions where User Notifications watches Cost Explorer anomaly events"
+}
+
+variable "cost_anomaly_routing_hub_region" {
+  type        = string
+  default     = "us-east-1"
+  nullable    = false
+  description = "AWS User Notifications hub region"
+}
+
+variable "cost_anomaly_routing_impact_absolute_usd" {
+  type        = number
+  default     = 25
+  nullable    = false
+  description = "Route only anomalies whose impact is greater than this USD amount"
+}
+
+variable "cost_anomaly_routing_aggregation_duration" {
+  type        = string
+  default     = "SHORT"
+  nullable    = false
+  description = "AWS User Notifications aggregation duration: NONE, SHORT, or LONG"
+}
+
+# ──────────────────────────────────────────────
+# Overlay Cost Optimization Hub backlog — production only
+# ──────────────────────────────────────────────
+
+variable "cost_optimization_backlog_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, enable Cost Optimization Hub and export recommendations to S3"
+}
+
+variable "cost_optimization_backlog_bucket_name" {
+  type        = string
+  default     = "techx-prod-tf2-cost-optimization-exports-493499579600-us-east-1"
+  nullable    = false
+  description = "Dedicated S3 bucket for Cost Optimization Hub recommendation exports"
+}
+
+variable "cost_optimization_backlog_s3_prefix" {
+  type        = string
+  default     = "cost-optimization"
+  nullable    = false
+  description = "S3 prefix for Cost Optimization Hub recommendation export"
+}
+
+variable "cost_optimization_backlog_export_name" {
+  type        = string
+  default     = "cost-optimization-recommendations"
+  nullable    = false
+  description = "BCM Data Exports export name for recommendations"
+}
+
+variable "cost_optimization_backlog_database_name" {
+  type        = string
+  default     = "finops_cost_optimization"
+  nullable    = false
+  description = "Glue database for Cost Optimization Hub recommendation export"
+}
+
+variable "cost_optimization_backlog_crawler_name" {
+  type        = string
+  default     = "techx-prod-tf2-cost-optimization-backlog"
+  nullable    = false
+  description = "Glue crawler for Cost Optimization Hub recommendation export"
+}
+
+variable "cost_optimization_backlog_workgroup_name" {
+  type        = string
+  default     = "cost-optimization-backlog"
+  nullable    = false
+  description = "Athena workgroup for Cost Optimization Hub backlog queries"
+}
+
+variable "cost_optimization_backlog_athena_bytes_cutoff" {
+  type        = number
+  default     = 1073741824
+  nullable    = false
+  description = "Per-query bytes scanned cutoff for Cost Optimization Hub backlog workgroup"
+}
+
+variable "cost_optimization_backlog_include_member_accounts" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Enroll organization member accounts if this is the management account"
+}
+
+variable "cost_optimization_backlog_include_all_recommendations" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Export all recommendations for a resource rather than the de-duplicated recommendation"
 }
 # Change trail: @hungxqt - 2026-07-15 - Default karpenter_consolidate_after to 0s for immediate empty reclaim.

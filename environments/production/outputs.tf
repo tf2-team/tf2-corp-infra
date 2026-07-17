@@ -540,6 +540,26 @@ output "cost_budgets_operator_note" {
   description = "Post-apply steps for cost budgets (confirm email-json subscription)"
 }
 
+output "cost_budget_actions_execution_role_arn" {
+  value       = module.cost_budgets.budget_actions_execution_role_arn
+  description = "IAM role assumed by AWS Budgets for manual Budget Actions"
+}
+
+output "cost_budget_actions_deny_policy_arn" {
+  value       = module.cost_budgets.budget_actions_deny_policy_arn
+  description = "IAM deny scale-out policy attached by manual Budget Actions"
+}
+
+output "cost_budget_monthly_action_arn" {
+  value       = module.cost_budgets.monthly_budget_action_arn
+  description = "Monthly manual Budget Action ARN"
+}
+
+output "cost_budget_daily_action_arn" {
+  value       = module.cost_budgets.daily_budget_action_arn
+  description = "Daily manual Budget Action ARN"
+}
+
 output "cost_anomaly_monitor_arn" {
   value       = module.cost_anomaly.monitor_arn
   description = "Cost Anomaly monitor ARN (null when disabled)"
@@ -553,5 +573,75 @@ output "cost_anomaly_subscription_arn" {
 output "cost_anomaly_operator_note" {
   value       = module.cost_anomaly.operator_note
   description = "Post-apply steps for Cost Anomaly Detection"
+}
+
+output "cur_athena_database_name" {
+  value       = module.cur_athena.database_name
+  description = "Glue database for CUR Athena queries"
+}
+
+output "cur_athena_crawler_name" {
+  value       = module.cur_athena.crawler_name
+  description = "Glue crawler for existing CUR export"
+}
+
+output "cur_athena_workgroup_name" {
+  value       = module.cur_athena.athena_workgroup_name
+  description = "Athena workgroup for Grafana CUR datasource"
+}
+
+output "cur_athena_results_bucket_name" {
+  value       = module.cur_athena.athena_results_bucket_name
+  description = "S3 bucket for Athena query results"
+}
+
+output "cur_athena_grafana_role_arn" {
+  value       = module.cur_athena.grafana_athena_role_arn
+  description = "IRSA role ARN for Grafana Athena datasource"
+}
+
+output "cur_athena_operator_note" {
+  value       = module.cur_athena.operator_note
+  description = "Post-apply steps for CUR Athena/Grafana"
+}
+
+output "cost_anomaly_routing_event_rule_arn" {
+  value       = module.cost_anomaly_routing.event_rule_arn
+  description = "AWS User Notifications event rule ARN for Cost Anomaly routing"
+}
+
+output "cost_anomaly_routing_operator_note" {
+  value       = module.cost_anomaly_routing.operator_note
+  description = "Post-apply steps for Cost Anomaly routing"
+}
+
+output "cost_optimization_backlog_bucket_name" {
+  value       = module.cost_optimization_backlog.bucket_name
+  description = "S3 bucket for Cost Optimization Hub recommendation exports"
+}
+
+output "cost_optimization_backlog_export_arn" {
+  value       = module.cost_optimization_backlog.export_arn
+  description = "BCM Data Exports ARN for Cost Optimization Hub recommendations"
+}
+
+output "cost_optimization_backlog_database_name" {
+  value       = module.cost_optimization_backlog.database_name
+  description = "Glue database for Cost Optimization Hub recommendation export"
+}
+
+output "cost_optimization_backlog_crawler_name" {
+  value       = module.cost_optimization_backlog.crawler_name
+  description = "Glue crawler for Cost Optimization Hub recommendation export"
+}
+
+output "cost_optimization_backlog_workgroup_name" {
+  value       = module.cost_optimization_backlog.athena_workgroup_name
+  description = "Athena workgroup for Cost Optimization Hub backlog queries"
+}
+
+output "cost_optimization_backlog_operator_note" {
+  value       = module.cost_optimization_backlog.operator_note
+  description = "Post-apply steps for Cost Optimization Hub backlog"
 }
 # Change trail: @hungxqt - 2026-07-16 - Point Argo bootstrap output at root app-of-apps path.
