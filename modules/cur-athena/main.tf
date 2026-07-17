@@ -173,17 +173,6 @@ data "aws_iam_policy_document" "glue_assume" {
       identifiers = ["glue.amazonaws.com"]
     }
 
-    condition {
-      test     = "StringEquals"
-      variable = "aws:SourceAccount"
-      values   = [local.account_id]
-    }
-
-    condition {
-      test     = "ArnLike"
-      variable = "aws:SourceArn"
-      values   = ["arn:${local.partition}:glue:${local.region}:${local.account_id}:crawler/${local.crawler_name}"]
-    }
   }
 }
 
