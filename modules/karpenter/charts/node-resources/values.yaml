@@ -1,10 +1,11 @@
 ec2nodeclassName: default
 nodeRoleName: ""
 discoveryTagValue: ""
-amiAlias: al2023@latest
+amiAlias: al2023@v20260709
 spotPreferred: false
 expireAfter: 720h
-consolidateAfter: 1m
+terminationGracePeriod: 1h
+consolidateAfter: 0s
 cpuLimit: "32"
 memoryLimit: "64Gi"
 # kubelet maxPods (null/omit = AMI default). Pair with VPC CNI prefix delegation.
@@ -27,3 +28,4 @@ nodeTaints: []
 # List of requirement objects: { key, operator, values }
 spotRequirements: []
 onDemandRequirements: []
+# Change trail: @hungxqt - 2026-07-15 - Default consolidateAfter to 0s for immediate empty reclaim.

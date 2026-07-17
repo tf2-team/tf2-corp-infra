@@ -79,6 +79,58 @@ variable "time_period_start" {
   }
 }
 
+variable "budget_actions_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, create manual Budget Actions that attach an IAM deny scale-out policy to target roles"
+}
+
+variable "budget_action_iam_target_role_names" {
+  type        = list(string)
+  default     = []
+  nullable    = false
+  description = "IAM role names that Budget Actions may attach the deny scale-out policy to (for production: Karpenter controller role)"
+
+  validation {
+    condition = alltrue([
+      for role_name in var.budget_action_iam_target_role_names : can(regex("^[\\w+=,.@-]{1,64}$", role_name))
+    ])
+    error_message = "budget_action_iam_target_role_names must contain valid IAM role names."
+  }
+}
+
+variable "budget_action_monthly_threshold_percentage" {
+  type        = number
+  default     = 100
+  nullable    = false
+  description = "Manual monthly Budget Action threshold as a percentage of the monthly budget"
+
+  validation {
+    condition     = var.budget_action_monthly_threshold_percentage > 0 && var.budget_action_monthly_threshold_percentage <= 1000
+    error_message = "budget_action_monthly_threshold_percentage must be between 0 and 1000."
+  }
+}
+
+variable "budget_action_daily_threshold_percentage" {
+  type        = number
+  default     = 100
+  nullable    = false
+  description = "Manual daily Budget Action threshold as a percentage of the daily budget. AWS Budgets does not currently support actions on DAILY budgets, so keep budget_action_daily_enabled false."
+
+  validation {
+    condition     = var.budget_action_daily_threshold_percentage > 0 && var.budget_action_daily_threshold_percentage <= 1000
+    error_message = "budget_action_daily_threshold_percentage must be between 0 and 1000."
+  }
+}
+
+variable "budget_action_daily_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, create a manual Budget Action for the daily budget. Keep false until AWS Budgets supports actions on DAILY budgets."
+}
+
 variable "tags" {
   type        = map(string)
   default     = {}

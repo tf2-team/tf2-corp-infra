@@ -212,12 +212,13 @@ output "argocd_bootstrap_note" {
 output "argocd_bootstrap_apply_commands" {
   value       = <<-EOT
     # After argocd_enabled=true apply and Git credentials in argocd NS:
-    kubectl apply -f techx-corp-chart/gitops/clusters/prod/
-    argocd app sync techx-corp --dry-run
-    argocd app sync techx-corp
+    # Root app-of-apps owns child Application CRs under gitops/clusters/prod/
+    kubectl apply -f techx-corp-chart/gitops/bootstrap/prod/
+    argocd app wait root-prod --sync --health --timeout 300
+    argocd app wait techx-corp-secrets --sync --health --timeout 300
     argocd app wait techx-corp --sync --health --timeout 600
   EOT
-  description = "Prod bootstrap Application apply + sync wait (10m); start with manual sync"
+  description = "Prod root app-of-apps bootstrap + child wait (10m)"
 }
 
 output "argocd_chart_repo_url" {
@@ -542,6 +543,26 @@ output "cost_budgets_operator_note" {
   description = "Post-apply steps for cost budgets (confirm email-json subscription)"
 }
 
+output "cost_budget_actions_execution_role_arn" {
+  value       = module.cost_budgets.budget_actions_execution_role_arn
+  description = "IAM role assumed by AWS Budgets for manual Budget Actions"
+}
+
+output "cost_budget_actions_deny_policy_arn" {
+  value       = module.cost_budgets.budget_actions_deny_policy_arn
+  description = "IAM deny scale-out policy attached by manual Budget Actions"
+}
+
+output "cost_budget_monthly_action_arn" {
+  value       = module.cost_budgets.monthly_budget_action_arn
+  description = "Monthly manual Budget Action ARN"
+}
+
+output "cost_budget_daily_action_arn" {
+  value       = module.cost_budgets.daily_budget_action_arn
+  description = "Daily manual Budget Action ARN"
+}
+
 output "cost_anomaly_monitor_arn" {
   value       = module.cost_anomaly.monitor_arn
   description = "Cost Anomaly monitor ARN (null when disabled)"
@@ -556,4 +577,74 @@ output "cost_anomaly_operator_note" {
   value       = module.cost_anomaly.operator_note
   description = "Post-apply steps for Cost Anomaly Detection"
 }
-# Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.
+
+output "cur_athena_database_name" {
+  value       = module.cur_athena.database_name
+  description = "Glue database for CUR Athena queries"
+}
+
+output "cur_athena_crawler_name" {
+  value       = module.cur_athena.crawler_name
+  description = "Glue crawler for existing CUR export"
+}
+
+output "cur_athena_workgroup_name" {
+  value       = module.cur_athena.athena_workgroup_name
+  description = "Athena workgroup for Grafana CUR datasource"
+}
+
+output "cur_athena_results_bucket_name" {
+  value       = module.cur_athena.athena_results_bucket_name
+  description = "S3 bucket for Athena query results"
+}
+
+output "cur_athena_grafana_role_arn" {
+  value       = module.cur_athena.grafana_athena_role_arn
+  description = "IRSA role ARN for Grafana Athena datasource"
+}
+
+output "cur_athena_operator_note" {
+  value       = module.cur_athena.operator_note
+  description = "Post-apply steps for CUR Athena/Grafana"
+}
+
+output "cost_anomaly_routing_event_rule_arn" {
+  value       = module.cost_anomaly_routing.event_rule_arn
+  description = "AWS User Notifications event rule ARN for Cost Anomaly routing"
+}
+
+output "cost_anomaly_routing_operator_note" {
+  value       = module.cost_anomaly_routing.operator_note
+  description = "Post-apply steps for Cost Anomaly routing"
+}
+
+output "cost_optimization_backlog_bucket_name" {
+  value       = module.cost_optimization_backlog.bucket_name
+  description = "S3 bucket for Cost Optimization Hub recommendation exports"
+}
+
+output "cost_optimization_backlog_export_arn" {
+  value       = module.cost_optimization_backlog.export_arn
+  description = "BCM Data Exports ARN for Cost Optimization Hub recommendations"
+}
+
+output "cost_optimization_backlog_database_name" {
+  value       = module.cost_optimization_backlog.database_name
+  description = "Glue database for Cost Optimization Hub recommendation export"
+}
+
+output "cost_optimization_backlog_crawler_name" {
+  value       = module.cost_optimization_backlog.crawler_name
+  description = "Glue crawler for Cost Optimization Hub recommendation export"
+}
+
+output "cost_optimization_backlog_workgroup_name" {
+  value       = module.cost_optimization_backlog.athena_workgroup_name
+  description = "Athena workgroup for Cost Optimization Hub backlog queries"
+}
+
+output "cost_optimization_backlog_operator_note" {
+  value       = module.cost_optimization_backlog.operator_note
+  description = "Post-apply steps for Cost Optimization Hub backlog"
+}
+# Change trail: @hungxqt - 2026-07-16 - Point Argo bootstrap output at root app-of-apps path.

@@ -432,8 +432,20 @@ Optional overrides (same env var names on all shells), e.g. PowerShell:
 
 ```powershell
 $env:PG_APP_PASSWORD = "otelp"
+$bytes = [byte[]]::new(32)
+[System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+$env:AIOPS_GRAFANA_WEBHOOK_SECRET = [Convert]::ToHexString($bytes).ToLowerInvariant()
 .\scripts\bootstrap-asm-secrets.ps1 techx-corp/development us-east-1
 ```
+
+For Bash / Git Bash / WSL, generate the AIOps Grafana webhook secret outside Git and bootstrap it into ASM:
+
+```bash
+export AIOPS_GRAFANA_WEBHOOK_SECRET="$(openssl rand -hex 32)"
+./scripts/bootstrap-asm-secrets.sh techx-corp/production us-east-1
+```
+
+The chart consumes this as K8s Secret `techx-corp-aiops-grafana-webhook`, key `AIOPS_GRAFANA_WEBHOOK_SECRET`, and Grafana sends it to AIOps using header `X-AIOps-Grafana-Secret`.
 
 ### Install ESO (manual Helm — default)
 

@@ -10,6 +10,7 @@
 #   $env:PG_ADMIN_USER, $env:PG_ADMIN_PASSWORD, $env:PG_ADMIN_DB
 #   $env:PG_APP_USER, $env:PG_APP_PASSWORD, $env:PG_APP_DB
 #   $env:SECRET_KEY_BASE, $env:OPENAI_API_KEY, $env:GRAFANA_USER, $env:GRAFANA_PASSWORD
+#   $env:DISCORD_WEBHOOK_URL, $env:AIOPS_GRAFANA_WEBHOOK_SECRET
 #
 # CMD:  scripts\bootstrap-asm-secrets.cmd ...
 # Bash: ./scripts/bootstrap-asm-secrets.sh ...
@@ -52,6 +53,8 @@ $secretKeyBase = Get-EnvOrDefault "SECRET_KEY_BASE" "yYrECL4qbNwleYInGJYvVnSkwJu
 $openAiApiKey = Get-EnvOrDefault "OPENAI_API_KEY" "dummy"
 $grafanaUser = Get-EnvOrDefault "GRAFANA_USER" "admin"
 $grafanaPassword = Get-EnvOrDefault "GRAFANA_PASSWORD" "admin"
+$discordWebhookUrl = Get-EnvOrDefault "DISCORD_WEBHOOK_URL" ""
+$aiopsGrafanaWebhookSecret = Get-EnvOrDefault "AIOPS_GRAFANA_WEBHOOK_SECRET" ""
 
 # SEC-06: OpenSearch security plugin credentials
 # Override: $env:OPENSEARCH_ADMIN_USER, $env:OPENSEARCH_ADMIN_PASSWORD
@@ -118,6 +121,18 @@ Put-SecretJson -SecretId "$Prefix/grafana" -Data @{
 Put-SecretJson -SecretId "$Prefix/opensearch" -Data @{
     username = $opensearchUser
     password = $opensearchPassword
+}
+
+if (-not [string]::IsNullOrWhiteSpace($discordWebhookUrl)) {
+    Put-SecretJson -SecretId "$Prefix/grafana-discord" -Data @{
+        "webhook-url" = $discordWebhookUrl
+    }
+}
+
+if (-not [string]::IsNullOrWhiteSpace($aiopsGrafanaWebhookSecret)) {
+    Put-SecretJson -SecretId "$Prefix/aiops-grafana-webhook" -Data @{
+        AIOPS_GRAFANA_WEBHOOK_SECRET = $aiopsGrafanaWebhookSecret
+    }
 }
 
 Write-Host "Done. Bootstrap complete for prefix=$Prefix region=$Region"

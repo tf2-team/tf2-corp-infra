@@ -212,13 +212,13 @@ output "argocd_bootstrap_note" {
 output "argocd_bootstrap_apply_commands" {
   value       = <<-EOT
     # After argocd_enabled=true apply and Git credentials in argocd NS:
-    kubectl apply -f techx-corp-chart/gitops/clusters/dev/
-    # Configure repoURL in application if needed; first sync:
-    argocd app sync techx-corp --dry-run
-    argocd app sync techx-corp
-    argocd app wait techx-corp --sync --health --timeout 600
+    # Root app-of-apps owns child Application CRs under gitops/clusters/dev/
+    kubectl apply -f techx-corp-chart/gitops/bootstrap/dev/
+    argocd app wait root-dev --sync --health --timeout 300
+    argocd app wait techx-corp-secrets-dev --sync --health --timeout 300
+    argocd app wait techx-corp-dev --sync --health --timeout 600
   EOT
-  description = "Dev bootstrap Application apply + sync wait (10m)"
+  description = "Dev root app-of-apps bootstrap + child wait (10m)"
 }
 
 output "argocd_chart_repo_url" {
@@ -439,4 +439,4 @@ output "client_vpn_operator_note" {
   value       = module.client_vpn.operator_note
   description = "Operator enable sequence for Client VPN admin access"
 }
-# Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.
+# Change trail: @hungxqt - 2026-07-16 - Point Argo bootstrap output at root app-of-apps path.

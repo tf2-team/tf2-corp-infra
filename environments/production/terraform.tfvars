@@ -165,14 +165,18 @@ secrets_manager_recovery_window_in_days = 0
 # Default capacity model: critical MNG floor + Karpenter elastic (do not enable CA Helm with this).
 # CRD and controller must share chart_version; upgrade CRD before controller.
 # ──────────────────────────────────────────────
-karpenter_enabled               = true
-karpenter_install_helm          = true
-karpenter_create_node_resources = true
-karpenter_chart_version         = "1.13.1"
-karpenter_spot_preferred        = true
-karpenter_nodepool_cpu_limit    = "32"
-karpenter_nodepool_memory_limit = "64Gi"
-karpenter_availability_zones    = ["us-east-1a", "us-east-1b"]
+karpenter_enabled                  = true
+karpenter_install_helm             = true
+karpenter_create_node_resources    = true
+karpenter_chart_version            = "1.13.1"
+karpenter_spot_preferred           = true
+karpenter_ami_alias                = "al2023@v20260709"
+karpenter_instance_categories      = ["c", "m", "r", "t"]
+karpenter_expire_after             = "720h"
+karpenter_termination_grace_period = "1h"
+karpenter_nodepool_cpu_limit       = "32"
+karpenter_nodepool_memory_limit    = "64Gi"
+karpenter_availability_zones       = ["us-east-1a", "us-east-1b"]
 # Match MNG density + avoid 1-vCPU nodes (~8 max pods, no room for DaemonSets)
 karpenter_node_max_pods    = 110
 karpenter_min_instance_cpu = 2
@@ -194,8 +198,14 @@ karpenter_disruption_budget_nodes = {
   spot      = "1"
   on_demand = "1"
 }
-# Short reclaim window (WhenEmptyOrUnderutilized) — same as development.
-karpenter_consolidate_after = "1m"
+# Immediate reclaim once a node is empty or underutilized (WhenEmptyOrUnderutilized).
+# DaemonSet-only nodes (otel-collector agent, aws-node, kube-proxy, ebs-csi, …) are empty
+# and consolidate without a settle delay; underutilized packing is also eligible at 0s.
+karpenter_consolidate_after = "0s"
+# Allow Karpenter to replace fragmented Spot capacity with better-packed Spot capacity.
+karpenter_feature_gates = {
+  spotToSpotConsolidation = true
+}
 
 # ──────────────────────────────────────────────
 # Cluster Autoscaler — OFF by default
@@ -288,4 +298,60 @@ cost_anomaly_alert_email         = "ctran13904@gmail.com"
 cost_anomaly_frequency           = "DAILY"
 cost_anomaly_impact_absolute_usd = "25"
 cost_anomaly_impact_percentage   = "40"
-# Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.
+
+# ──────────────────────────────────────────────
+# Amazon MSK Configuration (Directive #8)
+# ──────────────────────────────────────────────
+msk_kafka_version        = "3.7.x"
+msk_broker_instance_type = "kafka.t3.small"
+msk_ebs_volume_size      = 10
+
+# P2 Budget Actions — production manual approval only.
+# Target role is wired from module.karpenter.controller_role_name in main.tf.
+cost_budget_actions_enabled                     = true
+cost_budget_action_monthly_threshold_percentage = 100
+cost_budget_action_daily_threshold_percentage   = 100
+cost_budget_daily_action_enabled                = false
+
+# ──────────────────────────────────────────────
+# P3 CUR + Athena + Grafana
+# Existing BCM Data Export discovered in AWS:
+#   export: finops-watch-cur
+#   S3:    s3://company-cdo-493499579600-telemetry/cur/finops-watch-cur/data/
+#   bucket region: ap-southeast-1
+# ──────────────────────────────────────────────
+cur_athena_enabled                      = true
+cur_athena_region                       = "ap-southeast-1"
+cur_athena_cur_bucket_name              = "company-cdo-493499579600-telemetry"
+cur_athena_cur_s3_prefix                = "cur"
+cur_athena_cur_export_name              = "finops-watch-cur"
+cur_athena_database_name                = "finops_cur"
+cur_athena_crawler_name                 = "techx-prod-tf2-cur-athena"
+cur_athena_workgroup_name               = "grafana-cur"
+cur_athena_results_bucket_name          = "techx-prod-tf2-athena-results-493499579600-ap-southeast-1"
+cur_athena_bytes_cutoff                 = 1073741824
+cur_athena_grafana_namespace            = "techx-corp-prod"
+cur_athena_grafana_service_account_name = "grafana"
+
+# Overlay: anomaly routing via AWS User Notifications email.
+cost_anomaly_routing_enabled              = true
+cost_anomaly_routing_email                = "ctran13904@gmail.com"
+cost_anomaly_routing_regions              = ["us-east-1"]
+cost_anomaly_routing_hub_region           = "us-east-1"
+cost_anomaly_routing_impact_absolute_usd  = 25
+cost_anomaly_routing_aggregation_duration = "SHORT"
+
+# Overlay: Cost Optimization Hub recommendations export for sprint backlog.
+cost_optimization_backlog_enabled                     = true
+cost_optimization_backlog_bucket_name                 = "techx-prod-tf2-cost-optimization-exports-493499579600-us-east-1"
+cost_optimization_backlog_s3_prefix                   = "cost-optimization"
+cost_optimization_backlog_export_name                 = "cost-optimization-recommendations"
+cost_optimization_backlog_create_export               = false
+cost_optimization_backlog_database_name               = "finops_cost_optimization"
+cost_optimization_backlog_crawler_name                = "techx-prod-tf2-cost-optimization-backlog"
+cost_optimization_backlog_workgroup_name              = "cost-optimization-backlog"
+cost_optimization_backlog_athena_bytes_cutoff         = 1073741824
+cost_optimization_backlog_include_member_accounts     = false
+cost_optimization_backlog_manage_enrollment           = false
+cost_optimization_backlog_include_all_recommendations = false
+# Change trail: @hungxqt - 2026-07-15 - Set Karpenter consolidateAfter to 0s for immediate empty (DaemonSet-only) reclaim.

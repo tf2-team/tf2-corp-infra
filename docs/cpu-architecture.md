@@ -97,7 +97,7 @@ Switching `t3.large` → `t4g.medium` changes **both** architecture **and** memo
 | **MNG instance + AMI** | `environments/{development,production}/terraform.tfvars` → `node_groups.*.instance_types` + `ami_type` | Per node group |
 | **Karpenter node arch** | `modules/karpenter/main.tf` → `kubernetes.io/arch` requirement | **Shared module default** (affects every env that creates NodePools) |
 | **Karpenter AMI** | `modules/karpenter` → `ami_alias` default `al2023@latest` | Follows instance arch from requirements |
-| **Karpenter instance families** | `instance_categories` default `["t"]` | Burstable T-family only; with `arch=arm64` → primarily `t4g.*` (not Graviton `c`/`m`/`r`) |
+| **Karpenter instance families** | `instance_categories` (module default `["c","m","r"]`; production tfvars `["c","m","r","t"]`) | Graviton compute/general/memory; production also allows burstable **t** (`t4g.*` on arm64) |
 | **App images** | `techx-corp-platform/docker-bake.hcl` | `platforms = ["linux/amd64", "linux/arm64"]` for release group |
 | **Pod placement** | `techx-corp-chart` `schedulingRules` | Arch-agnostic (`workload-class` only) |
 
@@ -378,5 +378,5 @@ Mirror §7 Phase 3 with expected arch `amd64` and x86 instance types (`t3`, `m5`
 | **Migration** | Verify images → change MNG + Karpenter together → dual-run/drain → smoke → document |
 | **Rollback** | Reverse of forward path; keep multi-arch images so either direction stays possible |
 
-<!-- Change trail: @hungxqt - 2026-07-14 - Align Karpenter family docs with t-category default. -->
+<!-- Change trail: @hungxqt - 2026-07-15 - Align Karpenter family docs with production c/m/r/t allow-list. -->
 

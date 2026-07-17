@@ -342,6 +342,54 @@ variable "karpenter_spot_preferred" {
   description = "Prefer Spot NodePool with On-Demand fallback (aligned with development)"
 }
 
+variable "karpenter_ami_alias" {
+  type        = string
+  default     = "al2023@v20260709"
+  description = "Pinned AL2023 alias for Karpenter EC2NodeClass."
+
+  validation {
+    condition     = can(regex("^al2023@v[0-9]{8}$", var.karpenter_ami_alias))
+    error_message = "karpenter_ami_alias must be pinned as al2023@vYYYYMMDD."
+  }
+}
+
+variable "karpenter_instance_categories" {
+  type        = list(string)
+  default     = ["c", "m", "r", "t"]
+  description = "Approved Karpenter Graviton instance categories (production includes burstable t for cost/capacity)."
+
+  validation {
+    condition = (
+      length(var.karpenter_instance_categories) > 0 &&
+      length(var.karpenter_instance_categories) == length(distinct(var.karpenter_instance_categories)) &&
+      alltrue([for category in var.karpenter_instance_categories : contains(["c", "m", "r", "t"], category)])
+    )
+    error_message = "karpenter_instance_categories must be a non-empty, duplicate-free subset of c, m, r, and t."
+  }
+}
+
+variable "karpenter_expire_after" {
+  type        = string
+  default     = "720h"
+  description = "Karpenter NodePool expiry duration."
+
+  validation {
+    condition     = can(regex("^[1-9][0-9]*(s|m|h)$", var.karpenter_expire_after))
+    error_message = "karpenter_expire_after must be a positive duration using s, m, or h."
+  }
+}
+
+variable "karpenter_termination_grace_period" {
+  type        = string
+  default     = "1h"
+  description = "Maximum Karpenter graceful drain duration before forced termination."
+
+  validation {
+    condition     = can(regex("^[1-9][0-9]*(s|m|h)$", var.karpenter_termination_grace_period))
+    error_message = "karpenter_termination_grace_period must be a positive duration using s, m, or h."
+  }
+}
+
 variable "karpenter_node_taints" {
   type = list(object({
     key    = string
@@ -378,13 +426,38 @@ variable "karpenter_disruption_budget_nodes" {
     Steady state "1"/"1" allows consolidation under WhenEmptyOrUnderutilized.
     Use "0"/"0" only to freeze voluntary disruption during upgrades/migrations.
   EOT
+
+  validation {
+    condition = alltrue([
+      for budget in [
+        var.karpenter_disruption_budget_nodes.spot,
+        var.karpenter_disruption_budget_nodes.on_demand,
+      ] : contains(["0", "1"], budget)
+    ])
+    error_message = "Production Karpenter disruption budgets must be absolute node counts of 0 or 1 per pool."
+  }
 }
 
 variable "karpenter_consolidate_after" {
   type        = string
-  default     = "1m"
+  default     = "0s"
   nullable    = false
-  description = "NodePool disruption consolidateAfter (how long underutilized/empty nodes wait before reclaim)."
+  description = "NodePool disruption consolidateAfter. 0s consolidates empty nodes (DaemonSet-only, e.g. otel agent) immediately; also applies to underutilized packing."
+}
+
+variable "karpenter_feature_gates" {
+  type        = map(bool)
+  default     = {}
+  nullable    = false
+  description = "Karpenter controller settings.featureGates overrides."
+
+  validation {
+    condition = alltrue([
+      for k in keys(var.karpenter_feature_gates) :
+      contains(["nodeRepair", "nodeOverlay", "reservedCapacity", "spotToSpotConsolidation", "staticCapacity"], k)
+    ])
+    error_message = "karpenter_feature_gates keys must match supported Karpenter chart featureGates keys."
+  }
 }
 
 variable "karpenter_nodepool_cpu_limit" {
@@ -707,6 +780,34 @@ variable "cost_budgets_create_daily" {
   description = "When true, also create the daily budget"
 }
 
+variable "cost_budget_actions_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, create manual Budget Actions that attach a deny scale-out policy to the Karpenter controller role"
+}
+
+variable "cost_budget_action_monthly_threshold_percentage" {
+  type        = number
+  default     = 100
+  nullable    = false
+  description = "Manual Budget Action threshold for the monthly budget"
+}
+
+variable "cost_budget_action_daily_threshold_percentage" {
+  type        = number
+  default     = 100
+  nullable    = false
+  description = "Manual Budget Action threshold for the daily budget"
+}
+
+variable "cost_budget_daily_action_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Keep false because AWS Budgets Actions do not support DAILY budgets"
+}
+
 # ──────────────────────────────────────────────
 # Cost Anomaly Detection — account-level; production only
 # ──────────────────────────────────────────────
@@ -745,4 +846,248 @@ variable "cost_anomaly_impact_percentage" {
   nullable    = false
   description = "Alert when anomaly impact >= this percent vs expected (AND with absolute USD)"
 }
-# Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.
+
+# ──────────────────────────────────────────────
+# Amazon MSK Configuration (Directive #8)
+# ──────────────────────────────────────────────
+
+variable "msk_kafka_version" {
+  type        = string
+  default     = "3.7.x"
+  description = "Apache Kafka version for the MSK cluster"
+}
+
+variable "msk_broker_instance_type" {
+  type        = string
+  default     = "kafka.t3.small"
+  description = "EC2 instance type for the MSK brokers"
+}
+
+variable "msk_ebs_volume_size" {
+  type        = number
+  default     = 10
+  description = "EBS volume size in GiB for each broker node"
+}
+
+# ──────────────────────────────────────────────
+# P3 CUR + Athena + Grafana IRSA — production only
+# ──────────────────────────────────────────────
+
+variable "cur_athena_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, create Athena/Glue/IRSA resources for the existing production CUR 2.0 export"
+}
+
+variable "cur_athena_region" {
+  type        = string
+  default     = "ap-southeast-1"
+  nullable    = false
+  description = "Region of the existing CUR S3 bucket and Athena catalog/workgroup"
+}
+
+variable "cur_athena_cur_bucket_name" {
+  type        = string
+  default     = "company-cdo-493499579600-telemetry"
+  nullable    = false
+  description = "Existing S3 bucket containing the CUR 2.0 Data Export"
+}
+
+variable "cur_athena_cur_s3_prefix" {
+  type        = string
+  default     = "cur"
+  nullable    = false
+  description = "Existing CUR export S3 prefix"
+}
+
+variable "cur_athena_cur_export_name" {
+  type        = string
+  default     = "finops-watch-cur"
+  nullable    = false
+  description = "Existing CUR 2.0 Data Export name"
+}
+
+variable "cur_athena_database_name" {
+  type        = string
+  default     = "finops_cur"
+  nullable    = false
+  description = "Glue database for CUR Athena queries"
+}
+
+variable "cur_athena_crawler_name" {
+  type        = string
+  default     = "techx-prod-tf2-cur-athena"
+  nullable    = false
+  description = "Glue crawler for existing CUR export"
+}
+
+variable "cur_athena_workgroup_name" {
+  type        = string
+  default     = "grafana-cur"
+  nullable    = false
+  description = "Athena workgroup for Grafana CUR queries"
+}
+
+variable "cur_athena_results_bucket_name" {
+  type        = string
+  default     = "techx-prod-tf2-athena-results-493499579600-ap-southeast-1"
+  nullable    = false
+  description = "S3 bucket for Grafana/Athena query results"
+}
+
+variable "cur_athena_bytes_cutoff" {
+  type        = number
+  default     = 1073741824
+  nullable    = false
+  description = "Per-query bytes scanned cutoff for Grafana CUR workgroup"
+}
+
+variable "cur_athena_grafana_namespace" {
+  type        = string
+  default     = "techx-corp-prod"
+  nullable    = false
+  description = "Namespace of the Grafana service account"
+}
+
+variable "cur_athena_grafana_service_account_name" {
+  type        = string
+  default     = "grafana"
+  nullable    = false
+  description = "Grafana service account name for IRSA trust"
+}
+
+# ──────────────────────────────────────────────
+# Overlay anomaly routing — email first
+# ──────────────────────────────────────────────
+
+variable "cost_anomaly_routing_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, route high-impact Cost Anomaly events through AWS User Notifications email"
+}
+
+variable "cost_anomaly_routing_email" {
+  type        = string
+  default     = "ctran13904@gmail.com"
+  nullable    = false
+  description = "Email contact for routed Cost Anomaly events"
+}
+
+variable "cost_anomaly_routing_regions" {
+  type        = set(string)
+  default     = ["us-east-1"]
+  nullable    = false
+  description = "Regions where User Notifications watches Cost Explorer anomaly events"
+}
+
+variable "cost_anomaly_routing_hub_region" {
+  type        = string
+  default     = "us-east-1"
+  nullable    = false
+  description = "AWS User Notifications hub region"
+}
+
+variable "cost_anomaly_routing_impact_absolute_usd" {
+  type        = number
+  default     = 25
+  nullable    = false
+  description = "Route only anomalies whose impact is greater than this USD amount"
+}
+
+variable "cost_anomaly_routing_aggregation_duration" {
+  type        = string
+  default     = "SHORT"
+  nullable    = false
+  description = "AWS User Notifications aggregation duration: NONE, SHORT, or LONG"
+}
+
+# ──────────────────────────────────────────────
+# Overlay Cost Optimization Hub backlog — production only
+# ──────────────────────────────────────────────
+
+variable "cost_optimization_backlog_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, enable Cost Optimization Hub and export recommendations to S3"
+}
+
+variable "cost_optimization_backlog_bucket_name" {
+  type        = string
+  default     = "techx-prod-tf2-cost-optimization-exports-493499579600-us-east-1"
+  nullable    = false
+  description = "Dedicated S3 bucket for Cost Optimization Hub recommendation exports"
+}
+
+variable "cost_optimization_backlog_s3_prefix" {
+  type        = string
+  default     = "cost-optimization"
+  nullable    = false
+  description = "S3 prefix for Cost Optimization Hub recommendation export"
+}
+
+variable "cost_optimization_backlog_export_name" {
+  type        = string
+  default     = "cost-optimization-recommendations"
+  nullable    = false
+  description = "BCM Data Exports export name for recommendations"
+}
+
+variable "cost_optimization_backlog_create_export" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, create the Cost Optimization Hub BCM Data Export. Keep false until this account can create exports against COST_OPTIMIZATION_RECOMMENDATIONS."
+}
+
+variable "cost_optimization_backlog_database_name" {
+  type        = string
+  default     = "finops_cost_optimization"
+  nullable    = false
+  description = "Glue database for Cost Optimization Hub recommendation export"
+}
+
+variable "cost_optimization_backlog_crawler_name" {
+  type        = string
+  default     = "techx-prod-tf2-cost-optimization-backlog"
+  nullable    = false
+  description = "Glue crawler for Cost Optimization Hub recommendation export"
+}
+
+variable "cost_optimization_backlog_workgroup_name" {
+  type        = string
+  default     = "cost-optimization-backlog"
+  nullable    = false
+  description = "Athena workgroup for Cost Optimization Hub backlog queries"
+}
+
+variable "cost_optimization_backlog_athena_bytes_cutoff" {
+  type        = number
+  default     = 1073741824
+  nullable    = false
+  description = "Per-query bytes scanned cutoff for Cost Optimization Hub backlog workgroup"
+}
+
+variable "cost_optimization_backlog_include_member_accounts" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Enroll organization member accounts if this is the management account"
+}
+
+variable "cost_optimization_backlog_manage_enrollment" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, Terraform manages Cost Optimization Hub enrollment; false when enrollment is handled manually in the console"
+}
+
+variable "cost_optimization_backlog_include_all_recommendations" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Export all recommendations for a resource rather than the de-duplicated recommendation"
+}
+# Change trail: @hungxqt - 2026-07-15 - Default karpenter_consolidate_after to 0s for immediate empty reclaim.

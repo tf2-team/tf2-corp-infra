@@ -110,8 +110,8 @@ module "external_secrets" {
   cluster_name                = module.eks.cluster_name
   oidc_provider_arn           = module.eks.oidc_provider_arn
   oidc_issuer_url             = module.eks.oidc_issuer
-  secret_arns                 = concat(module.secrets_manager.secret_arns_list, [module.commerce_ha.valkey_auth_secret_arn])
-  kms_key_arns                = [module.commerce_ha.commerce_kms_key_arn]
+  secret_arns                 = concat(module.secrets_manager.secret_arns_list, [module.commerce_ha.valkey_auth_secret_arn, module.msk.msk_bootstrap_secret_arn])
+  kms_key_arns                = [module.commerce_ha.commerce_kms_key_arn, module.msk.msk_kms_key_arn]
   aws_region                  = var.aws_region
   install_helm                = var.external_secrets_install_helm
   create_cluster_secret_store = var.external_secrets_create_cluster_secret_store
@@ -164,6 +164,21 @@ module "commerce_ha" {
   tags                         = var.tags
 }
 
+# DIRECTIVE #8: Amazon MSK cluster replacement for in-cluster Kafka broker
+module "msk" {
+  source = "../../modules/msk"
+
+  name                         = var.project_name
+  vpc_id                       = module.vpc.vpc_id
+  subnet_ids                   = [module.vpc.private_subnet_ids["priv-1a-nodes"], module.vpc.private_subnet_ids["priv-1b-nodes"]]
+  eks_client_security_group_id = module.eks.cluster_security_group_id
+  kafka_version                = var.msk_kafka_version
+  broker_instance_type         = var.msk_broker_instance_type
+  ebs_volume_size              = var.msk_ebs_volume_size
+  vpc_cidr_block               = module.vpc.vpc_cidr_block
+  tags                         = var.tags
+}
+
 # ──────────────────────────────────────────────
 # Karpenter — node autoscaling (Spot-preferred; same model as development)
 # ──────────────────────────────────────────────
@@ -171,27 +186,32 @@ module "commerce_ha" {
 module "karpenter" {
   source = "../../modules/karpenter"
 
-  enabled                 = var.karpenter_enabled
-  cluster_name            = module.eks.cluster_name
-  cluster_endpoint        = module.eks.cluster_endpoint
-  oidc_provider_arn       = module.eks.oidc_provider_arn
-  oidc_issuer_url         = module.eks.oidc_issuer
-  aws_region              = var.aws_region
-  discovery_tag_value     = module.eks.cluster_name
-  install_helm            = var.karpenter_install_helm
-  create_node_resources   = var.karpenter_create_node_resources
-  chart_version           = var.karpenter_chart_version
-  spot_preferred          = var.karpenter_spot_preferred
-  node_taints             = var.karpenter_node_taints
-  nodepool_weights        = var.karpenter_nodepool_weights
-  disruption_budget_nodes = var.karpenter_disruption_budget_nodes
-  consolidate_after       = var.karpenter_consolidate_after
-  nodepool_cpu_limit      = var.karpenter_nodepool_cpu_limit
-  nodepool_memory_limit   = var.karpenter_nodepool_memory_limit
-  availability_zones      = var.karpenter_availability_zones
-  node_max_pods           = var.karpenter_node_max_pods
-  min_instance_cpu        = var.karpenter_min_instance_cpu
-  tags                    = var.tags
+  enabled                  = var.karpenter_enabled
+  cluster_name             = module.eks.cluster_name
+  cluster_endpoint         = module.eks.cluster_endpoint
+  oidc_provider_arn        = module.eks.oidc_provider_arn
+  oidc_issuer_url          = module.eks.oidc_issuer
+  aws_region               = var.aws_region
+  discovery_tag_value      = module.eks.cluster_name
+  install_helm             = var.karpenter_install_helm
+  create_node_resources    = var.karpenter_create_node_resources
+  chart_version            = var.karpenter_chart_version
+  spot_preferred           = var.karpenter_spot_preferred
+  ami_alias                = var.karpenter_ami_alias
+  instance_categories      = var.karpenter_instance_categories
+  expire_after             = var.karpenter_expire_after
+  termination_grace_period = var.karpenter_termination_grace_period
+  node_taints              = var.karpenter_node_taints
+  nodepool_weights         = var.karpenter_nodepool_weights
+  disruption_budget_nodes  = var.karpenter_disruption_budget_nodes
+  consolidate_after        = var.karpenter_consolidate_after
+  feature_gates            = var.karpenter_feature_gates
+  nodepool_cpu_limit       = var.karpenter_nodepool_cpu_limit
+  nodepool_memory_limit    = var.karpenter_nodepool_memory_limit
+  availability_zones       = var.karpenter_availability_zones
+  node_max_pods            = var.karpenter_node_max_pods
+  min_instance_cpu         = var.karpenter_min_instance_cpu
+  tags                     = var.tags
 }
 
 # ──────────────────────────────────────────────
@@ -297,6 +317,7 @@ module "private_dns" {
   tags                = var.tags
 }
 
+
 # ──────────────────────────────────────────────
 # Cost budgets — onboarding ~$300/week × ~3 weeks → monthly $900
 # AWS Budgets has no WEEKLY time_unit (only DAILY/MONTHLY/…).
@@ -307,13 +328,18 @@ module "private_dns" {
 module "cost_budgets" {
   source = "../../modules/cost-budgets"
 
-  enabled             = var.cost_budgets_enabled
-  name_prefix         = var.project_name
-  alert_email         = var.cost_budgets_alert_email
-  monthly_limit_usd   = var.cost_budgets_monthly_limit_usd
-  daily_limit_usd     = var.cost_budgets_daily_limit_usd
-  create_daily_budget = var.cost_budgets_create_daily
-  tags                = var.tags
+  enabled                                    = var.cost_budgets_enabled
+  name_prefix                                = var.project_name
+  alert_email                                = var.cost_budgets_alert_email
+  monthly_limit_usd                          = var.cost_budgets_monthly_limit_usd
+  daily_limit_usd                            = var.cost_budgets_daily_limit_usd
+  create_daily_budget                        = var.cost_budgets_create_daily
+  budget_actions_enabled                     = var.cost_budget_actions_enabled
+  budget_action_iam_target_role_names        = var.cost_budget_actions_enabled && module.karpenter.controller_role_name != null ? [module.karpenter.controller_role_name] : []
+  budget_action_monthly_threshold_percentage = var.cost_budget_action_monthly_threshold_percentage
+  budget_action_daily_threshold_percentage   = var.cost_budget_action_daily_threshold_percentage
+  budget_action_daily_enabled                = var.cost_budget_daily_action_enabled
+  tags                                       = var.tags
 }
 
 # ──────────────────────────────────────────────
@@ -332,3 +358,74 @@ module "cost_anomaly" {
   impact_percentage   = var.cost_anomaly_impact_percentage
   tags                = var.tags
 }
+
+# ──────────────────────────────────────────────
+# P3: CUR 2.0 Data Export → Athena + Grafana IRSA
+# Existing export discovered via BCM Data Exports: finops-watch-cur.
+# Terraform does not recreate the CUR export; it catalogs and guards queries.
+# ──────────────────────────────────────────────
+
+module "cur_athena" {
+  source = "../../modules/cur-athena"
+
+  providers = {
+    aws = aws.cur
+  }
+
+  enabled                      = var.cur_athena_enabled
+  name_prefix                  = var.project_name
+  cur_bucket_name              = var.cur_athena_cur_bucket_name
+  cur_s3_prefix                = var.cur_athena_cur_s3_prefix
+  cur_export_name              = var.cur_athena_cur_export_name
+  database_name                = var.cur_athena_database_name
+  crawler_name                 = var.cur_athena_crawler_name
+  athena_workgroup_name        = var.cur_athena_workgroup_name
+  athena_results_bucket_name   = var.cur_athena_results_bucket_name
+  athena_bytes_cutoff          = var.cur_athena_bytes_cutoff
+  oidc_provider_arn            = module.eks.oidc_provider_arn
+  oidc_issuer_url              = module.eks.oidc_issuer
+  grafana_namespace            = var.cur_athena_grafana_namespace
+  grafana_service_account_name = var.cur_athena_grafana_service_account_name
+  tags                         = var.tags
+}
+
+# ──────────────────────────────────────────────
+# Overlay: Cost Anomaly Routing via AWS User Notifications (email first)
+# ──────────────────────────────────────────────
+
+module "cost_anomaly_routing" {
+  source = "../../modules/cost-anomaly-routing"
+
+  enabled                 = var.cost_anomaly_routing_enabled
+  name_prefix             = var.project_name
+  notification_email      = var.cost_anomaly_routing_email
+  notification_regions    = var.cost_anomaly_routing_regions
+  notification_hub_region = var.cost_anomaly_routing_hub_region
+  impact_absolute_usd     = var.cost_anomaly_routing_impact_absolute_usd
+  aggregation_duration    = var.cost_anomaly_routing_aggregation_duration
+  tags                    = var.tags
+}
+
+# ──────────────────────────────────────────────
+# Overlay: Cost Optimization Hub + Data Export backlog
+# ──────────────────────────────────────────────
+
+module "cost_optimization_backlog" {
+  source = "../../modules/cost-optimization-backlog"
+
+  enabled                     = var.cost_optimization_backlog_enabled
+  name_prefix                 = var.project_name
+  bucket_name                 = var.cost_optimization_backlog_bucket_name
+  s3_prefix                   = var.cost_optimization_backlog_s3_prefix
+  export_name                 = var.cost_optimization_backlog_export_name
+  create_export               = var.cost_optimization_backlog_create_export
+  database_name               = var.cost_optimization_backlog_database_name
+  crawler_name                = var.cost_optimization_backlog_crawler_name
+  athena_workgroup_name       = var.cost_optimization_backlog_workgroup_name
+  athena_bytes_cutoff         = var.cost_optimization_backlog_athena_bytes_cutoff
+  include_member_accounts     = var.cost_optimization_backlog_include_member_accounts
+  manage_enrollment           = var.cost_optimization_backlog_manage_enrollment
+  include_all_recommendations = var.cost_optimization_backlog_include_all_recommendations
+  tags                        = var.tags
+}
+# Change trail: @hungxqt - 2026-07-15 - Wire bounded production Karpenter lifecycle settings.

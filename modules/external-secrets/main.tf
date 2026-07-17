@@ -127,16 +127,46 @@ resource "helm_release" "eso" {
           "eks.amazonaws.com/role-arn" = aws_iam_role.eso[0].arn
         }
       }
+      resources = {
+        requests = {
+          cpu    = "50m"
+          memory = "128Mi"
+        }
+        limits = {
+          cpu    = "250m"
+          memory = "256Mi"
+        }
+      }
       # Pin operator to critical MNG (docs/workload-placement.md).
       nodeSelector = {
         "workload-class" = "critical"
       }
       webhook = {
+        resources = {
+          requests = {
+            cpu    = "10m"
+            memory = "64Mi"
+          }
+          limits = {
+            cpu    = "100m"
+            memory = "128Mi"
+          }
+        }
         nodeSelector = {
           "workload-class" = "critical"
         }
       }
       certController = {
+        resources = {
+          requests = {
+            cpu    = "10m"
+            memory = "64Mi"
+          }
+          limits = {
+            cpu    = "100m"
+            memory = "128Mi"
+          }
+        }
         nodeSelector = {
           "workload-class" = "critical"
         }

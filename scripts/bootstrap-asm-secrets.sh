@@ -14,6 +14,7 @@
 #   PG_ADMIN_USER PG_ADMIN_PASSWORD PG_ADMIN_DB
 #   PG_APP_USER PG_APP_PASSWORD PG_APP_DB
 #   SECRET_KEY_BASE OPENAI_API_KEY GRAFANA_USER GRAFANA_PASSWORD
+#   DISCORD_WEBHOOK_URL AIOPS_GRAFANA_WEBHOOK_SECRET
 
 set -euo pipefail
 
@@ -67,6 +68,23 @@ put_json "${PREFIX}/grafana" \
 # SEC-06: OpenSearch security plugin admin credentials
 put_json "${PREFIX}/opensearch" \
   "{\"username\":\"${OPENSEARCH_ADMIN_USER}\",\"password\":\"${OPENSEARCH_ADMIN_PASSWORD}\"}"
+
+# Grafana Discord alert webhook
+# Override: DISCORD_WEBHOOK_URL
+DISCORD_WEBHOOK_URL="${DISCORD_WEBHOOK_URL:-}"
+if [ -n "${DISCORD_WEBHOOK_URL}" ]; then
+  put_json "${PREFIX}/grafana-discord" \
+    "{\"webhook-url\":\"${DISCORD_WEBHOOK_URL}\"}"
+fi
+
+# AIOps inbound Grafana webhook shared secret.
+# Generate outside Git, for example: openssl rand -hex 32
+# Override: AIOPS_GRAFANA_WEBHOOK_SECRET
+AIOPS_GRAFANA_WEBHOOK_SECRET="${AIOPS_GRAFANA_WEBHOOK_SECRET:-}"
+if [ -n "${AIOPS_GRAFANA_WEBHOOK_SECRET}" ]; then
+  put_json "${PREFIX}/aiops-grafana-webhook" \
+    "{\"AIOPS_GRAFANA_WEBHOOK_SECRET\":\"${AIOPS_GRAFANA_WEBHOOK_SECRET}\"}"
+fi
 
 echo "Done. Bootstrap complete for prefix=${PREFIX} region=${REGION}"
 echo "Next: install ESO + ClusterSecretStore, then helm techx-corp-secrets, wait Ready, then app chart."
