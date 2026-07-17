@@ -251,6 +251,9 @@ output "external_secrets_role_arn" {
 
 output "ai_model_bucket_name" { value = module.ai_model_storage.bucket_name }
 output "ai_model_service_account_role_arn" { value = module.ai_model_storage.service_account_role_arn }
+output "ai_model_consumer_role_arns" { value = module.ai_model_storage.consumer_role_arns }
+output "ai_model_consumer_prefixes" { value = module.ai_model_storage.consumer_model_prefixes }
+output "ai_model_consumer_access_contracts" { value = module.ai_model_storage.consumer_access_contracts }
 output "ai_model_s3_vpc_endpoint_id" { value = module.ai_model_storage.s3_vpc_endpoint_id }
 
 output "external_secrets_helm_command" {
