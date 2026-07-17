@@ -15,6 +15,10 @@ data "aws_caller_identity" "current" {
   count = var.enabled ? 1 : 0
 }
 
+data "aws_partition" "current" {
+  count = var.enabled ? 1 : 0
+}
+
 locals {
   create = var.enabled
 
@@ -42,12 +46,30 @@ locals {
       notification_type = "ACTUAL"
     }
   }
+
+  budget_actions_create = (
+    local.create &&
+    var.budget_actions_enabled &&
+    length(var.budget_action_iam_target_role_names) > 0
+  )
+
+  partition = local.create ? data.aws_partition.current[0].partition : "aws"
+  account_id = (
+    local.create
+    ? data.aws_caller_identity.current[0].account_id
+    : "000000000000"
+  )
+
+  budget_action_target_role_arns = [
+    for role_name in var.budget_action_iam_target_role_names :
+    "arn:${local.partition}:iam::${local.account_id}:role/${role_name}"
+  ]
 }
 
 resource "aws_sns_topic" "cost_alerts" {
   count = local.create ? 1 : 0
 
-  name              = local.topic_name
+  name = local.topic_name
   # Use AWS-managed SNS key (alias/aws/sns) — satisfies CKV_AWS_50 without CMK cost.
   kms_master_key_id = "alias/aws/sns"
 
@@ -169,4 +191,162 @@ resource "aws_budgets_budget" "daily" {
   }
 
   depends_on = [aws_sns_topic_policy.cost_alerts]
+}
+
+data "aws_iam_policy_document" "budget_actions_assume" {
+  count = local.budget_actions_create ? 1 : 0
+
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["budgets.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [local.account_id]
+    }
+
+    condition {
+      test     = "ArnLike"
+      variable = "aws:SourceArn"
+      values   = ["arn:${local.partition}:budgets::${local.account_id}:*"]
+    }
+  }
+}
+
+resource "aws_iam_role" "budget_actions" {
+  count = local.budget_actions_create ? 1 : 0
+
+  name               = "${var.name_prefix}-budget-actions"
+  assume_role_policy = data.aws_iam_policy_document.budget_actions_assume[0].json
+  tags               = var.tags
+}
+
+data "aws_iam_policy_document" "deny_karpenter_scale_out" {
+  count = local.budget_actions_create ? 1 : 0
+
+  statement {
+    sid    = "DenyKarpenterScaleOut"
+    effect = "Deny"
+    actions = [
+      "ec2:CreateFleet",
+      "ec2:RunInstances",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "deny_karpenter_scale_out" {
+  count = local.budget_actions_create ? 1 : 0
+
+  name        = "${var.name_prefix}-deny-karpenter-scale-out"
+  description = "Budget Action policy: deny Karpenter EC2 scale-out when approved after a budget breach."
+  policy      = data.aws_iam_policy_document.deny_karpenter_scale_out[0].json
+  tags        = var.tags
+}
+
+data "aws_iam_policy_document" "budget_actions_permissions" {
+  count = local.budget_actions_create ? 1 : 0
+
+  statement {
+    sid = "ManageOnlyBudgetDenyPolicyOnTargetRoles"
+    actions = [
+      "iam:AttachRolePolicy",
+      "iam:DetachRolePolicy",
+    ]
+    resources = local.budget_action_target_role_arns
+
+    condition {
+      test     = "ArnEquals"
+      variable = "iam:PolicyARN"
+      values   = [aws_iam_policy.deny_karpenter_scale_out[0].arn]
+    }
+  }
+
+  statement {
+    sid       = "ListTargetRolePolicies"
+    actions   = ["iam:ListAttachedRolePolicies"]
+    resources = local.budget_action_target_role_arns
+  }
+}
+
+resource "aws_iam_role_policy" "budget_actions" {
+  count = local.budget_actions_create ? 1 : 0
+
+  name   = "${var.name_prefix}-budget-actions"
+  role   = aws_iam_role.budget_actions[0].id
+  policy = data.aws_iam_policy_document.budget_actions_permissions[0].json
+}
+
+resource "aws_budgets_budget_action" "monthly_deny_scale_out" {
+  count = local.budget_actions_create ? 1 : 0
+
+  budget_name        = aws_budgets_budget.monthly[0].name
+  action_type        = "APPLY_IAM_POLICY"
+  approval_model     = "MANUAL"
+  notification_type  = "ACTUAL"
+  execution_role_arn = aws_iam_role.budget_actions[0].arn
+
+  action_threshold {
+    action_threshold_type  = "PERCENTAGE"
+    action_threshold_value = var.budget_action_monthly_threshold_percentage
+  }
+
+  definition {
+    iam_action_definition {
+      policy_arn = aws_iam_policy.deny_karpenter_scale_out[0].arn
+      roles      = var.budget_action_iam_target_role_names
+    }
+  }
+
+  subscriber {
+    address           = var.alert_email
+    subscription_type = "EMAIL"
+  }
+
+  tags = var.tags
+
+  depends_on = [
+    aws_iam_role_policy.budget_actions,
+    aws_sns_topic_policy.cost_alerts,
+  ]
+}
+
+resource "aws_budgets_budget_action" "daily_deny_scale_out" {
+  count = local.budget_actions_create && var.create_daily_budget && var.budget_action_daily_enabled ? 1 : 0
+
+  budget_name        = aws_budgets_budget.daily[0].name
+  action_type        = "APPLY_IAM_POLICY"
+  approval_model     = "MANUAL"
+  notification_type  = "ACTUAL"
+  execution_role_arn = aws_iam_role.budget_actions[0].arn
+
+  action_threshold {
+    action_threshold_type  = "PERCENTAGE"
+    action_threshold_value = var.budget_action_daily_threshold_percentage
+  }
+
+  definition {
+    iam_action_definition {
+      policy_arn = aws_iam_policy.deny_karpenter_scale_out[0].arn
+      roles      = var.budget_action_iam_target_role_names
+    }
+  }
+
+  subscriber {
+    address           = var.alert_email
+    subscription_type = "EMAIL"
+  }
+
+  tags = var.tags
+
+  depends_on = [
+    aws_iam_role_policy.budget_actions,
+    aws_sns_topic_policy.cost_alerts,
+  ]
 }

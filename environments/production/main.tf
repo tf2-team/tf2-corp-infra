@@ -316,13 +316,18 @@ module "private_dns" {
 module "cost_budgets" {
   source = "../../modules/cost-budgets"
 
-  enabled             = var.cost_budgets_enabled
-  name_prefix         = var.project_name
-  alert_email         = var.cost_budgets_alert_email
-  monthly_limit_usd   = var.cost_budgets_monthly_limit_usd
-  daily_limit_usd     = var.cost_budgets_daily_limit_usd
-  create_daily_budget = var.cost_budgets_create_daily
-  tags                = var.tags
+  enabled                                    = var.cost_budgets_enabled
+  name_prefix                                = var.project_name
+  alert_email                                = var.cost_budgets_alert_email
+  monthly_limit_usd                          = var.cost_budgets_monthly_limit_usd
+  daily_limit_usd                            = var.cost_budgets_daily_limit_usd
+  create_daily_budget                        = var.cost_budgets_create_daily
+  budget_actions_enabled                     = var.cost_budget_actions_enabled
+  budget_action_iam_target_role_names        = var.cost_budget_actions_enabled && module.karpenter.controller_role_name != null ? [module.karpenter.controller_role_name] : []
+  budget_action_monthly_threshold_percentage = var.cost_budget_action_monthly_threshold_percentage
+  budget_action_daily_threshold_percentage   = var.cost_budget_action_daily_threshold_percentage
+  budget_action_daily_enabled                = var.cost_budget_daily_action_enabled
+  tags                                       = var.tags
 }
 
 # ──────────────────────────────────────────────
@@ -342,4 +347,72 @@ module "cost_anomaly" {
   tags                = var.tags
 }
 
+# ──────────────────────────────────────────────
+# P3: CUR 2.0 Data Export → Athena + Grafana IRSA
+# Existing export discovered via BCM Data Exports: finops-watch-cur.
+# Terraform does not recreate the CUR export; it catalogs and guards queries.
+# ──────────────────────────────────────────────
+
+module "cur_athena" {
+  source = "../../modules/cur-athena"
+
+  providers = {
+    aws = aws.cur
+  }
+
+  enabled                      = var.cur_athena_enabled
+  name_prefix                  = var.project_name
+  cur_bucket_name              = var.cur_athena_cur_bucket_name
+  cur_s3_prefix                = var.cur_athena_cur_s3_prefix
+  cur_export_name              = var.cur_athena_cur_export_name
+  database_name                = var.cur_athena_database_name
+  crawler_name                 = var.cur_athena_crawler_name
+  athena_workgroup_name        = var.cur_athena_workgroup_name
+  athena_results_bucket_name   = var.cur_athena_results_bucket_name
+  athena_bytes_cutoff          = var.cur_athena_bytes_cutoff
+  oidc_provider_arn            = module.eks.oidc_provider_arn
+  oidc_issuer_url              = module.eks.oidc_issuer
+  grafana_namespace            = var.cur_athena_grafana_namespace
+  grafana_service_account_name = var.cur_athena_grafana_service_account_name
+  tags                         = var.tags
+}
+
+# ──────────────────────────────────────────────
+# Overlay: Cost Anomaly Routing via AWS User Notifications (email first)
+# ──────────────────────────────────────────────
+
+module "cost_anomaly_routing" {
+  source = "../../modules/cost-anomaly-routing"
+
+  enabled                 = var.cost_anomaly_routing_enabled
+  name_prefix             = var.project_name
+  notification_email      = var.cost_anomaly_routing_email
+  notification_regions    = var.cost_anomaly_routing_regions
+  notification_hub_region = var.cost_anomaly_routing_hub_region
+  impact_absolute_usd     = var.cost_anomaly_routing_impact_absolute_usd
+  aggregation_duration    = var.cost_anomaly_routing_aggregation_duration
+  tags                    = var.tags
+}
+
+# ──────────────────────────────────────────────
+# Overlay: Cost Optimization Hub + Data Export backlog
+# ──────────────────────────────────────────────
+
+module "cost_optimization_backlog" {
+  source = "../../modules/cost-optimization-backlog"
+
+  enabled                     = var.cost_optimization_backlog_enabled
+  name_prefix                 = var.project_name
+  bucket_name                 = var.cost_optimization_backlog_bucket_name
+  s3_prefix                   = var.cost_optimization_backlog_s3_prefix
+  export_name                 = var.cost_optimization_backlog_export_name
+  database_name               = var.cost_optimization_backlog_database_name
+  crawler_name                = var.cost_optimization_backlog_crawler_name
+  athena_workgroup_name       = var.cost_optimization_backlog_workgroup_name
+  athena_bytes_cutoff         = var.cost_optimization_backlog_athena_bytes_cutoff
+  include_member_accounts     = var.cost_optimization_backlog_include_member_accounts
+  manage_enrollment           = var.cost_optimization_backlog_manage_enrollment
+  include_all_recommendations = var.cost_optimization_backlog_include_all_recommendations
+  tags                        = var.tags
+}
 # Change trail: @hungxqt - 2026-07-15 - Wire bounded production Karpenter lifecycle settings.
