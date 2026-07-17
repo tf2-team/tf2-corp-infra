@@ -20,6 +20,35 @@ locals {
   kms_alias_name = "alias/${var.name_prefix}-cost-optimization-backlog"
   crawler_name   = coalesce(var.crawler_name, "${var.name_prefix}-cost-optimization-backlog")
   export_s3_path = "s3://${var.bucket_name}/${var.s3_prefix}/${var.export_name}/data/"
+
+  recommendation_export_columns = [
+    "account_id",
+    "account_name",
+    "action_type",
+    "currency_code",
+    "current_resource_details",
+    "current_resource_summary",
+    "current_resource_type",
+    "estimated_monthly_cost_after_discount",
+    "estimated_monthly_cost_before_discount",
+    "estimated_monthly_savings_after_discount",
+    "estimated_monthly_savings_before_discount",
+    "estimated_savings_percentage_after_discount",
+    "estimated_savings_percentage_before_discount",
+    "implementation_effort",
+    "last_refresh_timestamp",
+    "recommendation_ID",
+    "recommendation_lookback_period_in_days",
+    "recommendation_source",
+    "recommended_resource_details",
+    "recommended_resource_summary",
+    "recommended_resource_type",
+    "region",
+    "resource_arn",
+    "restart_needed",
+    "rollback_possible",
+    "tags",
+  ]
 }
 
 data "aws_iam_policy_document" "kms" {
@@ -252,7 +281,7 @@ resource "aws_bcmdataexports_export" "recommendations" {
     description = "Cost Optimization Hub recommendations for sprint backlog review."
 
     data_query {
-      query_statement = "SELECT * FROM COST_OPTIMIZATION_RECOMMENDATIONS"
+      query_statement = "SELECT ${join(", ", local.recommendation_export_columns)} FROM COST_OPTIMIZATION_RECOMMENDATIONS"
       table_configurations = {
         COST_OPTIMIZATION_RECOMMENDATIONS = {
           INCLUDE_ALL_RECOMMENDATIONS = upper(tostring(var.include_all_recommendations))
@@ -267,7 +296,7 @@ resource "aws_bcmdataexports_export" "recommendations" {
         s3_region = local.region
 
         s3_output_configurations {
-          overwrite   = "OVERWRITE_REPORT"
+          overwrite   = "CREATE_NEW_REPORT"
           format      = "PARQUET"
           compression = "PARQUET"
           output_type = "CUSTOM"
@@ -328,17 +357,6 @@ data "aws_iam_policy_document" "glue_assume" {
       identifiers = ["glue.amazonaws.com"]
     }
 
-    condition {
-      test     = "StringEquals"
-      variable = "aws:SourceAccount"
-      values   = [local.account_id]
-    }
-
-    condition {
-      test     = "ArnLike"
-      variable = "aws:SourceArn"
-      values   = ["arn:${local.partition}:glue:${local.region}:${local.account_id}:crawler/${local.crawler_name}"]
-    }
   }
 }
 
