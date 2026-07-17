@@ -25,6 +25,7 @@ locals {
 }
 
 data "aws_iam_policy_document" "cur_athena_kms" {
+  #checkov:skip=CKV_AWS_356:KMS key policies require Resource "*" because the policy is scoped to the key it is attached to.
   count = local.create ? 1 : 0
 
   statement {
@@ -118,6 +119,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "athena_results" {
     noncurrent_version_expiration {
       noncurrent_days = 30
     }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
   }
 
   depends_on = [aws_s3_bucket_versioning.athena_results]
@@ -144,6 +149,11 @@ resource "aws_glue_security_configuration" "cur" {
     s3_encryption {
       s3_encryption_mode = "SSE-KMS"
       kms_key_arn        = aws_kms_key.cur_athena[0].arn
+    }
+
+    job_bookmarks_encryption {
+      job_bookmarks_encryption_mode = "CSE-KMS"
+      kms_key_arn                   = aws_kms_key.cur_athena[0].arn
     }
   }
 }
