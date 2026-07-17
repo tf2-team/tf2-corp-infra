@@ -17,9 +17,9 @@ resource "aws_security_group" "msk" {
   vpc_id      = var.vpc_id
 
   ingress {
-    description     = "TLS from EKS cluster nodes"
-    from_port       = 9094
-    to_port         = 9094
+    description     = "SASL SCRAM over TLS from EKS cluster nodes"
+    from_port       = 9096
+    to_port         = 9096
     protocol        = "tcp"
     security_groups = [var.eks_client_security_group_id]
   }
@@ -62,9 +62,9 @@ resource "aws_msk_cluster" "this" {
   }
 
   client_authentication {
-    unauthenticated = true
+    unauthenticated = false
     sasl {
-      scram = false
+      scram = true
       iam   = false
     }
   }
@@ -79,6 +79,37 @@ resource "aws_msk_cluster" "this" {
   }
 
   tags = var.tags
+}
+
+resource "random_password" "scram" {
+  length  = 48
+  special = false
+}
+
+resource "aws_secretsmanager_secret" "scram" {
+  name                    = "AmazonMSK_${var.name}_app"
+  description             = "SCRAM credentials for ${var.name} application Kafka clients"
+  recovery_window_in_days = 7
+  kms_key_id              = aws_kms_key.msk.arn
+
+  tags = merge(var.tags, { Name = "AmazonMSK_${var.name}_app" })
+}
+
+resource "aws_secretsmanager_secret_version" "scram" {
+  secret_id = aws_secretsmanager_secret.scram.id
+  secret_string = jsonencode({
+    username = "techx_app"
+    password = random_password.scram.result
+  })
+}
+
+resource "aws_msk_scram_secret_association" "this" {
+  cluster_arn     = aws_msk_cluster.this.arn
+  secret_arn_list = [aws_secretsmanager_secret.scram.arn]
+
+  depends_on = [
+    aws_secretsmanager_secret_version.scram,
+  ]
 }
 
 resource "aws_cloudwatch_log_group" "msk" {
@@ -99,6 +130,10 @@ resource "aws_secretsmanager_secret" "msk_bootstrap" {
 }
 
 resource "aws_secretsmanager_secret_version" "msk_bootstrap" {
-  secret_id     = aws_secretsmanager_secret.msk_bootstrap.id
-  secret_string = jsonencode({ brokers = aws_msk_cluster.this.bootstrap_brokers_tls })
+  secret_id = aws_secretsmanager_secret.msk_bootstrap.id
+  secret_string = jsonencode({
+    brokers = aws_msk_cluster.this.bootstrap_brokers_sasl_scram
+    broker0 = split(",", aws_msk_cluster.this.bootstrap_brokers_sasl_scram)[0]
+    broker1 = split(",", aws_msk_cluster.this.bootstrap_brokers_sasl_scram)[1]
+  })
 }

@@ -110,8 +110,8 @@ module "external_secrets" {
   cluster_name                = module.eks.cluster_name
   oidc_provider_arn           = module.eks.oidc_provider_arn
   oidc_issuer_url             = module.eks.oidc_issuer
-  secret_arns                 = concat(module.secrets_manager.secret_arns_list, [module.commerce_ha.valkey_auth_secret_arn, module.msk.msk_bootstrap_secret_arn])
-  kms_key_arns                = [module.commerce_ha.commerce_kms_key_arn, module.msk.msk_kms_key_arn]
+  secret_arns                 = concat(module.secrets_manager.secret_arns_list, [module.commerce_ha.valkey_auth_secret_arn, module.msk.msk_bootstrap_secret_arn, module.msk.scram_secret_arn, module.rds_postgresql.connection_secret_arn])
+  kms_key_arns                = [module.commerce_ha.commerce_kms_key_arn, module.msk.msk_kms_key_arn, module.rds_postgresql.kms_key_arn]
   aws_region                  = var.aws_region
   install_helm                = var.external_secrets_install_helm
   create_cluster_secret_store = var.external_secrets_create_cluster_secret_store
@@ -161,6 +161,25 @@ module "commerce_ha" {
   valkey_node_type             = var.commerce_valkey_node_type
   valkey_engine_version        = var.commerce_valkey_engine_version
   private_dns_zone             = var.commerce_private_dns_zone
+  tags                         = var.tags
+}
+
+# DIRECTIVE #8: managed PostgreSQL replaces the in-cluster StatefulSet. RDS
+# owns the master password; application users are loaded during migration.
+module "rds_postgresql" {
+  source = "../../modules/rds-postgresql"
+
+  name                         = var.project_name
+  vpc_id                       = module.vpc.vpc_id
+  subnet_ids                   = [module.vpc.private_subnet_ids["priv-1a-nodes"], module.vpc.private_subnet_ids["priv-1b-nodes"]]
+  eks_client_security_group_id = module.eks.cluster_security_group_id
+  engine_version               = var.rds_postgresql_engine_version
+  instance_class               = var.rds_postgresql_instance_class
+  database_name                = var.rds_postgresql_database_name
+  allocated_storage            = var.rds_postgresql_allocated_storage
+  max_allocated_storage        = var.rds_postgresql_max_allocated_storage
+  multi_az                     = var.rds_postgresql_multi_az
+  backup_retention_period      = var.rds_postgresql_backup_retention_days
   tags                         = var.tags
 }
 
