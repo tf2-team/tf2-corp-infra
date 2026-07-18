@@ -125,6 +125,48 @@ variable "commerce_private_dns_zone" {
   description = "Private Route53 zone providing the stable managed Valkey application address."
 }
 
+variable "rds_postgresql_engine_version" {
+  type        = string
+  default     = "16"
+  description = "Managed PostgreSQL major version."
+}
+
+variable "rds_postgresql_instance_class" {
+  type        = string
+  default     = "db.t4g.small"
+  description = "Cost-aware production RDS class."
+}
+
+variable "rds_postgresql_database_name" {
+  type        = string
+  default     = "otel"
+  description = "Initial RDS database migrated from the in-cluster PostgreSQL instance."
+}
+
+variable "rds_postgresql_allocated_storage" {
+  type        = number
+  default     = 20
+  description = "Initial RDS gp3 storage in GiB."
+}
+
+variable "rds_postgresql_max_allocated_storage" {
+  type        = number
+  default     = 100
+  description = "RDS storage autoscaling ceiling in GiB."
+}
+
+variable "rds_postgresql_multi_az" {
+  type        = bool
+  default     = true
+  description = "Use a synchronous Multi-AZ standby for revenue and accounting data."
+}
+
+variable "rds_postgresql_backup_retention_days" {
+  type        = number
+  default     = 7
+  description = "RDS automated backup and point-in-time recovery retention."
+}
+
 variable "kubernetes_version" {
   type        = string
   default     = "1.31"
@@ -1091,3 +1133,77 @@ variable "cost_optimization_backlog_include_all_recommendations" {
   description = "Export all recommendations for a resource rather than the de-duplicated recommendation"
 }
 # Change trail: @hungxqt - 2026-07-15 - Default karpenter_consolidate_after to 0s for immediate empty reclaim.
+
+# Mem0 managed PostgreSQL
+
+variable "mem0_postgresql_engine_version" {
+  type        = string
+  default     = "17"
+  description = "RDS PostgreSQL engine version for Mem0"
+}
+
+variable "mem0_postgresql_instance_class" {
+  type        = string
+  default     = "db.t4g.small"
+  description = "RDS instance class for Mem0"
+}
+
+variable "mem0_postgresql_allocated_storage" {
+  type        = number
+  default     = 50
+  description = "Initial Mem0 RDS gp3 storage in GiB"
+}
+
+variable "mem0_postgresql_max_allocated_storage" {
+  type        = number
+  default     = 200
+  description = "Mem0 RDS storage autoscaling limit in GiB"
+}
+
+variable "mem0_postgresql_multi_az" {
+  type        = bool
+  default     = false
+  description = "Enable a Multi-AZ standby for Mem0 RDS; disabled for the current single-AZ cost profile"
+}
+
+variable "mem0_postgresql_iam_database_authentication_enabled" {
+  type        = bool
+  default     = true
+  description = "Enable IAM database authentication for the Mem0 workload"
+}
+
+variable "mem0_postgresql_iam_database_user" {
+  type        = string
+  default     = "mem0_app"
+  description = "PostgreSQL application user that the Mem0 IRSA role may connect as"
+}
+
+variable "mem0_postgresql_backup_retention_period" {
+  type        = number
+  default     = 14
+  description = "Mem0 RDS automated backup retention in days"
+}
+
+variable "mem0_postgresql_deletion_protection" {
+  type        = bool
+  default     = true
+  description = "Protect production Mem0 RDS from deletion"
+}
+
+variable "mem0_postgresql_skip_final_snapshot" {
+  type        = bool
+  default     = false
+  description = "Whether production destroy may skip the final RDS snapshot"
+}
+
+variable "mem0_postgresql_performance_insights_enabled" {
+  type        = bool
+  default     = true
+  description = "Enable Performance Insights for Mem0 RDS"
+}
+
+variable "mem0_postgresql_kms_key_id" {
+  type        = string
+  default     = null
+  description = "Optional customer-managed KMS key for Mem0 RDS"
+}

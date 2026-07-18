@@ -138,6 +138,17 @@ locals {
 
   # Nested ECR project prefixes (repos created later by environment stacks).
   # Wildcard ARNs avoid depending on environment module outputs.
+  #
+  # AI models buckets use the env stack naming contract:
+  #   ${project_name}-ai-models-${account_id}
+  # Mem0 IRSA (env stack) only allows GetObject under the FastEmbed prefix;
+  # CI must publish under the same prefix or fetch-mem0-fastembed gets 403.
+  mem0_fastembed_prefix = "fastembed/paraphrase-multilingual-MiniLM-L12-v2"
+  ai_models_buckets = {
+    production  = "techx-prod-tf2-ai-models-${local.account_id}"
+    development = "techx-dev-tf2-ai-models-${local.account_id}"
+  }
+
   github_actions_ecr_roles = {
     production = {
       name                = var.github_actions_ecr_production.role_name
@@ -147,6 +158,15 @@ locals {
       ecr_repository_arns = [
         "arn:aws:ecr:${var.aws_region}:${local.account_id}:repository/${var.github_actions_ecr_production.ecr_project_name}/*",
       ]
+      s3_publish_bucket_arns = [
+        "arn:aws:s3:::${local.ai_models_buckets.production}",
+      ]
+      s3_publish_object_arns = [
+        "arn:aws:s3:::${local.ai_models_buckets.production}/${local.mem0_fastembed_prefix}/*",
+      ]
+      s3_publish_list_prefixes = [
+        "${local.mem0_fastembed_prefix}/*",
+      ]
     }
     development = {
       name                = var.github_actions_ecr_development.role_name
@@ -155,6 +175,15 @@ locals {
       allowed_refs        = var.github_actions_ecr_development.allowed_refs
       ecr_repository_arns = [
         "arn:aws:ecr:${var.aws_region}:${local.account_id}:repository/${var.github_actions_ecr_development.ecr_project_name}/*",
+      ]
+      s3_publish_bucket_arns = [
+        "arn:aws:s3:::${local.ai_models_buckets.development}",
+      ]
+      s3_publish_object_arns = [
+        "arn:aws:s3:::${local.ai_models_buckets.development}/${local.mem0_fastembed_prefix}/*",
+      ]
+      s3_publish_list_prefixes = [
+        "${local.mem0_fastembed_prefix}/*",
       ]
     }
   }
@@ -184,6 +213,10 @@ module "github_actions_ecr" {
   allowed_refs        = each.value.allowed_refs
   oidc_provider_arn   = aws_iam_openid_connect_provider.github.arn
   ecr_repository_arns = each.value.ecr_repository_arns
+
+  s3_publish_bucket_arns   = each.value.s3_publish_bucket_arns
+  s3_publish_object_arns   = each.value.s3_publish_object_arns
+  s3_publish_list_prefixes = each.value.s3_publish_list_prefixes
 
   tags = merge(var.tags, {
     Purpose = "github-actions-ecr-push"
@@ -276,3 +309,5 @@ module "github_actions_terraform" {
     Scope   = each.key
   })
 }
+
+# Change trail: @hungxqt - 2026-07-19 - Grant GHA platform roles S3 publish on Mem0 FastEmbed prefix.
