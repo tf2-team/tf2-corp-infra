@@ -96,3 +96,43 @@ resource "aws_iam_role_policy" "ecr_push" {
   role   = aws_iam_role.this.id
   policy = data.aws_iam_policy_document.ecr_push.json
 }
+
+# Optional: publish Mem0 FastEmbed (or other model caches) to the AI models bucket.
+# Platform CI uses the same OIDC role as ECR push (vars.AWS_ROLE_ARN).
+data "aws_iam_policy_document" "s3_publish" {
+  count = length(var.s3_publish_bucket_arns) > 0 ? 1 : 0
+
+  statement {
+    sid    = "ListModelArtifactPrefixes"
+    effect = "Allow"
+    actions = [
+      "s3:ListBucket",
+    ]
+    resources = var.s3_publish_bucket_arns
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = var.s3_publish_list_prefixes
+    }
+  }
+
+  statement {
+    sid    = "ReadWriteModelArtifacts"
+    effect = "Allow"
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+    ]
+    resources = var.s3_publish_object_arns
+  }
+}
+
+resource "aws_iam_role_policy" "s3_publish" {
+  count = length(var.s3_publish_bucket_arns) > 0 ? 1 : 0
+
+  name   = "${var.name}-s3-model-publish"
+  role   = aws_iam_role.this.id
+  policy = data.aws_iam_policy_document.s3_publish[0].json
+}
+# Change trail: @hungxqt - 2026-07-19 - Grant optional S3 model publish to platform GHA ECR roles.
