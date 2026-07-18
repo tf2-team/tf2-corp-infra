@@ -8,8 +8,8 @@ run "rds_is_private_and_protected" {
     vpc_id                       = "vpc-12345678"
     subnet_ids                   = ["subnet-11111111", "subnet-22222222"]
     eks_client_security_group_id = "sg-12345678"
-    instance_class               = "db.t4g.medium"
-    multi_az                     = true
+    instance_class               = "db.t4g.small"
+    multi_az                     = false
     deletion_protection          = true
     skip_final_snapshot          = false
     tags = {
@@ -33,8 +33,18 @@ run "rds_is_private_and_protected" {
   }
 
   assert {
-    condition     = aws_db_instance.this.multi_az
-    error_message = "The production contract requires Multi-AZ."
+    condition     = !aws_db_instance.this.multi_az
+    error_message = "The current Mem0 production cost profile requires Single-AZ."
+  }
+
+  assert {
+    condition     = aws_db_instance.this.instance_class == "db.t4g.small"
+    error_message = "The current Mem0 production cost profile requires db.t4g.small."
+  }
+
+  assert {
+    condition     = aws_db_instance.this.performance_insights_enabled && aws_db_instance.this.performance_insights_retention_period == 7
+    error_message = "Performance Insights must remain enabled with the default 7-day retention."
   }
 
   assert {

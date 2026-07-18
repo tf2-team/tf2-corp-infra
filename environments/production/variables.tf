@@ -1102,7 +1102,7 @@ variable "mem0_postgresql_engine_version" {
 
 variable "mem0_postgresql_instance_class" {
   type        = string
-  default     = "db.t4g.medium"
+  default     = "db.t4g.small"
   description = "RDS instance class for Mem0"
 }
 
@@ -1120,8 +1120,8 @@ variable "mem0_postgresql_max_allocated_storage" {
 
 variable "mem0_postgresql_multi_az" {
   type        = bool
-  default     = true
-  description = "Enable a Multi-AZ standby for Mem0 RDS"
+  default     = false
+  description = "Enable a Multi-AZ standby for Mem0 RDS; disabled for the current single-AZ cost profile"
 }
 
 variable "mem0_postgresql_backup_retention_period" {
