@@ -317,6 +317,37 @@ output "checkout_outbox_role_arn" {
   description = "IRSA role ARN configured on the checkout ServiceAccount"
 }
 
+output "rds_postgresql_endpoint" {
+  value       = module.rds_postgresql.endpoint
+  description = "Private managed PostgreSQL endpoint used by application DSNs"
+}
+
+output "rds_postgresql_connection_secret_arn" {
+  value       = module.rds_postgresql.connection_secret_arn
+  description = "ASM secret containing RDS connection metadata without credentials"
+}
+
+output "rds_postgresql_master_secret_arn" {
+  value       = module.rds_postgresql.master_user_secret_arn
+  description = "RDS-managed master credential secret for migration/bootstrap only"
+  sensitive   = true
+}
+
+output "msk_cluster_arn" {
+  value       = module.msk.msk_cluster_arn
+  description = "Amazon MSK cluster ARN"
+}
+
+output "msk_bootstrap_secret_arn" {
+  value       = module.msk.msk_bootstrap_secret_arn
+  description = "ASM secret synchronized to application Kafka clients"
+}
+
+output "msk_scram_secret_arn" {
+  value       = module.msk.scram_secret_arn
+  description = "ASM secret containing MSK SCRAM application credentials"
+}
+
 # ──────────────────────────────────────────────
 # Karpenter
 # ──────────────────────────────────────────────

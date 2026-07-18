@@ -85,6 +85,16 @@ commerce_valkey_node_type      = "cache.t4g.micro"
 commerce_valkey_engine_version = "8.0"
 commerce_private_dns_zone      = "techx.internal"
 
+# Directive #8 managed PostgreSQL. Multi-AZ protects the revenue/accounting
+# path; t4g.small and gp3 are the right-sized production starting point.
+rds_postgresql_engine_version        = "16"
+rds_postgresql_instance_class        = "db.t4g.small"
+rds_postgresql_database_name         = "otel"
+rds_postgresql_allocated_storage     = 20
+rds_postgresql_max_allocated_storage = 100
+rds_postgresql_multi_az              = true
+rds_postgresql_backup_retention_days = 7
+
 node_groups = {
   "system-1a" = {
     instance_types = ["t4g.large"]
