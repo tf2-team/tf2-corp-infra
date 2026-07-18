@@ -97,21 +97,22 @@ module "secrets_manager" {
 module "mem0_postgresql" {
   source = "../../modules/mem0-postgresql"
 
-  name                         = var.project_name
-  vpc_id                       = module.vpc.vpc_id
-  subnet_ids                   = module.vpc.private_subnet_ids_list
-  eks_client_security_group_id = module.eks.cluster_security_group_id
-  engine_version               = var.mem0_postgresql_engine_version
-  instance_class               = var.mem0_postgresql_instance_class
-  allocated_storage            = var.mem0_postgresql_allocated_storage
-  max_allocated_storage        = var.mem0_postgresql_max_allocated_storage
-  multi_az                     = var.mem0_postgresql_multi_az
-  backup_retention_period      = var.mem0_postgresql_backup_retention_period
-  deletion_protection          = var.mem0_postgresql_deletion_protection
-  skip_final_snapshot          = var.mem0_postgresql_skip_final_snapshot
-  performance_insights_enabled = var.mem0_postgresql_performance_insights_enabled
-  kms_key_id                   = var.mem0_postgresql_kms_key_id
-  tags                         = var.tags
+  name                                = var.project_name
+  vpc_id                              = module.vpc.vpc_id
+  subnet_ids                          = module.vpc.private_subnet_ids_list
+  eks_client_security_group_id        = module.eks.cluster_security_group_id
+  engine_version                      = var.mem0_postgresql_engine_version
+  instance_class                      = var.mem0_postgresql_instance_class
+  allocated_storage                   = var.mem0_postgresql_allocated_storage
+  max_allocated_storage               = var.mem0_postgresql_max_allocated_storage
+  multi_az                            = var.mem0_postgresql_multi_az
+  iam_database_authentication_enabled = var.mem0_postgresql_iam_database_authentication_enabled
+  backup_retention_period             = var.mem0_postgresql_backup_retention_period
+  deletion_protection                 = var.mem0_postgresql_deletion_protection
+  skip_final_snapshot                 = var.mem0_postgresql_skip_final_snapshot
+  performance_insights_enabled        = var.mem0_postgresql_performance_insights_enabled
+  kms_key_id                          = var.mem0_postgresql_kms_key_id
+  tags                                = var.tags
 }
 
 module "external_secrets" {
@@ -152,6 +153,12 @@ module "ai_model_storage" {
       namespace            = "techx-corp-dev"
       service_account_name = "mem0"
       model_prefix         = "fastembed/paraphrase-multilingual-MiniLM-L12-v2/"
+    }
+  }
+  database_iam_auth = {
+    mem0 = {
+      db_resource_id = module.mem0_postgresql.resource_id
+      database_user  = var.mem0_postgresql_iam_database_user
     }
   }
   tags = var.tags

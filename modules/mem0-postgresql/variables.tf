@@ -75,6 +75,12 @@ variable "multi_az" {
   description = "Whether RDS maintains a synchronous standby in another Availability Zone"
 }
 
+variable "iam_database_authentication_enabled" {
+  type        = bool
+  default     = true
+  description = "Enable IAM database authentication for workload identities that connect to Mem0 PostgreSQL"
+}
+
 variable "backup_retention_period" {
   type        = number
   default     = 7

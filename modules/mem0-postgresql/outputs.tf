@@ -18,6 +18,11 @@ output "instance_arn" {
   description = "Mem0 RDS instance ARN"
 }
 
+output "resource_id" {
+  value       = aws_db_instance.this.resource_id
+  description = "Immutable RDS resource ID used to scope IAM database connect permissions"
+}
+
 output "security_group_id" {
   value       = aws_security_group.this.id
   description = "Security group attached to Mem0 RDS"

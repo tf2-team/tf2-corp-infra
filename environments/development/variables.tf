@@ -657,6 +657,18 @@ variable "mem0_postgresql_multi_az" {
   description = "Enable a Multi-AZ standby for Mem0 RDS"
 }
 
+variable "mem0_postgresql_iam_database_authentication_enabled" {
+  type        = bool
+  default     = true
+  description = "Enable IAM database authentication for the Mem0 workload"
+}
+
+variable "mem0_postgresql_iam_database_user" {
+  type        = string
+  default     = "mem0_app"
+  description = "PostgreSQL application user that the Mem0 IRSA role may connect as"
+}
+
 variable "mem0_postgresql_backup_retention_period" {
   type        = number
   default     = 7

@@ -28,6 +28,11 @@ run "rds_is_private_and_protected" {
   }
 
   assert {
+    condition     = aws_db_instance.this.iam_database_authentication_enabled
+    error_message = "Mem0 RDS must enable IAM database authentication for the workload IRSA role."
+  }
+
+  assert {
     condition     = aws_db_instance.this.manage_master_user_password
     error_message = "RDS must manage the master password in Secrets Manager."
   }
