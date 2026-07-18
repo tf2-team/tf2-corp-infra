@@ -2,6 +2,7 @@ resource "aws_kms_key" "msk" {
   description             = "Encrypt MSK cluster data at rest for ${var.name}"
   deletion_window_in_days = 7
   enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.msk_kms.json
 
   tags = merge(var.tags, { Name = "${var.name}-msk-key" })
 }
@@ -82,8 +83,9 @@ resource "aws_msk_cluster" "this" {
 }
 
 resource "random_password" "scram" {
-  length  = 48
-  special = false
+  length           = 48
+  special          = true
+  override_special = "-"
 }
 
 resource "aws_secretsmanager_secret" "scram" {
@@ -98,7 +100,7 @@ resource "aws_secretsmanager_secret" "scram" {
 resource "aws_secretsmanager_secret_version" "scram" {
   secret_id = aws_secretsmanager_secret.scram.id
   secret_string = jsonencode({
-    username = "techx_app"
+    username = "${var.name}_app"
     password = random_password.scram.result
   })
 }
@@ -129,11 +131,51 @@ resource "aws_secretsmanager_secret" "msk_bootstrap" {
   tags = merge(var.tags, { Name = "${var.name}/msk-bootstrap" })
 }
 
+locals {
+  bootstrap_brokers = nonsensitive(aws_msk_cluster.this.bootstrap_brokers_sasl_scram)
+}
+
 resource "aws_secretsmanager_secret_version" "msk_bootstrap" {
   secret_id = aws_secretsmanager_secret.msk_bootstrap.id
   secret_string = jsonencode({
-    brokers = aws_msk_cluster.this.bootstrap_brokers_sasl_scram
-    broker0 = split(",", aws_msk_cluster.this.bootstrap_brokers_sasl_scram)[0]
-    broker1 = split(",", aws_msk_cluster.this.bootstrap_brokers_sasl_scram)[1]
+    brokers = local.bootstrap_brokers
+    broker0 = length(split(",", local.bootstrap_brokers)) > 0 ? split(",", local.bootstrap_brokers)[0] : ""
+    broker1 = length(split(",", local.bootstrap_brokers)) > 1 ? split(",", local.bootstrap_brokers)[1] : ""
   })
+}
+
+data "aws_caller_identity" "current" {}
+
+data "aws_iam_policy_document" "msk_kms" {
+  statement {
+    sid       = "Enable IAM User Permissions"
+    effect    = "Allow"
+    actions   = ["kms:*"]
+    resources = ["*"]
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+  }
+
+  statement {
+    sid       = "Allow MSK to decrypt secrets"
+    effect    = "Allow"
+    actions   = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:CreateGrant"
+    ]
+    resources = ["*"]
+    principals {
+      type        = "Service"
+      identifiers = ["kafka.amazonaws.com"]
+    }
+    principals {
+      type        = "AWS"
+      identifiers = [
+        "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/kafka.amazonaws.com/AWSServiceRoleForKafka"
+      ]
+    }
+  }
 }
