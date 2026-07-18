@@ -81,6 +81,7 @@ resource "aws_eks_node_group" "this" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "${var.cluster_name}-${each.key}"
   node_role_arn   = aws_iam_role.node.arn
+  version         = var.kubernetes_version
 
   # Nếu node group không chỉ định subnet riêng thì dùng subnet của cluster
   subnet_ids = each.value.subnet_ids != null ? each.value.subnet_ids : var.subnet_ids
