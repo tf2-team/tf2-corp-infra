@@ -38,6 +38,12 @@ run "consumer_roles_are_isolated" {
         model_prefix         = "fastembed/paraphrase-multilingual-MiniLM-L12-v2/"
       }
     }
+    database_iam_auth = {
+      mem0 = {
+        db_resource_id = "db-ABCDEFGHIJKLMNOPQRSTUVWX"
+        database_user  = "mem0_app"
+      }
+    }
   }
 
   assert {
@@ -63,6 +69,11 @@ run "consumer_roles_are_isolated" {
   assert {
     condition     = !output.consumer_access_contracts["mem0"].allow_list_bucket
     error_message = "Mem0 must not receive bucket-list permission."
+  }
+
+  assert {
+    condition     = output.database_iam_access_contracts["mem0"].database_user == "mem0_app"
+    error_message = "Mem0 IRSA must be scoped to the mem0_app database user."
   }
 
   assert {
