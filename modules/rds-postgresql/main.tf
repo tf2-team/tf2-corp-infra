@@ -117,12 +117,13 @@ resource "aws_db_instance" "this" {
   storage_encrypted     = true
   kms_key_id            = aws_kms_key.rds.arn
 
-  multi_az               = var.multi_az
-  publicly_accessible    = false
-  db_subnet_group_name   = aws_db_subnet_group.this.name
-  vpc_security_group_ids = [aws_security_group.rds.id]
-  parameter_group_name   = aws_db_parameter_group.this.name
-  port                   = 5432
+  multi_az                            = var.multi_az
+  iam_database_authentication_enabled = true
+  publicly_accessible                 = false
+  db_subnet_group_name                = aws_db_subnet_group.this.name
+  vpc_security_group_ids              = [aws_security_group.rds.id]
+  parameter_group_name                = aws_db_parameter_group.this.name
+  port                                = 5432
 
   backup_retention_period = var.backup_retention_period
   backup_window           = "17:00-18:00"

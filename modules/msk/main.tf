@@ -147,6 +147,9 @@ resource "aws_secretsmanager_secret_version" "msk_bootstrap" {
 data "aws_caller_identity" "current" {}
 
 data "aws_iam_policy_document" "msk_kms" {
+  #checkov:skip=CKV_AWS_356:KMS key policies require Resource "*" because the policy is scoped to the key it is attached to.
+  #checkov:skip=CKV_AWS_109:KMS key policy is scoped by account root principal and kafka service principal.
+  #checkov:skip=CKV_AWS_111:KMS key policy is scoped by account root principal and kafka service principal.
   statement {
     sid       = "Enable IAM User Permissions"
     effect    = "Allow"
@@ -159,9 +162,9 @@ data "aws_iam_policy_document" "msk_kms" {
   }
 
   statement {
-    sid       = "Allow MSK to decrypt secrets"
-    effect    = "Allow"
-    actions   = [
+    sid    = "Allow MSK to decrypt secrets"
+    effect = "Allow"
+    actions = [
       "kms:Decrypt",
       "kms:DescribeKey",
       "kms:CreateGrant"
@@ -172,7 +175,7 @@ data "aws_iam_policy_document" "msk_kms" {
       identifiers = ["kafka.amazonaws.com"]
     }
     principals {
-      type        = "AWS"
+      type = "AWS"
       identifiers = [
         "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/kafka.amazonaws.com/AWSServiceRoleForKafka"
       ]
