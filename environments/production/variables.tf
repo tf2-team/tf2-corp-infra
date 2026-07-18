@@ -125,6 +125,48 @@ variable "commerce_private_dns_zone" {
   description = "Private Route53 zone providing the stable managed Valkey application address."
 }
 
+variable "rds_postgresql_engine_version" {
+  type        = string
+  default     = "16"
+  description = "Managed PostgreSQL major version."
+}
+
+variable "rds_postgresql_instance_class" {
+  type        = string
+  default     = "db.t4g.small"
+  description = "Cost-aware production RDS class."
+}
+
+variable "rds_postgresql_database_name" {
+  type        = string
+  default     = "otel"
+  description = "Initial RDS database migrated from the in-cluster PostgreSQL instance."
+}
+
+variable "rds_postgresql_allocated_storage" {
+  type        = number
+  default     = 20
+  description = "Initial RDS gp3 storage in GiB."
+}
+
+variable "rds_postgresql_max_allocated_storage" {
+  type        = number
+  default     = 100
+  description = "RDS storage autoscaling ceiling in GiB."
+}
+
+variable "rds_postgresql_multi_az" {
+  type        = bool
+  default     = true
+  description = "Use a synchronous Multi-AZ standby for revenue and accounting data."
+}
+
+variable "rds_postgresql_backup_retention_days" {
+  type        = number
+  default     = 7
+  description = "RDS automated backup and point-in-time recovery retention."
+}
+
 variable "kubernetes_version" {
   type        = string
   default     = "1.31"
