@@ -440,3 +440,28 @@ output "client_vpn_operator_note" {
   description = "Operator enable sequence for Client VPN admin access"
 }
 # Change trail: @hungxqt - 2026-07-16 - Point Argo bootstrap output at root app-of-apps path.
+
+output "mem0_postgresql_endpoint" {
+  value       = module.mem0_postgresql.endpoint
+  description = "Private RDS PostgreSQL hostname for Mem0"
+}
+
+output "mem0_postgresql_port" {
+  value       = module.mem0_postgresql.port
+  description = "Mem0 RDS PostgreSQL port"
+}
+
+output "mem0_postgresql_database_name" {
+  value       = module.mem0_postgresql.database_name
+  description = "Mem0 RDS database name"
+}
+
+output "mem0_postgresql_master_user_secret_arn" {
+  value       = module.mem0_postgresql.master_user_secret_arn
+  description = "RDS-managed master secret ARN for the Mem0 migration job"
+}
+
+output "mem0_postgresql_security_group_id" {
+  value       = module.mem0_postgresql.security_group_id
+  description = "Security group attached to Mem0 RDS"
+}

@@ -73,6 +73,20 @@ variable "consumers" {
   }
 }
 
+variable "database_iam_auth" {
+  type = map(object({
+    db_resource_id = string
+    database_user  = string
+  }))
+  default     = {}
+  description = "Optional RDS IAM database-connect contracts keyed by model consumer"
+
+  validation {
+    condition     = alltrue([for consumer_name in keys(var.database_iam_auth) : contains(keys(var.consumers), consumer_name)])
+    error_message = "Each database IAM auth entry must reference a defined consumer."
+  }
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

@@ -624,3 +624,77 @@ variable "client_vpn_alb_security_group_ids" {
   EOT
 }
 # Change trail: @hungxqt - 2026-07-15 - Default karpenter_consolidate_after to 0s for immediate empty reclaim.
+
+# Mem0 managed PostgreSQL
+
+variable "mem0_postgresql_engine_version" {
+  type        = string
+  default     = "17"
+  description = "RDS PostgreSQL engine version for Mem0"
+}
+
+variable "mem0_postgresql_instance_class" {
+  type        = string
+  default     = "db.t4g.micro"
+  description = "RDS instance class for Mem0"
+}
+
+variable "mem0_postgresql_allocated_storage" {
+  type        = number
+  default     = 20
+  description = "Initial Mem0 RDS gp3 storage in GiB"
+}
+
+variable "mem0_postgresql_max_allocated_storage" {
+  type        = number
+  default     = 100
+  description = "Mem0 RDS storage autoscaling limit in GiB"
+}
+
+variable "mem0_postgresql_multi_az" {
+  type        = bool
+  default     = false
+  description = "Enable a Multi-AZ standby for Mem0 RDS"
+}
+
+variable "mem0_postgresql_iam_database_authentication_enabled" {
+  type        = bool
+  default     = true
+  description = "Enable IAM database authentication for the Mem0 workload"
+}
+
+variable "mem0_postgresql_iam_database_user" {
+  type        = string
+  default     = "mem0_app"
+  description = "PostgreSQL application user that the Mem0 IRSA role may connect as"
+}
+
+variable "mem0_postgresql_backup_retention_period" {
+  type        = number
+  default     = 7
+  description = "Mem0 RDS automated backup retention in days"
+}
+
+variable "mem0_postgresql_deletion_protection" {
+  type        = bool
+  default     = false
+  description = "Protect Mem0 RDS from deletion"
+}
+
+variable "mem0_postgresql_skip_final_snapshot" {
+  type        = bool
+  default     = true
+  description = "Skip a final snapshot when destroying development Mem0 RDS"
+}
+
+variable "mem0_postgresql_performance_insights_enabled" {
+  type        = bool
+  default     = false
+  description = "Enable Performance Insights for Mem0 RDS"
+}
+
+variable "mem0_postgresql_kms_key_id" {
+  type        = string
+  default     = null
+  description = "Optional customer-managed KMS key for Mem0 RDS"
+}

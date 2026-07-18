@@ -1,5 +1,7 @@
 data "aws_caller_identity" "current" {}
 
+data "aws_partition" "current" {}
+
 # Preserve the existing product-reviews IAM resources while the module moves
 # from a single hard-coded consumer to the multi-consumer map.
 moved {
@@ -141,6 +143,17 @@ data "aws_iam_policy_document" "model_read" {
         variable = "s3:prefix"
         values   = ["${each.value.model_prefix}*"]
       }
+    }
+  }
+
+  dynamic "statement" {
+    for_each = contains(keys(var.database_iam_auth), each.key) ? [var.database_iam_auth[each.key]] : []
+
+    content {
+      sid       = "ConnectToMem0PostgresWithIam"
+      effect    = "Allow"
+      actions   = ["rds-db:connect"]
+      resources = ["arn:${data.aws_partition.current.partition}:rds-db:${var.aws_region}:${data.aws_caller_identity.current.account_id}:dbuser:${statement.value.db_resource_id}/${statement.value.database_user}"]
     }
   }
 }

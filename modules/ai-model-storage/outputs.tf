@@ -31,6 +31,11 @@ output "consumer_access_contracts" {
   value       = local.consumer_access_contracts
 }
 
+output "database_iam_access_contracts" {
+  value       = var.database_iam_auth
+  description = "RDS IAM database-connect contracts attached to consumer IRSA roles"
+}
+
 output "s3_vpc_endpoint_id" {
   value = aws_vpc_endpoint.s3.id
 }

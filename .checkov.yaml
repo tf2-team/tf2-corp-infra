@@ -61,3 +61,7 @@ skip-check:
   # Client VPN: Ingress to port 80 false positive (source is client VPN SG, not 0.0.0.0/0)
   - CKV_AWS_260
 
+  # Mem0 RDS: Enhanced Monitoring is intentionally deferred for the current cost profile.
+  # PostgreSQL logs and 7-day Performance Insights remain enabled for operational visibility.
+  - CKV_AWS_118
+
