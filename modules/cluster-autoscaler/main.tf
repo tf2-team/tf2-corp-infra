@@ -157,6 +157,31 @@ resource "helm_release" "cluster_autoscaler" {
       nodeSelector = {
         "workload-class" = "critical"
       }
+      securityContext = {
+        runAsNonRoot = true
+        runAsUser    = 65534
+        runAsGroup   = 65534
+        seccompProfile = {
+          type = "RuntimeDefault"
+        }
+      }
+      containerSecurityContext = {
+        allowPrivilegeEscalation = false
+        readOnlyRootFilesystem   = true
+        capabilities = {
+          drop = ["ALL"]
+        }
+      }
+      resources = {
+        requests = {
+          cpu    = "100m"
+          memory = "300Mi"
+        }
+        limits = {
+          cpu    = "500m"
+          memory = "600Mi"
+        }
+      }
       rbac = {
         create = true
         serviceAccount = {
