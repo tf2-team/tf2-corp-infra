@@ -53,16 +53,10 @@ variable "immutable_audit_cloudwatch_retention_days" {
   default     = 90
 }
 
-variable "audit_alert_lambda_function_name" {
-  type        = string
-  description = "Existing Lambda function name used to send audit/security alerts."
-  default     = "tf2-audit-alert-telegram"
-}
-
-variable "audit_alert_dlq_name" {
-  type        = string
-  description = "Existing SQS DLQ name for EventBridge audit alert target delivery failures."
-  default     = "tf2-audit-alert-dlq"
+variable "immutable_audit_alert_email_endpoints" {
+  type        = set(string)
+  description = "Email endpoints subscribed to Mandate 12.1 immutable audit tamper SNS alerts. Subscribers must confirm the AWS email."
+  default     = []
 }
 
 variable "ecr_project_name" {

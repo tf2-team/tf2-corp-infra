@@ -7,6 +7,9 @@ tags = {
   Project     = "techx-platform"
 }
 
+# Mandate 12.1 audit tamper email alerts. Add real inboxes and confirm AWS SNS subscription emails after apply.
+immutable_audit_alert_email_endpoints = []
+
 # Image format: REGISTRY/techx-prod-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
 # Lifecycle matches development (keep last 5 images + 1 buildcache).

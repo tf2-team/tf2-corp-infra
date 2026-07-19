@@ -16,14 +16,6 @@ locals {
   immutable_audit_trail_arn = "arn:${data.aws_partition.current.partition}:cloudtrail:${var.aws_region}:${data.aws_caller_identity.current.account_id}:trail/${local.immutable_audit_trail_name}"
 }
 
-data "aws_lambda_function" "audit_alert" {
-  function_name = var.audit_alert_lambda_function_name
-}
-
-data "aws_sqs_queue" "audit_alert_dlq" {
-  name = var.audit_alert_dlq_name
-}
-
 data "aws_iam_policy_document" "immutable_audit_kms" {
   #checkov:skip=CKV_AWS_109:KMS key policies are scoped by the attached key; the root statement follows AWS KMS guidance so IAM can administer the key.
   #checkov:skip=CKV_AWS_111:KMS key policies require Resource "*" because the policy is attached directly to one key; service statements are constrained by SourceArn/encryption context where supported.
@@ -507,6 +499,97 @@ resource "aws_cloudtrail" "immutable_audit" {
   ]
 }
 
+data "aws_iam_policy_document" "immutable_audit_alert_sns_kms" {
+  #checkov:skip=CKV_AWS_109:KMS key policies are scoped by the attached key; the root statement follows AWS KMS guidance so IAM can administer the key.
+  #checkov:skip=CKV_AWS_111:KMS key policies require Resource "*" because the policy is attached directly to one key; service statements are limited to SNS and EventBridge.
+  #checkov:skip=CKV_AWS_356:KMS key policies require Resource "*" because the key policy itself is the resource boundary.
+  statement {
+    sid    = "EnableRootPermissions"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowSnsUseOfKey"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["sns.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey*",
+      "kms:ReEncrypt*",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowEventBridgePublishToEncryptedSns"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["events.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:GenerateDataKey*",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_kms_key" "immutable_audit_alert_sns" {
+  description             = "KMS key for ${local.immutable_audit_trail_name} tamper alert SNS topic"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.immutable_audit_alert_sns_kms.json
+
+  tags = merge(var.tags, {
+    Name    = "${local.immutable_audit_trail_name}-tamper-alerts-kms"
+    Mandate = "MD12"
+    Purpose = "audit-anti-defeat-email-alerts"
+  })
+}
+
+resource "aws_kms_alias" "immutable_audit_alert_sns" {
+  name          = "alias/${local.immutable_audit_trail_name}-tamper-alerts"
+  target_key_id = aws_kms_key.immutable_audit_alert_sns.key_id
+}
+
+resource "aws_sns_topic" "immutable_audit_tamper_alerts" {
+  name              = "${local.immutable_audit_trail_name}-tamper-alerts"
+  kms_master_key_id = aws_kms_key.immutable_audit_alert_sns.arn
+
+  tags = merge(var.tags, {
+    Name    = "${local.immutable_audit_trail_name}-tamper-alerts"
+    Mandate = "MD12"
+    Purpose = "audit-anti-defeat-email-alerts"
+  })
+}
+
+resource "aws_sns_topic_subscription" "immutable_audit_tamper_email" {
+  for_each = var.immutable_audit_alert_email_endpoints
+
+  topic_arn = aws_sns_topic.immutable_audit_tamper_alerts.arn
+  protocol  = "email"
+  endpoint  = each.value
+}
+
 locals {
   immutable_audit_tamper_event_rules = {
     trail = {
@@ -594,22 +677,36 @@ resource "aws_cloudwatch_event_target" "immutable_audit_tamper" {
   for_each = aws_cloudwatch_event_rule.immutable_audit_tamper
 
   rule      = each.value.name
-  target_id = "telegram-audit-alert"
-  arn       = data.aws_lambda_function.audit_alert.arn
+  target_id = "email-audit-alert"
+  arn       = aws_sns_topic.immutable_audit_tamper_alerts.arn
 
-  dead_letter_config {
-    arn = data.aws_sqs_queue.audit_alert_dlq.arn
+  depends_on = [aws_sns_topic_policy.immutable_audit_tamper_alerts]
+}
+
+data "aws_iam_policy_document" "immutable_audit_tamper_alerts" {
+  statement {
+    sid    = "AllowEventBridgePublishTamperAlerts"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["events.amazonaws.com"]
+    }
+
+    actions   = ["sns:Publish"]
+    resources = [aws_sns_topic.immutable_audit_tamper_alerts.arn]
+
+    condition {
+      test     = "ArnLike"
+      variable = "aws:SourceArn"
+      values   = [for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.arn]
+    }
   }
 }
 
-resource "aws_lambda_permission" "immutable_audit_tamper_eventbridge" {
-  for_each = aws_cloudwatch_event_rule.immutable_audit_tamper
-
-  statement_id  = "AllowAuditTamperEventBridge${title(each.key)}"
-  action        = "lambda:InvokeFunction"
-  function_name = data.aws_lambda_function.audit_alert.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = each.value.arn
+resource "aws_sns_topic_policy" "immutable_audit_tamper_alerts" {
+  arn    = aws_sns_topic.immutable_audit_tamper_alerts.arn
+  policy = data.aws_iam_policy_document.immutable_audit_tamper_alerts.json
 }
 
 module "ecr" {

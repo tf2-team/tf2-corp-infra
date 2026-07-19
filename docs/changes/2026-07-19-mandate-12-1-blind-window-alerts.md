@@ -6,20 +6,20 @@ Mandate 12.1 requires that CloudTrail logging cannot be stopped, deleted, or wea
 
 ## Decision
 
-Add production EventBridge alert rules that invoke the existing Telegram audit alert Lambda for high-risk audit tamper APIs:
+Add production EventBridge alert rules that publish to a dedicated SNS email alert topic for high-risk audit tamper APIs:
 
 - CloudTrail: `StopLogging`, `DeleteTrail`, `UpdateTrail`, `PutEventSelectors`.
 - S3 immutable audit bucket: `PutBucketPolicy`, `DeleteBucketPolicy`, `PutLifecycleConfiguration`, `DeleteBucketLifecycle`, `PutBucketVersioning`, `PutBucketObjectLockConfiguration`.
 - KMS audit keys: `PutKeyPolicy`, `DisableKey`, `ScheduleKeyDeletion`.
 
-The rules reuse:
+The alert destination is:
 
-- Lambda: `tf2-audit-alert-telegram`.
-- DLQ: `tf2-audit-alert-dlq`.
+- SNS topic: `${project_name}-mandate12-immutable-audit-tamper-alerts`.
+- Email subscriptions from `immutable_audit_alert_email_endpoints`.
 
 ## Scope
 
-This change provides immediate alerting for blind-window attempts. It does not yet add IAM/SCP deny controls, because that can break shared admin and CI/CD workflows if scoped incorrectly.
+This change provides simple email alerting for blind-window attempts. It does not yet add IAM/SCP deny controls, because that can break shared admin and CI/CD workflows if scoped incorrectly.
 
 ## Verification
 
@@ -29,9 +29,10 @@ After apply, verify the EventBridge rules exist and are enabled:
 aws events describe-rule --name techx-prod-tf2-mandate12-immutable-audit-trail-tamper --region us-east-1
 aws events describe-rule --name techx-prod-tf2-mandate12-immutable-audit-bucket-tamper --region us-east-1
 aws events describe-rule --name techx-prod-tf2-mandate12-immutable-audit-kms-tamper --region us-east-1
+aws sns list-subscriptions-by-topic --topic-arn "$(terraform output -raw immutable_audit_tamper_alert_topic_arn)" --region us-east-1
 ```
 
-Then perform one safe test such as `cloudtrail:UpdateTrail` dry reconfiguration or a controlled `StopLogging` attempt only if the team is ready to immediately start logging again. Expected result: Telegram alert contains actor, time, API name, and target context.
+Each email endpoint must confirm the AWS subscription email before alerts are delivered. Then perform one safe test such as `cloudtrail:UpdateTrail` dry reconfiguration or a controlled `StopLogging` attempt only if the team is ready to immediately start logging again. Expected result: email alert contains the raw CloudTrail event with actor, time, API name, and target context.
 
 ## Follow-up
 
