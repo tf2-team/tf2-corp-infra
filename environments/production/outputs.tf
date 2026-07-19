@@ -24,7 +24,7 @@ output "immutable_audit_trail_arn" {
 
 output "immutable_audit_kms_key_arn" {
   value       = aws_kms_key.immutable_audit.arn
-  description = "Customer-managed KMS key encrypting immutable CloudTrail logs and delivery integrations"
+  description = "Customer-managed KMS key encrypting immutable CloudTrail log files and CloudWatch Logs delivery"
 }
 
 output "immutable_audit_cloudwatch_log_group_name" {
