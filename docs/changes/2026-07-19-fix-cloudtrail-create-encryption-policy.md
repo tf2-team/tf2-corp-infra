@@ -18,20 +18,20 @@ CloudTrail pre-validates bucket and KMS policies for `cloudtrail.amazonaws.com` 
 ## Before
 
 * S3 and SNS Allow statements conditioned on `AWS:SourceArn` instead of the canonical global key `aws:SourceArn`.
-* SNS topic encryption with the CloudTrail CMK added an extra customer-managed KMS permission path during CloudTrail CreateTrail preflight.
+* SNS topic encryption with the CloudTrail log CMK added an extra customer-managed KMS permission path during CloudTrail CreateTrail preflight.
 * S3 bucket default encryption had already been reduced to SSE-S3 so trail-level CMK remains the CloudTrail log-file encryption path.
 
 ## After
 
 * All CloudTrail SourceArn conditions use `aws:SourceArn`.
 * KMS key policy allows the `cloudtrail.amazonaws.com` service principal to use the CMK for trail-level log file encryption.
-* SNS delivery notifications remain configured and encrypted with AWS managed key `alias/aws/sns` to avoid another customer-managed CMK preflight dependency.
+* SNS delivery notifications remain configured and encrypted with a separate customer-managed KMS key whose policy explicitly allows SNS and CloudTrail.
 * CloudTrail `depends_on` also waits for KMS key and bucket default encryption config.
 
 ## Technical Design Decisions
 
 * Keep SSE-S3 on the bucket default encryption; trail-level CMK remains the log-file encryption path (avoids double-KMS delivery issues).
-* Keep SNS encrypted with `alias/aws/sns`; the immutable log evidence is protected by CloudTrail CMK + S3 Object Lock.
+* Keep SNS encrypted with a dedicated SNS CMK; the immutable log evidence is separately protected by CloudTrail CMK + S3 Object Lock.
 * Do not recreate the Object Lock bucket or CMK; policy updates only.
 
 ## Implementation Details
@@ -91,7 +91,7 @@ Expect `"IsLogging": true`. Confirm bucket policy / key policy JSON contain `"aw
 | Risk | Likelihood | Severity | Mitigation / Rollback |
 |---|---|---|---|
 | CloudTrail CMK policy still too tight for CreateTrail preflight | Low | Medium | Service-principal CloudTrail statement remains intentionally simple |
-| SNS topic no longer uses this CMK | Low | Low | SNS still encrypts at rest with AWS managed key `alias/aws/sns`; immutable evidence remains in Object Lock S3 with trail-level CMK |
+| SNS topic no longer uses the CloudTrail log CMK | Low | Low | SNS uses a separate customer-managed key; immutable evidence remains in Object Lock S3 with trail-level CMK |
 
 **Rollback procedure:** Revert this commit and re-apply; trail may already exist—remove trail first if reverting to a broken policy is required for testing.
 

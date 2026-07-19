@@ -95,6 +95,78 @@ resource "aws_kms_alias" "immutable_audit" {
   target_key_id = aws_kms_key.immutable_audit.key_id
 }
 
+data "aws_iam_policy_document" "immutable_audit_sns_kms" {
+  #checkov:skip=CKV_AWS_109:KMS key policies are scoped by the attached key; the root statement follows AWS KMS guidance so IAM can administer the key.
+  #checkov:skip=CKV_AWS_111:KMS key policies require Resource "*" because the policy is attached directly to one key; service statements are limited to SNS and CloudTrail.
+  #checkov:skip=CKV_AWS_356:KMS key policies require Resource "*" because the key policy itself is the resource boundary.
+  statement {
+    sid    = "EnableRootPermissions"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowSnsUseOfKey"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["sns.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey*",
+      "kms:ReEncrypt*",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowCloudTrailPublishToEncryptedSns"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:GenerateDataKey*",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_kms_key" "immutable_audit_sns" {
+  description             = "KMS key for ${local.immutable_audit_trail_name} SNS delivery notifications"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.immutable_audit_sns_kms.json
+
+  tags = merge(var.tags, {
+    Name    = "${local.immutable_audit_trail_name}-sns-kms"
+    Mandate = "MD4-MD12"
+    Purpose = "immutable-cloudtrail-audit-notifications"
+  })
+}
+
+resource "aws_kms_alias" "immutable_audit_sns" {
+  name          = "alias/${local.immutable_audit_trail_name}-sns"
+  target_key_id = aws_kms_key.immutable_audit_sns.key_id
+}
+
 resource "aws_s3_bucket" "immutable_audit" {
   #checkov:skip=CKV_AWS_18:This bucket is the immutable CloudTrail destination; access is audited by CloudTrail, SNS notifications, CloudWatch Logs, and Object Lock evidence.
   #checkov:skip=CKV_AWS_144:Cross-region replication is intentionally omitted for the capstone budget; CloudTrail is multi-region and log integrity validation is enabled.
@@ -302,7 +374,7 @@ resource "aws_s3_bucket_policy" "immutable_audit" {
 
 resource "aws_sns_topic" "immutable_audit" {
   name              = "${local.immutable_audit_trail_name}-notifications"
-  kms_master_key_id = "alias/aws/sns"
+  kms_master_key_id = aws_kms_key.immutable_audit_sns.arn
 
   tags = merge(var.tags, {
     Name    = "${local.immutable_audit_trail_name}-notifications"
@@ -418,6 +490,7 @@ resource "aws_cloudtrail" "immutable_audit" {
 
   depends_on = [
     aws_kms_key.immutable_audit,
+    aws_kms_key.immutable_audit_sns,
     aws_iam_role_policy.immutable_audit_cloudtrail_logs,
     aws_s3_bucket_object_lock_configuration.immutable_audit,
     aws_s3_bucket_policy.immutable_audit,

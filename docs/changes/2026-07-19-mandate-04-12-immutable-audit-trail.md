@@ -12,6 +12,7 @@ Add a dedicated production CloudTrail that writes to a new S3 bucket with:
 - S3 Versioning enabled.
 - Default Object Lock retention of 90 days in Governance mode.
 - Customer-managed KMS encryption for CloudTrail log files.
+- Separate customer-managed KMS encryption for SNS delivery notifications.
 - CloudTrail log file integrity validation enabled.
 - Multi-region management events enabled.
 - CloudWatch Logs integration for near-real-time query.
@@ -30,7 +31,8 @@ Do not delete the Object Lock bucket while retained objects exist. If the new tr
 If `CreateTrail` fails with `InsufficientEncryptionPolicyException`, ensure:
 
 * S3/SNS conditions use `aws:SourceArn` (not `AWS:SourceArn`).
-* KMS key policy includes multi-region CloudTrail encrypt (`GenerateDataKey*` + EncryptionContext `trail/*`) and `DescribeKey`.
+* CloudTrail log CMK permits the CloudTrail service principal.
+* SNS notification CMK separately permits SNS and CloudTrail.
 
 See `docs/changes/2026-07-19-fix-cloudtrail-create-encryption-policy.md`.
 
