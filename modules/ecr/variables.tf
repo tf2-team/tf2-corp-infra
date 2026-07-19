@@ -26,6 +26,7 @@ variable "services" {
   EOT
 
   # Keep in sync with techx-corp-platform docker-compose.yml services that use ${IMAGE_NAME}/...
+  # and docker-bake.hcl group "release" once a service is publishable.
   default = [
     "accounting",
     "ad",
@@ -45,6 +46,7 @@ variable "services" {
     "quote",
     "recommendation",
     "shipping",
+    "shopping-copilot",
     "flagd-ui",
     "kafka",
     "llm",
@@ -127,4 +129,4 @@ variable "repositories" {
   EOT
 }
 
-# Change trail: @hungxqt - 2026-07-19 - Default image_tag_mutability to IMMUTABLE for all service repos.
+# Change trail: @hungxqt - 2026-07-19 - Add shopping-copilot to the default ECR service catalog.

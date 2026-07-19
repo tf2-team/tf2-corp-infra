@@ -643,6 +643,12 @@ module "ai_model_storage" {
       model_prefix         = "protectai/deberta-v3-base-prompt-injection-v2/"
       allow_list_bucket    = true
     }
+    shopping-copilot = {
+      namespace            = "techx-corp-prod"
+      service_account_name = "shopping-copilot"
+      model_prefix         = "protectai/deberta-v3-base-prompt-injection-v2/"
+      allow_list_bucket    = true
+    }
     mem0 = {
       namespace            = "techx-corp-prod"
       service_account_name = "mem0"
