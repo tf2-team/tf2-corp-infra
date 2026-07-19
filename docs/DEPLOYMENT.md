@@ -313,7 +313,7 @@ Full comparison (CA vs Karpenter vs EKS Auto Mode), verification scale-test, and
 
 ## Phase 1b-extra: Workload placement (critical MNG vs Karpenter hard placement)
 
-**Critical floor:** `system-1a` / `system-1b` (`workload-class=critical`, On-Demand, `max_size=2` ceiling only — **no** Cluster Autoscaler auto scale-out). Legacy `general-*` remains during dual-run migration.
+**Critical floor:** `system-1a` / `system-1b` (`workload-class=critical`, On-Demand). **Cluster Autoscaler** scales these MNGs within Terraform `min_size`/`max_size`. Karpenter scales spot-tolerant app capacity only.
 
 **Karpenter:** labeled + tainted `workload-class=spot-tolerant:NoSchedule` for classified stateless apps.
 
@@ -336,18 +336,18 @@ Details, capacity gates, canaries, rollback: **`docs/workload-placement.md`**.
 
 ---
 
-## Phase 1c: Cluster Autoscaler (optional, off by default)
+## Phase 1c: Cluster Autoscaler (hybrid: system MNG)
 
-Default capacity remains **small managed node groups + Karpenter**. Cluster Autoscaler is wired in Terraform but **disabled** in both environments (`cluster_autoscaler_enabled = false`, `cluster_autoscaler_install_helm = false`).
+Default capacity model is **system MNG (Cluster Autoscaler) + Karpenter (elastic apps)**. Both environments enable CA (`cluster_autoscaler_enabled = true`, `cluster_autoscaler_install_helm = true`).
 
-* CA scales **MNG ASGs only** within `min_size`/`max_size` — not Karpenter nodes.
-* **Do not** enable CA Helm while Karpenter install/NodePools are active (Terraform `check` enforces mutual exclusion).
-* For CA-only mode: disable Karpenter first, then flip CA flags. Full runbook: **`docs/cluster-autoscaler.md`**.
+* CA scales **system-\*** MNG ASGs only within `min_size`/`max_size` — not Karpenter nodes.
+* Coexistence with Karpenter is supported: discovery tags apply only to `system-*` groups.
+* Full runbook: **`docs/cluster-autoscaler.md`**.
 
-```bash
-# Defaults create no CA resources
-terraform -chdir=environments/development plan | findstr /i "cluster-autoscaler" || true
+```cmd
+terraform -chdir=environments/development plan
 terraform -chdir=environments/development output cluster_autoscaler_bootstrap_note
+kubectl -n kube-system get deploy,pods -l app.kubernetes.io/name=cluster-autoscaler
 ```
 
 ---
@@ -814,4 +814,4 @@ aws s3api list-object-versions \
 - `techx-corp-platform/docs/DEPLOYMENT.md` — E2E operator runbook  
 - `techx-corp-chart/docs/DEPLOYMENT.md` — Helm / smoke / rollback
 
-<!-- Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom. -->
+<!-- Change trail: @hungxqt - 2026-07-19 - Phase 1c hybrid Cluster Autoscaler on system MNG with Karpenter. -->

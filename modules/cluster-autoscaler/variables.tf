@@ -1,6 +1,6 @@
 variable "enabled" {
   type        = bool
-  description = "When false, module creates no resources"
+  description = "When false, module creates no resources. When true, creates IRSA for hybrid CA on system MNG ASGs."
   default     = false
   nullable    = false
 }
@@ -40,7 +40,7 @@ variable "service_account_name" {
 
 variable "install_helm" {
   type        = bool
-  description = "Install Cluster Autoscaler via Helm (requires cluster API at apply)"
+  description = "Install Cluster Autoscaler via Helm (requires cluster API at apply). Safe alongside Karpenter: CA owns tagged system MNG ASGs only."
   default     = false
   nullable    = false
 }
@@ -88,3 +88,6 @@ variable "tags" {
   description = "Tags for IAM resources"
   default     = {}
 }
+
+# Change trail: @hungxqt - 2026-07-19 - Clarify hybrid CA+Karpenter install_helm semantics.
+

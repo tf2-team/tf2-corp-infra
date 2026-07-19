@@ -148,6 +148,16 @@ locals {
     for name, ng in var.node_groups : name => ng
     if ng.max_pods != null
   }
+
+  # Cluster Autoscaler discovery tags only on matching MNG keys (default: system-*).
+  # Karpenter nodes are not in ASGs; non-system MNGs stay untagged so CA never owns them.
+  cluster_autoscaler_node_groups = var.enable_cluster_autoscaler_asg_tags ? {
+    for name, ng in aws_eks_node_group.this : name => ng
+    if anytrue([
+      for prefix in var.cluster_autoscaler_node_group_name_prefixes :
+      startswith(name, prefix)
+    ])
+  } : {}
 }
 
 resource "aws_eks_addon" "network" {
@@ -262,6 +272,12 @@ resource "aws_eks_node_group" "this" {
     max_size     = each.value.max_size
   }
 
+  # desired_size is bootstrap / floor only. Cluster Autoscaler (system MNG) and
+  # operators may change ASG desired between applies; Terraform must not thrash it.
+  lifecycle {
+    ignore_changes = [scaling_config[0].desired_size]
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.node_worker_policy,
     aws_iam_role_policy_attachment.node_cni_policy,
@@ -272,10 +288,10 @@ resource "aws_eks_node_group" "this" {
   ]
 }
 
-# Cluster Autoscaler auto-discovery tags on managed node group ASGs.
-# Applied only when enable_cluster_autoscaler_asg_tags is true (typically when CA is enabled).
+# Cluster Autoscaler auto-discovery tags on system-* managed node group ASGs only.
+# Karpenter-provisioned EC2 is never in these ASGs; non-matching MNGs stay untagged.
 resource "aws_autoscaling_group_tag" "cluster_autoscaler_enabled" {
-  for_each = var.enable_cluster_autoscaler_asg_tags ? aws_eks_node_group.this : {}
+  for_each = local.cluster_autoscaler_node_groups
 
   autoscaling_group_name = each.value.resources[0].autoscaling_groups[0].name
 
@@ -287,7 +303,7 @@ resource "aws_autoscaling_group_tag" "cluster_autoscaler_enabled" {
 }
 
 resource "aws_autoscaling_group_tag" "cluster_autoscaler_cluster" {
-  for_each = var.enable_cluster_autoscaler_asg_tags ? aws_eks_node_group.this : {}
+  for_each = local.cluster_autoscaler_node_groups
 
   autoscaling_group_name = each.value.resources[0].autoscaling_groups[0].name
 
@@ -369,4 +385,5 @@ resource "aws_eks_access_policy_association" "additional" {
   depends_on = [aws_eks_access_entry.additional]
 }
 
+# Change trail: @hungxqt - 2026-07-19 - Tag only system-* MNG ASGs for CA; ignore desired_size drift.
 
