@@ -1,0 +1,13 @@
+{
+  "format_version": "1.2",
+  "resource_changes": [
+    {
+      "address": "aws_db_instance.main",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": { "password": "SHOULD_NEVER_APPEAR_REPLACE_BEFORE" },
+        "after": { "password": "SHOULD_NEVER_APPEAR_REPLACE_AFTER" }
+      }
+    }
+  ]
+}

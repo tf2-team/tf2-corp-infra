@@ -1,0 +1,69 @@
+# Checkov config for techx-corp-infra Terraform
+# Run: checkov -d . --config-file .checkov.yaml --quiet --framework terraform
+
+framework:
+  - terraform
+
+compact: true
+
+skip-check:
+  # ECR: image_tag_mutability is still configurable via tfvars (default/IMMUTABLE in both envs);
+  # skip remains because Checkov evaluates the module default/variable rather than applied tfvars.
+  - CKV_AWS_51
+  # ECR: scan_on_push is configurable per repository via tfvars - already enabled in tfvars
+  - CKV_AWS_163
+  # ECR: KMS encryption - using AES256 (AWS managed) is acceptable; KMS adds cost complexity
+  - CKV_AWS_136
+
+  # EKS: Public endpoint is intentionally enabled for team access during development phase
+  - CKV_AWS_39
+  # EKS: Public access CIDRs are configurable via tfvars - not hardcoded to 0.0.0.0/0
+  - CKV_AWS_38
+  # EKS: Secrets encryption - acceptable to skip during initial infrastructure phase
+  - CKV_AWS_58
+  # EKS: Control plane logging - intentionally not all log types to reduce CloudWatch cost
+  - CKV_AWS_37
+
+  # VPC: Public subnets intentionally assign public IPs (required for NAT Gateway and Load Balancers)
+  - CKV_AWS_130
+  # VPC: Default security group - managed separately outside this module
+  - CKV2_AWS_12
+  # VPC: Flow logs - acceptable to skip to reduce CloudWatch cost in non-prod environments
+  - CKV2_AWS_11
+
+  # S3 State Bucket: Access logging, cross-region replication, event notifications
+  # are operational enhancements deferred to post-MVP; state bucket has versioning and encryption
+  - CKV_AWS_18
+  - CKV_AWS_144
+  - CKV2_AWS_62
+
+  # KMS: Key policy - using AWS default key policy which is secure by default
+  - CKV2_AWS_64
+
+  # Secrets Manager: Automatic rotation not applicable -
+  # secrets are populated via external bootstrap scripts, not managed by Terraform
+  - CKV2_AWS_57
+
+  # CloudFront (modules/cloudfront-alb) free-tier / architecture exceptions:
+  # Access logging requires a dedicated S3 log bucket (+ lifecycle) outside cost posture
+  - CKV_AWS_86
+  # WAFv2 + AWS Managed Rules (Log4j AMR) is optional and billed; wire via web_acl_id later
+  - CKV2_AWS_47
+  # Origin is intentionally http-only to the storefront ALB (listen HTTP:80);
+  # CloudFront terminates viewer TLS (redirect-to-https). ALB HTTPS not required.
+  - CKV2_AWS_72
+  # Origin group / failover needs a second origin; single ALB storefront edge only
+  - CKV_AWS_310
+  # CloudFront: Dynamic storefront origin does not configure default root object (handled by backend app)
+  - CKV_AWS_305
+  # Client VPN: Connection logging KMS encryption & retention cost exceptions (Cost Optimization pillar)
+  - CKV_AWS_158
+  - CKV_AWS_338
+  # Client VPN: Ingress to port 80 false positive (source is client VPN SG, not 0.0.0.0/0)
+  - CKV_AWS_260
+
+  # Mem0 RDS: Enhanced Monitoring is intentionally deferred for the current cost profile.
+  # PostgreSQL logs and 7-day Performance Insights remain enabled for operational visibility.
+  - CKV_AWS_118
+
+# Change trail: @hungxqt - 2026-07-19 - Note ECR IMMUTABLE default while keeping CKV_AWS_51 skip rationale.

@@ -1,0 +1,46 @@
+# ──────────────────────────────────────────────
+# AWS Secrets Manager — metadata only (SEC-05)
+#
+# Creates secret *containers* (name, ARN, tags, KMS, recovery).
+# Does NOT create secret versions / random passwords — values must never
+# land in Terraform state. Bootstrap with put-secret-value outside TF.
+# ──────────────────────────────────────────────
+
+locals {
+  # Logical keys → ASM name suffix under name_prefix
+  secrets = toset([
+    "postgresql-admin",
+    "postgresql-app",
+    "flagd-ui",
+    "product-reviews",
+    "grafana",
+    # Mem0 values are bootstrapped outside Terraform. Expected keys:
+    # GROQ_API_KEY, JWT_SECRET, ADMIN_API_KEY, POSTGRES_USER,
+    # POSTGRES_PASSWORD and POSTGRES_DB.
+    "mem0",
+    # SEC-06: OpenSearch security plugin admin credentials
+    # Consumed by: techx-corp-chart secrets-chart → K8s Secret techx-corp-opensearch
+    "opensearch",
+    # Grafana Discord alert webhook
+    # Consumed by: techx-corp-chart secrets-chart → K8s Secret techx-corp-grafana-discord
+    "grafana-discord",
+    # AIOps inbound Grafana webhook shared secret
+    # Consumed by: techx-corp-chart secrets-chart → K8s Secret techx-corp-aiops-grafana-webhook
+    "aiops-grafana-webhook",
+  ])
+}
+
+resource "aws_secretsmanager_secret" "this" {
+  for_each = local.secrets
+
+  name                    = "${var.name_prefix}/${each.key}"
+  description             = "TechX application secret shell (${each.key}). Values via audited bootstrap, not Terraform."
+  recovery_window_in_days = var.recovery_window_in_days
+  kms_key_id              = var.kms_key_id
+
+  tags = merge(var.tags, {
+    Name              = "${var.name_prefix}/${each.key}"
+    SecretKey         = each.key
+    SecretValueSource = "bootstrap-outside-terraform"
+  })
+}

@@ -15,11 +15,17 @@ locals {
     "kubernetes.io/role/elb"                        = "1"
   } : {}
 
-  # EKS tags cho private subnets
-  eks_private_tags = var.eks_cluster_name != null ? {
+  # Base EKS cluster shared tag for private subnets (internal-elb is per-subnet optional).
+  eks_private_cluster_tags = var.eks_cluster_name != null ? {
     "kubernetes.io/cluster/${var.eks_cluster_name}" = "shared"
-    "kubernetes.io/role/internal-elb"               = "1"
   } : {}
+
+  # Karpenter discovery value (applied per subnet when enable_karpenter_discovery is true).
+  karpenter_discovery_value = (
+    var.eks_cluster_name != null && var.enable_karpenter_discovery_tags
+    ? var.eks_cluster_name
+    : null
+  )
 }
 
 # ──────────────────────────────────────────────
@@ -77,10 +83,23 @@ resource "aws_subnet" "private" {
   cidr_block        = each.value.cidr_block
   availability_zone = each.value.availability_zone
 
-  tags = merge(local.eks_private_tags, {
-    Name = "${var.name}-private-${each.key}"
-    Tier = "private"
-  })
+  tags = merge(
+    local.eks_private_cluster_tags,
+    (
+      var.eks_cluster_name != null && each.value.enable_eks_internal_elb
+      ? { "kubernetes.io/role/internal-elb" = "1" }
+      : {}
+    ),
+    (
+      local.karpenter_discovery_value != null && each.value.enable_karpenter_discovery
+      ? { "karpenter.sh/discovery" = local.karpenter_discovery_value }
+      : {}
+    ),
+    {
+      Name = "${var.name}-private-${each.key}"
+      Tier = "private"
+    }
+  )
 }
 
 # ──────────────────────────────────────────────
@@ -163,3 +182,4 @@ resource "aws_route_table_association" "private" {
   subnet_id      = aws_subnet.private[each.key].id
   route_table_id = aws_route_table.private[each.value.nat_gateway_key].id
 }
+# Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.

@@ -42,12 +42,20 @@ variable "private_subnets" {
     cidr_block        = string
     availability_zone = string
     nat_gateway_key   = optional(string) # key từ var.nat_gateways; null = subnet cô lập, không có internet
+    # When false, omit karpenter.sh/discovery so Karpenter will not launch nodes here.
+    # Use for legacy small CIDRs after migrating MNG/Karpenter to larger node subnets.
+    enable_karpenter_discovery = optional(bool, true)
+    # When false, omit kubernetes.io/role/internal-elb (still may carry cluster shared tag).
+    enable_eks_internal_elb = optional(bool, true)
   }))
   default     = {}
   description = <<-EOT
     Bản đồ các Private Subnet cần tạo.
     nat_gateway_key trỏ tới key trong var.nat_gateways để chọn NAT Gateway làm default route.
     Nếu null, subnet không có đường ra internet (isolated).
+
+    enable_karpenter_discovery (default true): set false on legacy/fragmented subnets so new
+    Karpenter capacity lands only on larger node subnets (prefix-delegation friendly).
 
     Ví dụ — single NAT (tiết kiệm chi phí):
       private_subnets = {
@@ -59,6 +67,17 @@ variable "private_subnets" {
       private_subnets = {
         "priv-1a" = { cidr_block = "10.0.10.0/24", availability_zone = "us-east-1a", nat_gateway_key = "nat-1a" }
         "priv-1b" = { cidr_block = "10.0.11.0/24", availability_zone = "us-east-1b", nat_gateway_key = "nat-1b" }
+      }
+
+    Ví dụ — large node subnets + legacy /24 without Karpenter discovery:
+      private_subnets = {
+        "priv-1a" = {
+          cidr_block = "10.0.10.0/24", availability_zone = "us-east-1a", nat_gateway_key = "nat-1a",
+          enable_karpenter_discovery = false
+        }
+        "priv-1a-nodes" = {
+          cidr_block = "10.0.16.0/20", availability_zone = "us-east-1a", nat_gateway_key = "nat-1a"
+        }
       }
   EOT
 }
@@ -90,3 +109,14 @@ variable "eks_cluster_name" {
     Null = không gắn tag EKS (dùng khi VPC không phục vụ EKS).
   EOT
 }
+
+variable "enable_karpenter_discovery_tags" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = <<-EOT
+    When true and eks_cluster_name is set, private subnets get
+    karpenter.sh/discovery = <eks_cluster_name> for Karpenter EC2NodeClass selectors.
+  EOT
+}
+# Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.

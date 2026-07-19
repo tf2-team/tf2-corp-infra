@@ -1,0 +1,50 @@
+name: Terraform Destroy Dev
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_VERSION: "1.10.5"
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+jobs:
+  destroy-dev:
+    name: Destroy Dev
+    runs-on: ubuntu-latest
+    environment: dev
+    concurrency:
+      group: terraform-apply-dev
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: ./.github/actions/setup-terraform-cached
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: "false"
+
+      - name: Configure AWS credentials for dev
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.DEV_AWS_APPLY_ROLE_ARN }}
+          aws-region: ${{ secrets.DEV_AWS_REGION }}
+
+      - name: Terraform init dev
+        env:
+          TF_BACKEND_BUCKET: ${{ secrets.DEV_TF_BACKEND_BUCKET }}
+          TF_BACKEND_REGION: ${{ secrets.DEV_TF_BACKEND_REGION }}
+        run: |
+          terraform -chdir=environments/development init \
+            -backend-config="bucket=${TF_BACKEND_BUCKET}" \
+            -backend-config="region=${TF_BACKEND_REGION}"
+
+      - name: Terraform destroy dev
+        run: |
+          terraform -chdir=environments/development destroy -auto-approve

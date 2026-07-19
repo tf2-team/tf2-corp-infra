@@ -1,0 +1,13 @@
+{
+  "format_version": "1.2",
+  "resource_changes": [
+    {
+      "address": "aws_security_group.web",
+      "change": {
+        "actions": ["update"],
+        "before": { "description": "SHOULD_NEVER_APPEAR_UPDATE_BEFORE" },
+        "after": { "description": "SHOULD_NEVER_APPEAR_UPDATE_AFTER" }
+      }
+    }
+  ]
+}

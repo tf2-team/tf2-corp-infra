@@ -1,0 +1,13 @@
+{
+  "format_version": "1.2",
+  "resource_changes": [
+    {
+      "address": "aws_eip.old",
+      "change": {
+        "actions": ["delete"],
+        "before": { "public_ip": "SHOULD_NEVER_APPEAR_DELETE" },
+        "after": null
+      }
+    }
+  ]
+}
