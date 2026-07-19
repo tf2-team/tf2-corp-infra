@@ -75,44 +75,10 @@ data "aws_iam_policy_document" "immutable_audit_kms" {
     }
   }
 
-  statement {
-    sid    = "AllowSnsEncryption"
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["sns.amazonaws.com"]
-    }
-
-    actions = [
-      "kms:Decrypt",
-      "kms:DescribeKey",
-      "kms:Encrypt",
-      "kms:GenerateDataKey*",
-      "kms:ReEncrypt*",
-    ]
-    resources = ["*"]
-  }
-
-  statement {
-    sid    = "AllowCloudTrailSnsNotificationEncryption"
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["cloudtrail.amazonaws.com"]
-    }
-
-    actions = [
-      "kms:Decrypt",
-      "kms:GenerateDataKey*",
-    ]
-    resources = ["*"]
-  }
 }
 
 resource "aws_kms_key" "immutable_audit" {
-  description             = "KMS key for ${local.immutable_audit_trail_name} CloudTrail, CloudWatch Logs, and SNS"
+  description             = "KMS key for ${local.immutable_audit_trail_name} CloudTrail and CloudWatch Logs"
   deletion_window_in_days = 7
   enable_key_rotation     = true
   policy                  = data.aws_iam_policy_document.immutable_audit_kms.json
@@ -310,19 +276,6 @@ data "aws_iam_policy_document" "immutable_audit_bucket" {
   }
 
   statement {
-    sid    = "DenyAuditLogOverwriteByNonCloudTrail"
-    effect = "Deny"
-
-    not_principals {
-      type        = "Service"
-      identifiers = ["cloudtrail.amazonaws.com"]
-    }
-
-    actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.immutable_audit.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"]
-  }
-
-  statement {
     sid    = "DenyObjectLockBypass"
     effect = "Deny"
 
@@ -348,8 +301,7 @@ resource "aws_s3_bucket_policy" "immutable_audit" {
 }
 
 resource "aws_sns_topic" "immutable_audit" {
-  name              = "${local.immutable_audit_trail_name}-notifications"
-  kms_master_key_id = aws_kms_key.immutable_audit.arn
+  name = "${local.immutable_audit_trail_name}-notifications"
 
   tags = merge(var.tags, {
     Name    = "${local.immutable_audit_trail_name}-notifications"
