@@ -229,7 +229,7 @@ data "aws_iam_policy_document" "immutable_audit_bucket" {
 
     condition {
       test     = "StringEquals"
-      variable = "AWS:SourceArn"
+      variable = "aws:SourceArn"
       values   = [local.immutable_audit_trail_arn]
     }
   }
@@ -254,7 +254,7 @@ data "aws_iam_policy_document" "immutable_audit_bucket" {
 
     condition {
       test     = "StringEquals"
-      variable = "AWS:SourceArn"
+      variable = "aws:SourceArn"
       values   = [local.immutable_audit_trail_arn]
     }
   }
@@ -325,7 +325,7 @@ data "aws_iam_policy_document" "immutable_audit_sns" {
 
     condition {
       test     = "StringEquals"
-      variable = "AWS:SourceArn"
+      variable = "aws:SourceArn"
       values   = [local.immutable_audit_trail_arn]
     }
   }
@@ -416,9 +416,11 @@ resource "aws_cloudtrail" "immutable_audit" {
   })
 
   depends_on = [
+    aws_kms_key.immutable_audit,
     aws_iam_role_policy.immutable_audit_cloudtrail_logs,
     aws_s3_bucket_object_lock_configuration.immutable_audit,
     aws_s3_bucket_policy.immutable_audit,
+    aws_s3_bucket_server_side_encryption_configuration.immutable_audit,
     aws_sns_topic_policy.immutable_audit,
   ]
 }
