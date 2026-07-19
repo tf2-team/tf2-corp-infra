@@ -54,13 +54,9 @@ variable "consumers" {
     error_message = "Consumer keys must be DNS-style names and namespace, service account and slash-terminated model_prefix must be set."
   }
 
-  validation {
-    condition = (
-      length(distinct([for consumer in values(var.consumers) : consumer.model_prefix])) ==
-      length(var.consumers)
-    )
-    error_message = "Each model consumer must use a distinct S3 prefix."
-  }
+  # Multiple consumers may share one model_prefix (e.g. product-reviews and
+  # shopping-copilot both read ProtectAI guardrail weights). Isolation is
+  # still enforced per ServiceAccount via separate IRSA roles and policies.
 
   validation {
     condition = (
@@ -91,3 +87,5 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+# Change trail: @hungxqt - 2026-07-19 - Allow shared model_prefix for multi-service ProtectAI IRSA.
