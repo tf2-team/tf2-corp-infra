@@ -121,7 +121,8 @@ output "aws_load_balancer_controller_helm_command" {
       --set resources.requests.cpu=50m \
       --set resources.requests.memory=128Mi \
       --set resources.limits.cpu=500m \
-      --set resources.limits.memory=512Mi
+      --set resources.limits.memory=512Mi \
+      --wait --atomic --timeout 10m
   EOT
 }
 

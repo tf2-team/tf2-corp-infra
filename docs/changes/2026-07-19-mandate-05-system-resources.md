@@ -10,11 +10,11 @@ resource.
 
 | Owner | Workload | Configuration source | Change |
 |---|---|---|---|
-| EKS add-on | VPC CNI | `environments/production/terraform.tfvars` | Add memory requests and CPU/memory limits for `aws-node`, init, and node-agent containers |
-| EKS add-on | CoreDNS | `environments/production/terraform.tfvars` | Add the missing CPU limit while preserving existing requests and memory limit |
-| EKS add-on | kube-proxy | `environments/production/terraform.tfvars` | Add memory request and CPU/memory limits |
-| EKS add-on | EBS CSI | `environments/production/terraform.tfvars` | Add missing CPU limits to plugin and sidecar containers |
-| Terraform Helm | Karpenter | `modules/karpenter/main.tf` | Add complete controller requests and limits |
+| EKS add-on | VPC CNI | `environments/production/terraform.tfvars` | Add complete requests and limits for `aws-node`, init, and node-agent containers |
+| EKS add-on | CoreDNS | `environments/production/terraform.tfvars` | Set complete requests and limits while preserving critical-node placement |
+| EKS add-on | kube-proxy | `environments/production/terraform.tfvars` | Add complete requests and limits |
+| EKS add-on | EBS CSI | `environments/production/terraform.tfvars` | Add complete requests and limits to plugin and sidecar containers |
+| Terraform Helm | Karpenter | `modules/karpenter/main.tf` | Move complete requests and limits to the chart's `controller.resources` key |
 | Existing Helm release | AWS Load Balancer Controller | `environments/production/outputs.tf` | Add complete resources and drop `ALL` capabilities in the documented upgrade command |
 
 The AWS Load Balancer Controller command also pins the currently deployed chart
@@ -34,6 +34,23 @@ the production Terraform plan and node allocatable headroom before apply.
   exact installed add-on versions.
 - AWS Load Balancer Controller chart `3.4.1` render: PASS - fixed image
   `v3.4.1`, `runAsNonRoot`, `drop: [ALL]`, and all four resource fields render.
+- Karpenter chart `1.13.1` render: PASS - all four resource fields render under
+  the controller container.
+
+## Post-rollout finding
+
+The first production rollout reduced the full-cluster inventory from 264 to
+237 raw violations and from 53 to 49 remediation groups. Live inspection found
+that CPU requests were still absent from the managed add-on configuration,
+Karpenter chart `1.13.1` ignored the top-level `resources` key, and the emitted
+AWS Load Balancer Controller command had not yet been run. This follow-up fixes
+the managed add-on values and the Karpenter key. The controller command now
+uses `--wait --atomic --timeout 10m` for controlled rollback.
+
+The targeted production plan also includes EKS cluster logging, OIDC
+thumbprint, and launch-template changes through module dependencies. Do not
+apply it without reviewing those non-MANDATE-05 changes in the full production
+plan.
 
 ## Rollout
 

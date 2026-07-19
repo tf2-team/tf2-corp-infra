@@ -138,20 +138,20 @@ addons = {
     addon_version = "v1.22.3-eksbuild.1"
     # ENABLE_PREFIX_DELEGATION raises IP density; pair with node max_pods / Karpenter node_max_pods
     # Raw JSON string (jsonencode is not allowed in .tfvars)
-    configuration_values = "{\"env\":{\"ENABLE_PREFIX_DELEGATION\":\"true\",\"WARM_PREFIX_TARGET\":\"1\"},\"resources\":{\"requests\":{\"memory\":\"64Mi\"},\"limits\":{\"cpu\":\"250m\",\"memory\":\"256Mi\"}},\"init\":{\"resources\":{\"requests\":{\"memory\":\"32Mi\"},\"limits\":{\"cpu\":\"100m\",\"memory\":\"128Mi\"}}},\"nodeAgent\":{\"resources\":{\"requests\":{\"memory\":\"32Mi\"},\"limits\":{\"cpu\":\"100m\",\"memory\":\"128Mi\"}}}}"
+    configuration_values = "{\"env\":{\"ENABLE_PREFIX_DELEGATION\":\"true\",\"WARM_PREFIX_TARGET\":\"1\"},\"resources\":{\"requests\":{\"cpu\":\"25m\",\"memory\":\"64Mi\"},\"limits\":{\"cpu\":\"250m\",\"memory\":\"256Mi\"}},\"init\":{\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"32Mi\"},\"limits\":{\"cpu\":\"100m\",\"memory\":\"128Mi\"}}},\"nodeAgent\":{\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"32Mi\"},\"limits\":{\"cpu\":\"100m\",\"memory\":\"128Mi\"}}}}"
   }
   "coredns" = {
     addon_version = "v1.14.3-eksbuild.3"
     # Pin CoreDNS to critical MNG (schema supports nodeSelector for this addon version).
-    configuration_values = "{\"nodeSelector\":{\"workload-class\":\"critical\"},\"resources\":{\"limits\":{\"cpu\":\"200m\"}}}"
+    configuration_values = "{\"nodeSelector\":{\"workload-class\":\"critical\"},\"resources\":{\"requests\":{\"cpu\":\"100m\",\"memory\":\"70Mi\"},\"limits\":{\"cpu\":\"200m\",\"memory\":\"256Mi\"}}}"
   }
   "kube-proxy" = {
     addon_version        = "v1.36.0-eksbuild.9"
-    configuration_values = "{\"resources\":{\"requests\":{\"memory\":\"64Mi\"},\"limits\":{\"cpu\":\"250m\",\"memory\":\"256Mi\"}}}"
+    configuration_values = "{\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"64Mi\"},\"limits\":{\"cpu\":\"250m\",\"memory\":\"256Mi\"}}}"
   }
   "aws-ebs-csi-driver" = {
     # Pin controller only; ebs-csi-node DaemonSet stays universal (no workload-class selector).
-    configuration_values = "{\"controller\":{\"nodeSelector\":{\"workload-class\":\"critical\"},\"resources\":{\"limits\":{\"cpu\":\"100m\"}}},\"node\":{\"resources\":{\"limits\":{\"cpu\":\"100m\"}}},\"sidecars\":{\"attacher\":{\"resources\":{\"limits\":{\"cpu\":\"100m\"}}},\"livenessProbe\":{\"resources\":{\"limits\":{\"cpu\":\"100m\"}}},\"nodeDriverRegistrar\":{\"resources\":{\"limits\":{\"cpu\":\"100m\"}}},\"provisioner\":{\"resources\":{\"limits\":{\"cpu\":\"100m\"}}},\"resizer\":{\"resources\":{\"limits\":{\"cpu\":\"100m\"}}},\"snapshotter\":{\"resources\":{\"limits\":{\"cpu\":\"100m\"}}}}}"
+    configuration_values = "{\"controller\":{\"nodeSelector\":{\"workload-class\":\"critical\"},\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"40Mi\"},\"limits\":{\"cpu\":\"500m\",\"memory\":\"256Mi\"}}},\"node\":{\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"40Mi\"},\"limits\":{\"cpu\":\"500m\",\"memory\":\"256Mi\"}}},\"sidecars\":{\"attacher\":{\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"40Mi\"},\"limits\":{\"cpu\":\"500m\",\"memory\":\"256Mi\"}}},\"livenessProbe\":{\"resources\":{\"requests\":{\"cpu\":\"5m\",\"memory\":\"20Mi\"},\"limits\":{\"cpu\":\"100m\",\"memory\":\"64Mi\"}}},\"nodeDriverRegistrar\":{\"resources\":{\"requests\":{\"cpu\":\"5m\",\"memory\":\"20Mi\"},\"limits\":{\"cpu\":\"100m\",\"memory\":\"64Mi\"}}},\"provisioner\":{\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"40Mi\"},\"limits\":{\"cpu\":\"500m\",\"memory\":\"256Mi\"}}},\"resizer\":{\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"40Mi\"},\"limits\":{\"cpu\":\"500m\",\"memory\":\"256Mi\"}}},\"snapshotter\":{\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"40Mi\"},\"limits\":{\"cpu\":\"500m\",\"memory\":\"256Mi\"}}}}}"
   }
 }
 
