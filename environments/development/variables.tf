@@ -455,21 +455,21 @@ variable "karpenter_min_instance_cpu" {
 }
 
 # ──────────────────────────────────────────────
-# Cluster Autoscaler (optional MNG/ASG scaler — OFF by default)
+# Cluster Autoscaler (hybrid: system-* MNG only; coexists with Karpenter)
 # ──────────────────────────────────────────────
 
 variable "cluster_autoscaler_enabled" {
   type        = bool
   default     = false
   nullable    = false
-  description = "Create Cluster Autoscaler IRSA role/policy and tag MNG ASGs for auto-discovery"
+  description = "Create Cluster Autoscaler IRSA role/policy and tag system-* MNG ASGs for auto-discovery"
 }
 
 variable "cluster_autoscaler_install_helm" {
   type        = bool
   default     = false
   nullable    = false
-  description = "Install Cluster Autoscaler Helm chart (requires cluster API; mutually exclusive with Karpenter install)"
+  description = "Install Cluster Autoscaler Helm chart (requires cluster API). Safe with Karpenter: CA owns system MNG ASGs only."
 }
 
 variable "cluster_autoscaler_chart_version" {
@@ -709,4 +709,5 @@ variable "mem0_postgresql_kms_key_id" {
   description = "Optional customer-managed KMS key for Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-19 - Default and wire ecr_image_tag_mutability to IMMUTABLE.
+# Change trail: @hungxqt - 2026-07-19 - Cluster Autoscaler variables document hybrid system-MNG + Karpenter.
+

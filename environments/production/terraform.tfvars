@@ -73,8 +73,8 @@ nat_gateways = {
 # ──────────────────────────────────────────────
 # EKS Configuration (aligned with development topology)
 # Critical floor only: system-* MNG (ARM On-Demand, workload-class=critical).
-# No legacy general-* dual-run capacity — same model as development.
-# Phase 1 has no Cluster Autoscaler; max_size is an emergency ceiling only.
+# Cluster Autoscaler scales system-* within min/max; Karpenter scales app capacity.
+# desired_size is bootstrap floor only (Terraform ignores later ASG desired drift).
 # One managed node group per AZ so EBS volumes / pods can schedule in both zones.
 # ──────────────────────────────────────────────
 cluster_name       = "techx-tf2-prod"
@@ -104,7 +104,7 @@ node_groups = {
     disk_size      = 30
     desired_size   = 2
     min_size       = 1
-    max_size       = 2
+    max_size       = 4
     max_pods       = 110
     subnet_keys    = ["priv-1a-nodes"]
     labels = {
@@ -121,7 +121,7 @@ node_groups = {
     disk_size      = 30
     desired_size   = 1
     min_size       = 1
-    max_size       = 2
+    max_size       = 3
     max_pods       = 110
     subnet_keys    = ["priv-1b-nodes"]
     labels = {
@@ -174,7 +174,7 @@ secrets_manager_recovery_window_in_days = 0
 # ──────────────────────────────────────────────
 # Karpenter (node autoscaling) — Spot preferred (same as development)
 # Requires: cluster API reachable when install_helm / create_node_resources are true
-# Default capacity model: critical MNG floor + Karpenter elastic (do not enable CA Helm with this).
+# Default capacity model: system MNG (CA) + Karpenter elastic for spot-tolerant apps.
 # CRD and controller must share chart_version; upgrade CRD before controller.
 # ──────────────────────────────────────────────
 karpenter_enabled                  = true
@@ -220,13 +220,12 @@ karpenter_feature_gates = {
 }
 
 # ──────────────────────────────────────────────
-# Cluster Autoscaler — OFF by default
-# Scales managed node group ASGs only (within min_size/max_size).
-# For CA-only experiments: disable Karpenter install/NodePools first, then enable CA.
+# Cluster Autoscaler — hybrid on system-* MNG only
+# Tags only system-* ASGs; coexists with Karpenter (app/Spot capacity).
 # See docs/cluster-autoscaler.md
 # ──────────────────────────────────────────────
-cluster_autoscaler_enabled       = false
-cluster_autoscaler_install_helm  = false
+cluster_autoscaler_enabled       = true
+cluster_autoscaler_install_helm  = true
 cluster_autoscaler_chart_version = "9.46.6"
 
 # ──────────────────────────────────────────────
@@ -366,4 +365,4 @@ cost_optimization_backlog_athena_bytes_cutoff         = 1073741824
 cost_optimization_backlog_include_member_accounts     = false
 cost_optimization_backlog_manage_enrollment           = false
 cost_optimization_backlog_include_all_recommendations = false
-# Change trail: @hungxqt - 2026-07-19 - Set ecr_image_tag_mutability to IMMUTABLE for all service repos.
+# Change trail: @hungxqt - 2026-07-19 - Enable hybrid Cluster Autoscaler on system MNG; raise max_size headroom.

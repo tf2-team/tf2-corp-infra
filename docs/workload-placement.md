@@ -17,7 +17,7 @@ CPU architecture (**amd64** vs **arm64**) is orthogonal to `workload-class` plac
 | **Hard placement** | Required selectors + Karpenter taints (not soft preference alone) |
 | **Safe migration** | Dual-run legacy MNG + system MNG; capacity gates before cordon/drain |
 
-**Not a goal:** Cluster Autoscaler on the critical MNG, fixed critical-node capacity changes without measured headroom, or direct mutation of Argo CD-managed workloads.
+**Not a goal:** Cluster Autoscaler on Karpenter nodes, unbounded critical-node growth without a Terraform `max_size` ceiling, or direct mutation of Argo CD-managed workloads.
 
 ---
 
@@ -36,7 +36,7 @@ CPU architecture (**amd64** vs **arm64**) is orthogonal to `workload-class` plac
 
 | Layer | Behavior |
 |-------|----------|
-| **Critical MNG** | `system-1a` / `system-1b`, On-Demand, fixed reviewed capacity (`t4g.medium` development; `t4g.large` production), labels `workload-class=critical`, **no taint** |
+| **Critical MNG** | `system-1a` / `system-1b`, On-Demand, labels `workload-class=critical`, **no taint**; **Cluster Autoscaler** scales within Terraform `min_size`/`max_size` (`t4g.medium` development; `t4g.large` production) |
 | **Legacy MNG** | No stale legacy group is part of the target steady state; inventory live nodes before rollout and stop if unexpected groups remain |
 | **Karpenter version** | `1.13.1` for both `karpenter-crd` and `karpenter` |
 | **NodePools** | `stateless-spot` (weight 100) + `stateless-on-demand` (weight 10) in both environments |
@@ -58,7 +58,8 @@ CPU architecture (**amd64** vs **arm64**) is orthogonal to `workload-class` plac
 │  │ Critical MNG (system-*)      │   │ Karpenter                       │ │
 │  │ workload-class=critical      │   │ workload-class=spot-tolerant    │ │
 │  │ On-Demand, no taint          │   │ taint: spot-tolerant:NoSchedule │ │
-│  │ reviewed fixed capacity      │   │ Spot weight=100 → OD weight=10  │ │
+│  │ Cluster Autoscaler (ASG)     │   │ Spot weight=100 → OD weight=10  │ │
+│  │ min/max from Terraform       │   │                                 │ │
 │  │                              │   │                                 │ │
 │  │ • System / operators         │   │ • Classified stateless apps     │ │
 │  │ • Stateful data (PVC/STS)    │   │                                 │ │
@@ -73,11 +74,12 @@ CPU architecture (**amd64** vs **arm64**) is orthogonal to `workload-class` plac
 
 ### 3.1 Scaling semantics (read carefully)
 
-* Phase 1 does **not** install Cluster Autoscaler.
-* EKS does **not** grow the critical MNG from Pending pods by itself.
-* Critical-capacity scale-out is a **reviewed Terraform change** (never Console/ASG drift).
-* Before a critical-node change, keep requested CPU and memory below 75% of allocatable and pod density below 80%, per node and Availability Zone.
-* If a capacity gate fails, stop the rollout and open a separate capacity change; do not silently change instance type or desired capacity.
+* **Cluster Autoscaler** grows/shrinks **system-\*** MNG ASGs when critical pods are Pending or nodes are unneeded, within Terraform `min_size`/`max_size`.
+* **Karpenter** provisions elastic capacity for `spot-tolerant` workloads (not the system ASGs).
+* Raising the absolute ceiling (`max_size`) or instance type remains a **reviewed Terraform change**.
+* `desired_size` in tfvars is bootstrap only; Terraform ignores ASG desired drift so CA is not reverted on apply.
+* Before a critical-node *type* or *ceiling* change, keep requested CPU and memory below 75% of allocatable and pod density below 80%, per node and Availability Zone.
+* If a capacity gate fails at `max_size`, stop and open a separate ceiling change; do not silently change instance type.
 
 ---
 
@@ -184,4 +186,4 @@ REM Saved plan required before apply; post-apply plan must be empty for promotio
 * Change record: `docs/changes/2026-07-11-enforce-managed-karpenter-pod-placement.md`
 * Chart topology balancing: `techx-corp-chart/docs/changes/2026-07-11-pod-topology-spread-balancing.md`
 
-<!-- Change trail: @hungxqt - 2026-07-15 - Document consolidateAfter 0s for immediate DaemonSet-only empty reclaim. -->
+<!-- Change trail: @hungxqt - 2026-07-19 - Hybrid CA on system MNG; Karpenter remains elastic app capacity. -->

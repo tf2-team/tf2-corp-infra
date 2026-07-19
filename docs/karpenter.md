@@ -40,7 +40,7 @@ Three common ways to scale EKS worker capacity:
 
 **Not chosen as the default path.** CA only grows pre-defined node groups. We want flexible instance selection (especially multi-type Spot in development) without maintaining a matrix of managed node groups and ASG tags. CA also scales more slowly and consolidates less intelligently than Karpenter for mixed workloads.
 
-An **optional** Cluster Autoscaler module exists (`modules/cluster-autoscaler`, flags **off by default**) for CA-only experiments. **Do not run CA Helm while Karpenter is active.** See `docs/cluster-autoscaler.md`.
+**Cluster Autoscaler** is used **in parallel** for the **system-\*** managed node group floor only (tagged ASGs). Karpenter remains the autoscaler for spot-tolerant app capacity. See `docs/cluster-autoscaler.md`.
 
 ### 2.2 Karpenter
 
@@ -167,7 +167,7 @@ The `v20260709` pin was resolved read-only from the live production EC2NodeClass
 
 ### 4.3 Critical headroom and disruption gates
 
-The fixed `system-1a` and `system-1b` groups remain at desired/minimum one with maximum two. They do not use Cluster Autoscaler. Before production promotion, requested CPU and memory must stay below 75% of allocatable capacity and pod density below 80% in each AZ. If a gate fails, set `desired_size=2` for both groups through a reviewed Terraform plan so AZ capacity remains symmetric.
+The `system-1a` and `system-1b` groups are the critical floor. **Cluster Autoscaler** scales them within Terraform `min_size`/`max_size` (development max 3; production max 4/3). Karpenter does not manage those ASGs. Before raising instance type or `max_size`, requested CPU and memory should stay below 75% of allocatable capacity and pod density below 80% in each AZ.
 
 NodePool budgets limit voluntary disruptions per pool. They do not guarantee protection from Spot interruption, expiry, or a termination deadline. Use this rollout sequence for template, category, or AMI changes:
 
@@ -346,7 +346,7 @@ This is a desired-state change: commit it, review a saved Terraform plan, verify
 * Spot-first production **for critical / stateful workloads** (see workload placement below)
 * Karpenter managed via Argo CD (Terraform-owned install path, like ESO)
 * EKS Auto Mode migration
-* Running Cluster Autoscaler **alongside** Karpenter (unsupported; Terraform check blocks dual Helm). Optional CA-only module: `docs/cluster-autoscaler.md`
+* Expecting Cluster Autoscaler to scale Karpenter nodes (CA only owns tagged **system-\*** MNG ASGs). Hybrid guide: `docs/cluster-autoscaler.md`
 
 ---
 
@@ -369,8 +369,8 @@ That document covers workload classification, node labels/taints, chart `schedul
 
 * `docs/DEPLOYMENT.md` — end-to-end environment bring-up
 * `docs/COST.md` — cost model and drivers
-* `docs/cluster-autoscaler.md` — optional CA-only alternative (off by default)
+* `docs/cluster-autoscaler.md` — hybrid CA on system MNG (coexists with Karpenter)
 * [Karpenter docs](https://karpenter.sh/docs/)
 * [Karpenter CloudFormation / IAM reference](https://karpenter.sh/docs/reference/cloudformation/)
 
-<!-- Change trail: @hungxqt - 2026-07-15 - Document consolidateAfter 0s for immediate DaemonSet-only empty reclaim. -->
+<!-- Change trail: @hungxqt - 2026-07-19 - Document hybrid CA on system MNG alongside Karpenter. -->

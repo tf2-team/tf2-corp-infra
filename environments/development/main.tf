@@ -200,27 +200,10 @@ module "karpenter" {
 }
 
 # ──────────────────────────────────────────────
-# Cluster Autoscaler — optional MNG/ASG scaler (OFF by default)
-# Default capacity model: small MNG floor + Karpenter elastic.
-# Do not set install_helm=true while Karpenter Helm/NodePools are active.
+# Cluster Autoscaler — hybrid: system-* MNG ASGs only
+# Karpenter remains the elastic autoscaler for spot-tolerant app nodes.
+# CA discovery tags apply only to system-* groups (modules/eks).
 # ──────────────────────────────────────────────
-
-check "no_dual_node_autoscalers" {
-  assert {
-    condition = !(
-      var.cluster_autoscaler_install_helm && (
-        var.karpenter_install_helm || var.karpenter_create_node_resources
-      )
-    )
-    error_message = <<-EOT
-      Unsupported: Cluster Autoscaler Helm and Karpenter must not run together.
-      Default path is MNG floor + Karpenter. For CA-only mode: set
-      karpenter_install_helm=false, karpenter_create_node_resources=false,
-      drain Karpenter nodes, then enable cluster_autoscaler_install_helm.
-      See docs/cluster-autoscaler.md.
-    EOT
-  }
-}
 
 module "cluster_autoscaler" {
   source = "../../modules/cluster-autoscaler"
@@ -284,4 +267,5 @@ module "client_vpn" {
   tags                           = var.tags
 }
 
-# Change trail: @hungxqt - 2026-07-19 - Pass ecr_image_tag_mutability (IMMUTABLE) into the ECR module.
+# Change trail: @hungxqt - 2026-07-19 - Hybrid CA on system MNG; remove dual-autoscaler mutual exclusion.
+

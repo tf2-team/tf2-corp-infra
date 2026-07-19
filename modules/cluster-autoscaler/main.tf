@@ -1,9 +1,11 @@
 # ──────────────────────────────────────────────
-# Cluster Autoscaler — optional IRSA + Helm
+# Cluster Autoscaler — IRSA + optional Helm
 #
-# Scales EKS managed node group ASGs (min/max from Terraform).
-# Default platform path is MNG floor + Karpenter; keep this module
-# disabled unless deliberately running CA-only mode.
+# Hybrid capacity model (supported):
+#   • CA scales only tagged system-* managed node group ASGs (min/max Terraform).
+#   • Karpenter provisions non-ASG Spot/OD nodes for spot-tolerant workloads.
+# CA never manages Karpenter EC2 (no ASG). ASG discovery tags are applied only
+# to system-* MNG keys in modules/eks.
 # ──────────────────────────────────────────────
 
 data "aws_caller_identity" "current" {
@@ -145,10 +147,15 @@ resource "helm_release" "cluster_autoscaler" {
       awsRegion        = var.aws_region
       autoDiscovery = {
         clusterName = var.cluster_name
+        # Only ASGs with these tags are scaled (system-* MNGs tagged in modules/eks).
         tags = [
           "k8s.io/cluster-autoscaler/enabled",
           "k8s.io/cluster-autoscaler/${var.cluster_name}",
         ]
+      }
+      # Run on the critical system floor (not Karpenter spot-tolerant nodes).
+      nodeSelector = {
+        "workload-class" = "critical"
       }
       rbac = {
         create = true
@@ -161,11 +168,12 @@ resource "helm_release" "cluster_autoscaler" {
         }
       }
       extraArgs = {
-        balance-similar-node-groups = var.balance_similar_node_groups
-        skip-nodes-with-system-pods = var.skip_nodes_with_system_pods
-        scale-down-delay-after-add  = var.scale_down_delay_after_add
-        scale-down-unneeded-time    = var.scale_down_unneeded_time
-        expander                    = "least-waste"
+        balance-similar-node-groups   = var.balance_similar_node_groups
+        skip-nodes-with-system-pods   = var.skip_nodes_with_system_pods
+        skip-nodes-with-local-storage = true
+        scale-down-delay-after-add    = var.scale_down_delay_after_add
+        scale-down-unneeded-time      = var.scale_down_unneeded_time
+        expander                      = "least-waste"
       }
     })
   ]
@@ -174,3 +182,6 @@ resource "helm_release" "cluster_autoscaler" {
     aws_iam_role_policy_attachment.cluster_autoscaler,
   ]
 }
+
+# Change trail: @hungxqt - 2026-07-19 - Hybrid CA: pin controller to critical MNG; document ASG-only scope.
+

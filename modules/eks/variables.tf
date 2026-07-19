@@ -150,11 +150,33 @@ variable "enable_cluster_autoscaler_asg_tags" {
   default     = false
   nullable    = false
   description = <<-EOT
-    Tag each managed node group ASG for Cluster Autoscaler auto-discovery:
+    Tag matching managed node group ASGs for Cluster Autoscaler auto-discovery:
       k8s.io/cluster-autoscaler/enabled = true
       k8s.io/cluster-autoscaler/<cluster_name> = owned
-    Enable when cluster_autoscaler_enabled is true. Harmless if CA Helm is not installed.
+    Only node group map keys whose names start with a value in
+    cluster_autoscaler_node_group_name_prefixes are tagged (default: system-).
+    Enable when cluster_autoscaler_enabled is true. Safe alongside Karpenter
+    (CA owns tagged MNG ASGs only; Karpenter owns non-ASG Spot/OD nodes).
   EOT
+}
+
+variable "cluster_autoscaler_node_group_name_prefixes" {
+  type        = list(string)
+  default     = ["system-"]
+  nullable    = false
+  description = <<-EOT
+    Node group map-key prefixes that receive Cluster Autoscaler ASG discovery tags
+    when enable_cluster_autoscaler_asg_tags is true. Default system- matches
+    system-1a / system-1b critical floor groups. Leave empty to tag no groups.
+  EOT
+
+  validation {
+    condition = alltrue([
+      for prefix in var.cluster_autoscaler_node_group_name_prefixes :
+      length(trimspace(prefix)) > 0
+    ])
+    error_message = "cluster_autoscaler_node_group_name_prefixes entries must be non-empty strings."
+  }
 }
 
 variable "create_oidc_provider" {
@@ -192,4 +214,5 @@ variable "access_entries" {
   description = "Bản đồ các EKS Access Entries bổ sung cần cấu hình"
 }
 
+# Change trail: @hungxqt - 2026-07-19 - Add cluster_autoscaler_node_group_name_prefixes for system-only CA tags.
 

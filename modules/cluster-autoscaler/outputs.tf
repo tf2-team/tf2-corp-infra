@@ -56,14 +56,18 @@ output "bootstrap_note" {
   description = "Operator notes for Cluster Autoscaler"
   value = var.enabled ? (
     <<-EOT
-      Cluster Autoscaler AWS prerequisites created for cluster ${var.cluster_name}.
-      1) Ensure MNG ASGs have tags k8s.io/cluster-autoscaler/enabled=true and
+      Cluster Autoscaler hybrid mode for cluster ${var.cluster_name}.
+      1) system-* MNG ASGs tagged k8s.io/cluster-autoscaler/enabled=true and
          k8s.io/cluster-autoscaler/${var.cluster_name}=owned
-         (modules/eks enable_cluster_autoscaler_asg_tags when CA enabled).
-      2) CA only scales managed node groups within min_size/max_size — not Karpenter nodes.
-      3) Do not run CA Helm while Karpenter install_helm / NodePools are active.
+         (modules/eks; non-system MNGs are not tagged).
+      2) CA scales only those ASGs within min_size/max_size.
+      3) Karpenter remains the autoscaler for spot-tolerant / elastic app capacity
+         (non-ASG nodes). Coexistence is supported and intentional.
       4) Verify: kubectl -n ${var.namespace} get deploy,pods -l app.kubernetes.io/name=cluster-autoscaler
       Docs: techx-corp-infra/docs/cluster-autoscaler.md
     EOT
   ) : "Cluster Autoscaler module disabled (cluster_autoscaler_enabled=false)."
 }
+
+# Change trail: @hungxqt - 2026-07-19 - Bootstrap note describes hybrid CA system-MNG + Karpenter model.
+
