@@ -24,11 +24,12 @@ locals {
   oidc_issuer_path = replace(var.oidc_issuer_url, "https://", "")
   consumer_access_contracts = {
     for name, consumer in var.consumers : name => {
-      role_name               = "${var.name}-${name}-model-read"
-      service_account_subject = "system:serviceaccount:${consumer.namespace}:${consumer.service_account_name}"
-      model_prefix            = consumer.model_prefix
-      object_arn              = "${aws_s3_bucket.models.arn}/${consumer.model_prefix}*"
-      allow_list_bucket       = consumer.allow_list_bucket
+      role_name                     = "${var.name}-${name}-model-read"
+      service_account_subject       = "system:serviceaccount:${consumer.namespace}:${consumer.service_account_name}"
+      model_prefix                  = consumer.model_prefix
+      object_arn                    = "${aws_s3_bucket.models.arn}/${consumer.model_prefix}*"
+      allow_list_bucket             = consumer.allow_list_bucket
+      bedrock_inference_profile_ids = consumer.bedrock_inference_profile_ids
     }
   }
 }
@@ -154,6 +155,23 @@ data "aws_iam_policy_document" "model_read" {
       effect    = "Allow"
       actions   = ["rds-db:connect"]
       resources = ["arn:${data.aws_partition.current.partition}:rds-db:${var.aws_region}:${data.aws_caller_identity.current.account_id}:dbuser:${statement.value.db_resource_id}/${statement.value.database_user}"]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = length(each.value.bedrock_inference_profile_ids) > 0 ? [true] : []
+
+    content {
+      sid    = "InvokeBedrockInferenceProfiles"
+      effect = "Allow"
+      actions = [
+        "bedrock:GetInferenceProfile",
+        "bedrock:InvokeModel",
+      ]
+      resources = [
+        for profile_id in each.value.bedrock_inference_profile_ids :
+        "arn:${data.aws_partition.current.partition}:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/${profile_id}"
+      ]
     }
   }
 }
