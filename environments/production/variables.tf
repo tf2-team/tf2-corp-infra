@@ -47,6 +47,12 @@ variable "immutable_audit_retention_days" {
   }
 }
 
+variable "immutable_audit_cloudwatch_retention_days" {
+  type        = number
+  description = "CloudWatch Logs retention in days for the dedicated immutable CloudTrail trail."
+  default     = 90
+}
+
 variable "ecr_project_name" {
   type        = string
   description = "ECR project path segment (e.g. techx-corp). Full image: registry/ecr_project_name/service:tag"

@@ -11,8 +11,12 @@ Add a dedicated production CloudTrail that writes to a new S3 bucket with:
 - S3 Object Lock enabled at bucket creation time.
 - S3 Versioning enabled.
 - Default Object Lock retention of 90 days in Governance mode.
+- Customer-managed KMS encryption for CloudTrail log files.
 - CloudTrail log file integrity validation enabled.
 - Multi-region management events enabled.
+- CloudWatch Logs integration for near-real-time query.
+- SNS topic delivery notifications.
+- S3 lifecycle cleanup for noncurrent versions after the Object Lock retention window.
 - Bucket policy allowing writes only from the dedicated CloudTrail trail and denying log object delete/version-delete.
 
 The existing CloudTrail and S3 audit buckets remain untouched for Mandate 11 compatibility.
@@ -31,6 +35,7 @@ terraform output immutable_audit_trail_name
 aws cloudtrail get-trail-status --name "$(terraform output -raw immutable_audit_trail_name)" --region us-east-1
 aws s3api get-bucket-versioning --bucket "$(terraform output -raw immutable_audit_bucket_name)"
 aws s3api get-object-lock-configuration --bucket "$(terraform output -raw immutable_audit_bucket_name)"
+aws cloudtrail describe-trails --trail-name-list "$(terraform output -raw immutable_audit_trail_arn)" --region us-east-1
 ```
 
 Expected:
@@ -38,4 +43,5 @@ Expected:
 - CloudTrail `IsLogging` is `true`.
 - S3 Versioning status is `Enabled`.
 - Object Lock default retention is `GOVERNANCE` for 90 days.
+- CloudTrail has `KmsKeyId`, `SnsTopicName`, and `CloudWatchLogsLogGroupArn` configured.
 - Existing Mandate 11 bucket/trail still exists and continues to deliver independently.

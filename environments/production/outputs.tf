@@ -22,10 +22,28 @@ output "immutable_audit_trail_arn" {
   description = "ARN of the dedicated production immutable CloudTrail"
 }
 
+output "immutable_audit_kms_key_arn" {
+  value       = aws_kms_key.immutable_audit.arn
+  description = "Customer-managed KMS key encrypting immutable CloudTrail logs and delivery integrations"
+}
+
+output "immutable_audit_cloudwatch_log_group_name" {
+  value       = aws_cloudwatch_log_group.immutable_audit.name
+  description = "CloudWatch Logs group receiving the dedicated immutable CloudTrail events"
+}
+
+output "immutable_audit_sns_topic_arn" {
+  value       = aws_sns_topic.immutable_audit.arn
+  description = "SNS topic receiving CloudTrail delivery notifications for the immutable audit trail"
+}
+
 output "immutable_audit_retention" {
   value = {
-    mode = var.immutable_audit_retention_mode
-    days = var.immutable_audit_retention_days
+    object_lock_mode       = var.immutable_audit_retention_mode
+    object_lock_days       = var.immutable_audit_retention_days
+    cloudwatch_logs_days   = var.immutable_audit_cloudwatch_retention_days
+    lifecycle_noncurrent   = max(var.immutable_audit_retention_days + 1, 91)
+    lifecycle_multipart_in = 7
   }
   description = "S3 Object Lock default retention for the production immutable CloudTrail audit bucket"
 }
