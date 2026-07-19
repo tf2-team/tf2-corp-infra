@@ -34,19 +34,6 @@ data "aws_iam_policy_document" "immutable_audit_kms" {
   }
 
   statement {
-    sid    = "AllowCloudTrailDescribeKey"
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["cloudtrail.amazonaws.com"]
-    }
-
-    actions   = ["kms:DescribeKey"]
-    resources = ["*"]
-  }
-
-  statement {
     sid    = "AllowCloudTrailEncryption"
     effect = "Allow"
 
@@ -55,14 +42,12 @@ data "aws_iam_policy_document" "immutable_audit_kms" {
       identifiers = ["cloudtrail.amazonaws.com"]
     }
 
-    actions   = ["kms:GenerateDataKey*"]
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:GenerateDataKey*",
+    ]
     resources = ["*"]
-
-    condition {
-      test     = "StringLike"
-      variable = "kms:EncryptionContext:aws:cloudtrail:arn"
-      values   = ["arn:${data.aws_partition.current.partition}:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/${local.immutable_audit_trail_name}"]
-    }
   }
 
   statement {
@@ -123,12 +108,6 @@ data "aws_iam_policy_document" "immutable_audit_kms" {
       "kms:GenerateDataKey*",
     ]
     resources = ["*"]
-
-    condition {
-      test     = "StringEquals"
-      variable = "AWS:SourceArn"
-      values   = [local.immutable_audit_trail_arn]
-    }
   }
 }
 
@@ -300,6 +279,12 @@ data "aws_iam_policy_document" "immutable_audit_bucket" {
 
     actions   = ["s3:PutObject"]
     resources = ["${aws_s3_bucket.immutable_audit.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "s3:x-amz-acl"
+      values   = ["bucket-owner-full-control"]
+    }
 
     condition {
       test     = "StringEquals"
