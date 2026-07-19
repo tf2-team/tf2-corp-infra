@@ -53,6 +53,11 @@ output "immutable_audit_retention" {
   description = "S3 Object Lock default retention for the production immutable CloudTrail audit bucket"
 }
 
+output "immutable_audit_tamper_event_rule_names" {
+  value       = { for key, rule in aws_cloudwatch_event_rule.immutable_audit_tamper : key => rule.name }
+  description = "EventBridge rules that alert on CloudTrail, S3 log bucket, and KMS tampering for Mandate 12.1"
+}
+
 # ──────────────────────────────────────────────
 # ECR Outputs
 # ──────────────────────────────────────────────

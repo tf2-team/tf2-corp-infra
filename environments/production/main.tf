@@ -16,6 +16,14 @@ locals {
   immutable_audit_trail_arn = "arn:${data.aws_partition.current.partition}:cloudtrail:${var.aws_region}:${data.aws_caller_identity.current.account_id}:trail/${local.immutable_audit_trail_name}"
 }
 
+data "aws_lambda_function" "audit_alert" {
+  function_name = var.audit_alert_lambda_function_name
+}
+
+data "aws_sqs_queue" "audit_alert_dlq" {
+  name = var.audit_alert_dlq_name
+}
+
 data "aws_iam_policy_document" "immutable_audit_kms" {
   #checkov:skip=CKV_AWS_109:KMS key policies are scoped by the attached key; the root statement follows AWS KMS guidance so IAM can administer the key.
   #checkov:skip=CKV_AWS_111:KMS key policies require Resource "*" because the policy is attached directly to one key; service statements are constrained by SourceArn/encryption context where supported.
@@ -497,6 +505,111 @@ resource "aws_cloudtrail" "immutable_audit" {
     aws_s3_bucket_server_side_encryption_configuration.immutable_audit,
     aws_sns_topic_policy.immutable_audit,
   ]
+}
+
+locals {
+  immutable_audit_tamper_event_rules = {
+    trail = {
+      name        = "${local.immutable_audit_trail_name}-trail-tamper"
+      description = "Alert when CloudTrail logging path is stopped, deleted, or reconfigured."
+      pattern = {
+        source      = ["aws.cloudtrail"]
+        detail-type = ["AWS API Call via CloudTrail"]
+        detail = {
+          eventSource = ["cloudtrail.amazonaws.com"]
+          eventName = [
+            "StopLogging",
+            "DeleteTrail",
+            "UpdateTrail",
+            "PutEventSelectors",
+          ]
+        }
+      }
+    }
+    bucket = {
+      name        = "${local.immutable_audit_trail_name}-bucket-tamper"
+      description = "Alert when the immutable CloudTrail log bucket policy, lifecycle, versioning, or Object Lock configuration changes."
+      pattern = {
+        source      = ["aws.s3"]
+        detail-type = ["AWS API Call via CloudTrail"]
+        detail = {
+          eventSource = ["s3.amazonaws.com"]
+          eventName = [
+            "PutBucketPolicy",
+            "DeleteBucketPolicy",
+            "PutLifecycleConfiguration",
+            "DeleteBucketLifecycle",
+            "PutBucketVersioning",
+            "PutBucketObjectLockConfiguration",
+          ]
+          requestParameters = {
+            bucketName = [aws_s3_bucket.immutable_audit.bucket]
+          }
+        }
+      }
+    }
+    kms = {
+      name        = "${local.immutable_audit_trail_name}-kms-tamper"
+      description = "Alert when KMS keys protecting immutable audit evidence are disabled, deleted, or have key policy changed."
+      pattern = {
+        source      = ["aws.kms"]
+        detail-type = ["AWS API Call via CloudTrail"]
+        detail = {
+          eventSource = ["kms.amazonaws.com"]
+          eventName = [
+            "PutKeyPolicy",
+            "DisableKey",
+            "ScheduleKeyDeletion",
+          ]
+          requestParameters = {
+            keyId = [
+              aws_kms_key.immutable_audit.key_id,
+              aws_kms_key.immutable_audit.arn,
+              aws_kms_key.immutable_audit_sns.key_id,
+              aws_kms_key.immutable_audit_sns.arn,
+            ]
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "aws_cloudwatch_event_rule" "immutable_audit_tamper" {
+  for_each = local.immutable_audit_tamper_event_rules
+
+  name          = each.value.name
+  description   = each.value.description
+  event_pattern = jsonencode(each.value.pattern)
+  state         = "ENABLED"
+
+  tags = merge(var.tags, {
+    Name    = each.value.name
+    Mandate = "MD12"
+    Purpose = "audit-anti-defeat-alert"
+  })
+}
+
+resource "aws_cloudwatch_event_target" "immutable_audit_tamper" {
+  for_each = aws_cloudwatch_event_rule.immutable_audit_tamper
+
+  rule      = each.value.name
+  target_id = "telegram-audit-alert"
+  arn       = data.aws_lambda_function.audit_alert.arn
+
+  dead_letter_config {
+    arn = data.aws_sqs_queue.audit_alert_dlq.arn
+  }
+}
+
+resource "aws_lambda_permission" "immutable_audit_tamper_eventbridge" {
+  for_each = aws_cloudwatch_event_rule.immutable_audit_tamper
+
+  statement_id  = "AllowAuditTamperEventBridge${title(each.key)}"
+  action        = "lambda:InvokeFunction"
+  function_name = data.aws_lambda_function.audit_alert.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = each.value.arn
 }
 
 module "ecr" {
