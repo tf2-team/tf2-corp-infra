@@ -586,7 +586,7 @@ resource "aws_sns_topic_subscription" "immutable_audit_tamper_email" {
   for_each = var.immutable_audit_alert_email_endpoints
 
   topic_arn = aws_sns_topic.immutable_audit_tamper_alerts.arn
-  protocol  = "email"
+  protocol  = "email-json"
   endpoint  = each.value
 }
 

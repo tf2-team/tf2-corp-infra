@@ -15,7 +15,7 @@ Add production EventBridge alert rules that publish to a dedicated SNS email ale
 The alert destination is:
 
 - SNS topic: `${project_name}-mandate12-immutable-audit-tamper-alerts`.
-- Email subscriptions from `immutable_audit_alert_email_endpoints`.
+- SNS `email-json` subscriptions from `immutable_audit_alert_email_endpoints`.
 
 ## Scope
 
