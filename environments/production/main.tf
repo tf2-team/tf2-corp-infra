@@ -950,4 +950,5 @@ module "cost_optimization_backlog" {
   include_all_recommendations = var.cost_optimization_backlog_include_all_recommendations
   tags                        = var.tags
 }
-# Change trail: @hungxqt - 2026-07-19 - Hybrid CA on system MNG; remove dual-autoscaler mutual exclusion.
+# Change trail: @hungxqt - 2026-07-19 - Add shopping-copilot ProtectAI model IRSA consumer.
+
