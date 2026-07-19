@@ -66,4 +66,22 @@ skip-check:
   # PostgreSQL logs and 7-day Performance Insights remain enabled for operational visibility.
   - CKV_AWS_118
 
+   # Audit pipeline (MANDATE-11.2): CloudTrail/Firehose KMS CMK deferred —
+  # SSE-S3/S3-managed AES256 acceptable for MVP; adding CMK requires wider
+  # key policy work across CloudTrail+Firehose+S3, deferred with cost tradeoff
+  - CKV_AWS_35
+  - CKV_AWS_241
+  - CKV_AWS_240
+  # Audit pipeline: CloudTrail SNS topic for real-time notification is a
+  # separate alerting task (out of MANDATE-11.2 scope, which is filtering only)
+  - CKV_AWS_252
+  # Audit pipeline: Lambda code-signing requires a separate signing profile +
+  # trusted publisher setup, deferred — not applicable to internal filter logic
+  - CKV_AWS_272
+  # Audit pipeline: Lambda does not need VPC placement — it only calls
+  # Firehose (public AWS service endpoint), no VPC-only resource access;
+  # placing in VPC would require NAT/VPC endpoints, added cost with no
+  # security benefit for this specific function
+  - CKV_AWS_117
+
 # Change trail: @hungxqt - 2026-07-19 - Note ECR IMMUTABLE default while keeping CKV_AWS_51 skip rationale.

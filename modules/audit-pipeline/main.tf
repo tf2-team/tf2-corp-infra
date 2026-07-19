@@ -311,6 +311,18 @@ resource "aws_lambda_function" "k8s_audit_fine_filter" {
   }
 
   tags = var.tags
+
+  reserved_concurrent_executions = 5
+
+  dead_letter_config {
+    target_arn = aws_sqs_queue.lambda_dlq.arn
+  }
+
+  tracing_config {
+    mode = "PassThrough"
+  }
+
+  kms_key_arn = aws_kms_key.audit_pipeline.arn
 }
 
 resource "aws_lambda_permission" "cwlogs_invoke" {
@@ -329,3 +341,86 @@ resource "aws_cloudwatch_log_subscription_filter" "k8s_audit_high_risk" {
 
   depends_on = [aws_lambda_permission.cwlogs_invoke]
 }
+
+###############
+#Checkout Fix
+###############
+
+resource "aws_sqs_queue" "lambda_dlq" {
+  name                      = "${var.project_name}-k8s-audit-filter-dlq"
+  message_retention_seconds = 1209600 # 14 ngày
+  tags                       = var.tags
+}
+
+resource "aws_iam_role_policy" "lambda_dlq_send" {
+  name = "${var.project_name}-lambda-dlq-send"
+  role = aws_iam_role.lambda_k8s_filter.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "sqs:SendMessage"
+      Resource = aws_sqs_queue.lambda_dlq.arn
+    }]
+  })
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "audit_events" {
+  bucket = aws_s3_bucket.audit_events.id
+
+  rule {
+    id     = "expire-old-audit-events"
+    status = "Enabled"
+    filter {}
+    transition {
+      days          = 90
+      storage_class = "STANDARD_IA"
+    }
+    expiration {
+      days = 365
+    }
+  }
+}
+
+resource "aws_kms_key" "audit_pipeline" {
+  description             = "${var.project_name} audit pipeline encryption (Lambda env vars, S3, Firehose)"
+  deletion_window_in_days = 7
+  tags                    = var.tags
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "audit_events" {
+  bucket = aws_s3_bucket.audit_events.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.audit_pipeline.arn
+    }
+    bucket_key_enabled = true
+  }
+}
+
+resource "aws_kms_key_policy" "audit_pipeline" {
+  key_id = aws_kms_key.audit_pipeline.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "EnableRootAccount"
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
+        Action    = "kms:*"
+        Resource  = "*"
+      },
+      {
+        Sid    = "AllowFirehoseAndCloudTrail"
+        Effect = "Allow"
+        Principal = {
+          Service = ["firehose.amazonaws.com", "cloudtrail.amazonaws.com"]
+        }
+        Action   = ["kms:GenerateDataKey", "kms:Decrypt"]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
