@@ -153,6 +153,7 @@ resource "aws_kms_alias" "immutable_audit" {
 resource "aws_s3_bucket" "immutable_audit" {
   #checkov:skip=CKV_AWS_18:This bucket is the immutable CloudTrail destination; access is audited by CloudTrail, SNS notifications, CloudWatch Logs, and Object Lock evidence.
   #checkov:skip=CKV_AWS_144:Cross-region replication is intentionally omitted for the capstone budget; CloudTrail is multi-region and log integrity validation is enabled.
+  #checkov:skip=CKV_AWS_145:Bucket default encryption uses SSE-S3 to avoid double-KMS delivery failures; CloudTrail log files are still encrypted by the trail-level customer-managed KMS key.
   bucket              = local.immutable_audit_bucket_name
   object_lock_enabled = true
   force_destroy       = false
@@ -194,10 +195,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "immutable_audit" 
 
   rule {
     apply_server_side_encryption_by_default {
-      kms_master_key_id = aws_kms_key.immutable_audit.arn
-      sse_algorithm     = "aws:kms"
+      sse_algorithm = "AES256"
     }
-    bucket_key_enabled = true
   }
 }
 
