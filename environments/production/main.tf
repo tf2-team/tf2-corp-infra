@@ -17,6 +17,9 @@ locals {
 }
 
 data "aws_iam_policy_document" "immutable_audit_kms" {
+  #checkov:skip=CKV_AWS_109:KMS key policies are scoped by the attached key; the root statement follows AWS KMS guidance so IAM can administer the key.
+  #checkov:skip=CKV_AWS_111:KMS key policies require Resource "*" because the policy is attached directly to one key; service statements are constrained by SourceArn/encryption context where supported.
+  #checkov:skip=CKV_AWS_356:KMS key policies require Resource "*" because the key policy itself is the resource boundary.
   statement {
     sid    = "EnableRootPermissions"
     effect = "Allow"
@@ -187,8 +190,16 @@ resource "aws_s3_bucket_lifecycle_configuration" "immutable_audit" {
       noncurrent_days = max(var.immutable_audit_retention_days + 1, 91)
     }
 
+  }
+
+  rule {
+    id     = "abort-incomplete-multipart-uploads"
+    status = "Enabled"
+
+    filter {}
+
     abort_incomplete_multipart_upload {
-      days_after_initiation = 7
+      days_after_initiation = 1
     }
   }
 
