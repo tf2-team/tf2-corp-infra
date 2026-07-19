@@ -25,6 +25,15 @@ The existing CloudTrail and S3 audit buckets remain untouched for Mandate 11 com
 
 Do not delete the Object Lock bucket while retained objects exist. If the new trail causes unexpected cost or duplicate event volume, stop or remove only the dedicated CloudTrail after confirming the existing Mandate 11 trail remains healthy. Retained S3 log objects stay until their Object Lock retention expires.
 
+## Policy follow-up (2026-07-19)
+
+If `CreateTrail` fails with `InsufficientEncryptionPolicyException`, ensure:
+
+* S3/SNS conditions use `aws:SourceArn` (not `AWS:SourceArn`).
+* KMS key policy includes multi-region CloudTrail encrypt (`GenerateDataKey*` + EncryptionContext `trail/*`) and `DescribeKey`.
+
+See `docs/changes/2026-07-19-fix-cloudtrail-create-encryption-policy.md`.
+
 ## Verification
 
 After apply:
@@ -45,3 +54,5 @@ Expected:
 - Object Lock default retention is `GOVERNANCE` for 90 days.
 - CloudTrail has `KmsKeyId`, `SnsTopicName`, and `CloudWatchLogsLogGroupArn` configured.
 - Existing Mandate 11 bucket/trail still exists and continues to deliver independently.
+
+<!-- Change trail: @hungxqt - 2026-07-19 - Link CreateTrail encryption policy fix. -->

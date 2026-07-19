@@ -33,8 +33,11 @@ data "aws_iam_policy_document" "immutable_audit_kms" {
     resources = ["*"]
   }
 
+  # CloudTrail multi-region trail encryption (AWS-required shape).
+  # CreateTrail validates GenerateDataKey* with EncryptionContext for
+  # aws:cloudtrail:arn using region=* ; SourceArn pins this trail only.
   statement {
-    sid    = "AllowCloudTrailEncryption"
+    sid    = "AllowCloudTrailEncryptLogs"
     effect = "Allow"
 
     principals {
@@ -42,11 +45,51 @@ data "aws_iam_policy_document" "immutable_audit_kms" {
       identifiers = ["cloudtrail.amazonaws.com"]
     }
 
-    actions = [
-      "kms:Decrypt",
-      "kms:DescribeKey",
-      "kms:GenerateDataKey*",
-    ]
+    actions   = ["kms:GenerateDataKey*"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceArn"
+      values   = [local.immutable_audit_trail_arn]
+    }
+
+    condition {
+      test     = "StringLike"
+      variable = "kms:EncryptionContext:aws:cloudtrail:arn"
+      values   = ["arn:${data.aws_partition.current.partition}:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/*"]
+    }
+  }
+
+  statement {
+    sid    = "AllowCloudTrailDescribeKey"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions   = ["kms:DescribeKey"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceArn"
+      values   = [local.immutable_audit_trail_arn]
+    }
+  }
+
+  statement {
+    sid    = "AllowCloudTrailDecrypt"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions   = ["kms:Decrypt"]
     resources = ["*"]
   }
 
@@ -94,6 +137,7 @@ data "aws_iam_policy_document" "immutable_audit_kms" {
     resources = ["*"]
   }
 
+  # CloudTrail publishes delivery notifications to the KMS-encrypted SNS topic.
   statement {
     sid    = "AllowCloudTrailSnsNotificationEncryption"
     effect = "Allow"
@@ -108,6 +152,12 @@ data "aws_iam_policy_document" "immutable_audit_kms" {
       "kms:GenerateDataKey*",
     ]
     resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceArn"
+      values   = [local.immutable_audit_trail_arn]
+    }
   }
 }
 
@@ -263,7 +313,7 @@ data "aws_iam_policy_document" "immutable_audit_bucket" {
 
     condition {
       test     = "StringEquals"
-      variable = "AWS:SourceArn"
+      variable = "aws:SourceArn"
       values   = [local.immutable_audit_trail_arn]
     }
   }
@@ -288,7 +338,7 @@ data "aws_iam_policy_document" "immutable_audit_bucket" {
 
     condition {
       test     = "StringEquals"
-      variable = "AWS:SourceArn"
+      variable = "aws:SourceArn"
       values   = [local.immutable_audit_trail_arn]
     }
   }
@@ -373,7 +423,7 @@ data "aws_iam_policy_document" "immutable_audit_sns" {
 
     condition {
       test     = "StringEquals"
-      variable = "AWS:SourceArn"
+      variable = "aws:SourceArn"
       values   = [local.immutable_audit_trail_arn]
     }
   }
@@ -464,9 +514,11 @@ resource "aws_cloudtrail" "immutable_audit" {
   })
 
   depends_on = [
+    aws_kms_key.immutable_audit,
     aws_iam_role_policy.immutable_audit_cloudtrail_logs,
     aws_s3_bucket_object_lock_configuration.immutable_audit,
     aws_s3_bucket_policy.immutable_audit,
+    aws_s3_bucket_server_side_encryption_configuration.immutable_audit,
     aws_sns_topic_policy.immutable_audit,
   ]
 }
@@ -950,5 +1002,5 @@ module "cost_optimization_backlog" {
   include_all_recommendations = var.cost_optimization_backlog_include_all_recommendations
   tags                        = var.tags
 }
-# Change trail: @hungxqt - 2026-07-19 - Add shopping-copilot ProtectAI model IRSA consumer.
+# Change trail: @hungxqt - 2026-07-19 - Fix CloudTrail CreateTrail KMS/S3 policies (aws:SourceArn + encrypt context).
 
