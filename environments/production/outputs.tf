@@ -37,6 +37,11 @@ output "immutable_audit_sns_topic_arn" {
   description = "SNS topic receiving CloudTrail delivery notifications for the immutable audit trail"
 }
 
+output "immutable_audit_sns_kms_key_arn" {
+  value       = aws_kms_key.immutable_audit_sns.arn
+  description = "Customer-managed KMS key encrypting immutable CloudTrail SNS delivery notifications"
+}
+
 output "immutable_audit_retention" {
   value = {
     object_lock_mode       = var.immutable_audit_retention_mode
