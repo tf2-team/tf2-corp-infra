@@ -34,6 +34,19 @@ data "aws_iam_policy_document" "immutable_audit_kms" {
   }
 
   statement {
+    sid    = "AllowCloudTrailDescribeKey"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions   = ["kms:DescribeKey"]
+    resources = ["*"]
+  }
+
+  statement {
     sid    = "AllowCloudTrailEncryption"
     effect = "Allow"
 
@@ -42,17 +55,8 @@ data "aws_iam_policy_document" "immutable_audit_kms" {
       identifiers = ["cloudtrail.amazonaws.com"]
     }
 
-    actions = [
-      "kms:DescribeKey",
-      "kms:GenerateDataKey*",
-    ]
+    actions   = ["kms:GenerateDataKey*"]
     resources = ["*"]
-
-    condition {
-      test     = "StringEquals"
-      variable = "AWS:SourceArn"
-      values   = [local.immutable_audit_trail_arn]
-    }
 
     condition {
       test     = "StringLike"
