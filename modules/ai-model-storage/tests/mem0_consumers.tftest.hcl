@@ -32,6 +32,12 @@ run "consumer_roles_are_isolated" {
         model_prefix         = "protectai/deberta-v3-base-prompt-injection-v2/"
         allow_list_bucket    = true
       }
+      shopping-copilot = {
+        namespace            = "techx-corp-dev"
+        service_account_name = "shopping-copilot"
+        model_prefix         = "protectai/deberta-v3-base-prompt-injection-v2/"
+        allow_list_bucket    = true
+      }
       mem0 = {
         namespace            = "techx-corp-dev"
         service_account_name = "mem0"
@@ -80,4 +86,31 @@ run "consumer_roles_are_isolated" {
     condition     = output.consumer_access_contracts["product-reviews"].allow_list_bucket
     error_message = "The existing product-reviews list permission must be preserved during the refactor."
   }
+
+  assert {
+    condition     = aws_iam_role.model_read["shopping-copilot"].name == "techx-dev-tf2-shopping-copilot-model-read"
+    error_message = "Shopping Copilot must receive a dedicated IRSA role for ProtectAI weights."
+  }
+
+  assert {
+    condition     = output.consumer_access_contracts["shopping-copilot"].service_account_subject == "system:serviceaccount:techx-corp-dev:shopping-copilot"
+    error_message = "The Shopping Copilot role trust policy must only target its ServiceAccount."
+  }
+
+  assert {
+    condition     = output.consumer_access_contracts["shopping-copilot"].model_prefix == "protectai/deberta-v3-base-prompt-injection-v2/"
+    error_message = "Shopping Copilot must share the ProtectAI guardrail model prefix with product-reviews."
+  }
+
+  assert {
+    condition     = output.consumer_access_contracts["shopping-copilot"].role_name != output.consumer_access_contracts["product-reviews"].role_name
+    error_message = "Shopping Copilot and product-reviews must use separate IRSA roles even when sharing a model prefix."
+  }
+
+  assert {
+    condition     = output.consumer_access_contracts["shopping-copilot"].allow_list_bucket
+    error_message = "Shopping Copilot must retain ListBucket on the ProtectAI prefix for init-container download."
+  }
 }
+
+# Change trail: @hungxqt - 2026-07-19 - Assert shopping-copilot IRSA can share ProtectAI prefix.

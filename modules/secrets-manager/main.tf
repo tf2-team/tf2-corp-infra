@@ -13,6 +13,9 @@ locals {
     "postgresql-app",
     "flagd-ui",
     "product-reviews",
+    # Shopping Copilot LLM credentials (OPENAI_API_KEY / Groq-compatible).
+    # Same key shape as product-reviews; separate shell for independent rotation.
+    "shopping-copilot",
     "grafana",
     # Mem0 values are bootstrapped outside Terraform. Expected keys:
     # GROQ_API_KEY, JWT_SECRET, ADMIN_API_KEY, POSTGRES_USER,
@@ -44,3 +47,5 @@ resource "aws_secretsmanager_secret" "this" {
     SecretValueSource = "bootstrap-outside-terraform"
   })
 }
+
+# Change trail: @hungxqt - 2026-07-19 - Add shopping-copilot ASM secret shell for LLM API key.

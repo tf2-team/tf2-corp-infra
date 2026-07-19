@@ -74,7 +74,7 @@
 
 Một repo nested cho mỗi service bake (đồng bộ platform compose):
 
-`accounting`, `ad`, `cart`, `checkout`, `currency`, `email`, `fraud-detection`, `frontend`, `frontend-proxy`, `image-provider`, `load-generator`, `payment`, `product-catalog`, `product-reviews`, `quote`, `recommendation`, `shipping`, `flagd-ui`, `kafka`, `llm`, `opensearch`
+`accounting`, `ad`, `cart`, `checkout`, `currency`, `email`, `fraud-detection`, `frontend`, `frontend-proxy`, `image-provider`, `load-generator`, `mem0`, `payment`, `product-catalog`, `product-reviews`, `quote`, `recommendation`, `shipping`, `shopping-copilot`, `flagd-ui`, `kafka`, `llm`, `opensearch`
 
 Ví dụ tên repo AWS:
 
@@ -814,4 +814,4 @@ aws s3api list-object-versions \
 - `techx-corp-platform/docs/DEPLOYMENT.md` — E2E operator runbook  
 - `techx-corp-chart/docs/DEPLOYMENT.md` — Helm / smoke / rollback
 
-<!-- Change trail: @hungxqt - 2026-07-19 - Phase 1c hybrid Cluster Autoscaler on system MNG with Karpenter. -->
+<!-- Change trail: @hungxqt - 2026-07-19 - Catalog shopping-copilot (and mem0) in ECR service list. -->

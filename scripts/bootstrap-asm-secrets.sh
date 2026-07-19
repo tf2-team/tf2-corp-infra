@@ -62,6 +62,11 @@ put_json "${PREFIX}/flagd-ui" \
 put_json "${PREFIX}/product-reviews" \
   "{\"OPENAI_API_KEY\":\"${OPENAI_API_KEY}\"}"
 
+# Shopping Copilot (platform PR #36): same OPENAI_API_KEY shape as product-reviews.
+# Separate ASM shell so chart ESO can wire IRSA-backed pods independently.
+put_json "${PREFIX}/shopping-copilot" \
+  "{\"OPENAI_API_KEY\":\"${OPENAI_API_KEY}\"}"
+
 put_json "${PREFIX}/grafana" \
   "{\"admin-user\":\"${GRAFANA_USER}\",\"admin-password\":\"${GRAFANA_PASSWORD}\"}"
 
@@ -88,3 +93,5 @@ fi
 
 echo "Done. Bootstrap complete for prefix=${PREFIX} region=${REGION}"
 echo "Next: install ESO + ClusterSecretStore, then helm techx-corp-secrets, wait Ready, then app chart."
+
+# Change trail: @hungxqt - 2026-07-19 - Bootstrap shopping-copilot OPENAI_API_KEY ASM shell.
