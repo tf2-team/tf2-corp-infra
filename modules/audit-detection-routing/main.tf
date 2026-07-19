@@ -13,6 +13,10 @@ locals {
   cloudtrail_event_sources    = ["iam.amazonaws.com", "eks.amazonaws.com", "cloudtrail.amazonaws.com"]
 }
 
+data "aws_caller_identity" "current" {
+  count = local.create ? 1 : 0
+}
+
 data "archive_file" "lambda" {
   count = local.create ? 1 : 0
 
@@ -97,7 +101,10 @@ data "aws_iam_policy_document" "lambda" {
       "iam:GetPolicy",
       "iam:GetPolicyVersion",
     ]
-    resources = ["*"]
+    resources = [
+      "arn:aws:iam::aws:policy/*",
+      "arn:aws:iam::${data.aws_caller_identity.current[0].account_id}:policy/*",
+    ]
   }
 
   statement {
@@ -109,6 +116,21 @@ data "aws_iam_policy_document" "lambda" {
       "sqs:ReceiveMessage",
     ]
     resources = [aws_sqs_queue.routing[0].arn]
+  }
+
+  statement {
+    sid       = "SendFailedDeliveryToDlq"
+    actions   = ["sqs:SendMessage"]
+    resources = [aws_sqs_queue.dlq[0].arn]
+  }
+
+  statement {
+    sid = "WriteXrayTraces"
+    actions = [
+      "xray:PutTelemetryRecords",
+      "xray:PutTraceSegments",
+    ]
+    resources = ["*"]
   }
 }
 
@@ -123,6 +145,10 @@ resource "aws_iam_role_policy" "lambda" {
 resource "aws_lambda_function" "router" {
   count = local.create ? 1 : 0
 
+  #checkov:skip=CKV_AWS_117:Router needs public egress to Discord webhook and does not access private VPC resources.
+  #checkov:skip=CKV_AWS_272:Code signing is not available in this capstone account; deployment is controlled by Terraform and CI.
+  #checkov:skip=CKV_AWS_173:Webhook URL is stored in Secrets Manager; env vars contain only secret names and non-sensitive routing config.
+  #checkov:skip=CKV_AWS_115:SQS event source mapping limits delivery concurrency; account reserved concurrency quota is unavailable.
   function_name    = local.function_name
   description      = "Routes high-signal audit/security events to Discord with actor/action/source/TTD context."
   role             = aws_iam_role.lambda[0].arn
@@ -133,6 +159,14 @@ resource "aws_lambda_function" "router" {
   timeout          = 20
   memory_size      = 256
   tags             = var.tags
+
+  dead_letter_config {
+    target_arn = aws_sqs_queue.dlq[0].arn
+  }
+
+  tracing_config {
+    mode = "Active"
+  }
 
   environment {
     variables = {
