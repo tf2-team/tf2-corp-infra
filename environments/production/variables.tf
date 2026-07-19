@@ -13,6 +13,40 @@ variable "tags" {
   description = "Các tag được áp dụng cho tài nguyên"
 }
 
+variable "immutable_audit_bucket_name" {
+  type        = string
+  description = "Optional S3 bucket name for the production immutable CloudTrail audit trail. Leave empty to derive from project name and account ID."
+  default     = ""
+}
+
+variable "immutable_audit_trail_name" {
+  type        = string
+  description = "Optional CloudTrail name for the production immutable audit trail. Leave empty to derive from project name."
+  default     = ""
+}
+
+variable "immutable_audit_retention_mode" {
+  type        = string
+  description = "S3 Object Lock default retention mode for immutable CloudTrail logs."
+  default     = "GOVERNANCE"
+
+  validation {
+    condition     = contains(["GOVERNANCE", "COMPLIANCE"], var.immutable_audit_retention_mode)
+    error_message = "immutable_audit_retention_mode must be GOVERNANCE or COMPLIANCE."
+  }
+}
+
+variable "immutable_audit_retention_days" {
+  type        = number
+  description = "S3 Object Lock default retention period in days for immutable CloudTrail logs."
+  default     = 90
+
+  validation {
+    condition     = var.immutable_audit_retention_days >= 30
+    error_message = "immutable_audit_retention_days must be at least 30 days."
+  }
+}
+
 variable "ecr_project_name" {
   type        = string
   description = "ECR project path segment (e.g. techx-corp). Full image: registry/ecr_project_name/service:tag"
@@ -1219,4 +1253,3 @@ variable "mem0_postgresql_kms_key_id" {
 }
 
 # Change trail: @hungxqt - 2026-07-19 - Cluster Autoscaler variables document hybrid system-MNG + Karpenter.
-

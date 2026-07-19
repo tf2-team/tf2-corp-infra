@@ -1,4 +1,36 @@
 # ──────────────────────────────────────────────
+# Immutable Audit Outputs
+# ──────────────────────────────────────────────
+
+output "immutable_audit_bucket_name" {
+  value       = aws_s3_bucket.immutable_audit.bucket
+  description = "Production S3 Object Lock bucket receiving the dedicated immutable CloudTrail audit trail"
+}
+
+output "immutable_audit_bucket_arn" {
+  value       = aws_s3_bucket.immutable_audit.arn
+  description = "ARN of the production immutable CloudTrail audit bucket"
+}
+
+output "immutable_audit_trail_name" {
+  value       = aws_cloudtrail.immutable_audit.name
+  description = "Dedicated production CloudTrail writing to the immutable audit bucket"
+}
+
+output "immutable_audit_trail_arn" {
+  value       = aws_cloudtrail.immutable_audit.arn
+  description = "ARN of the dedicated production immutable CloudTrail"
+}
+
+output "immutable_audit_retention" {
+  value = {
+    mode = var.immutable_audit_retention_mode
+    days = var.immutable_audit_retention_days
+  }
+  description = "S3 Object Lock default retention for the production immutable CloudTrail audit bucket"
+}
+
+# ──────────────────────────────────────────────
 # ECR Outputs
 # ──────────────────────────────────────────────
 

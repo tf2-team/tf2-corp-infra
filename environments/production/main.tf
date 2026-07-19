@@ -1,3 +1,224 @@
+data "aws_caller_identity" "current" {}
+
+data "aws_partition" "current" {}
+
+locals {
+  immutable_audit_bucket_name = (
+    var.immutable_audit_bucket_name != ""
+    ? var.immutable_audit_bucket_name
+    : "${var.project_name}-cloudtrail-immutable-${data.aws_caller_identity.current.account_id}"
+  )
+  immutable_audit_trail_name = (
+    var.immutable_audit_trail_name != ""
+    ? var.immutable_audit_trail_name
+    : "${var.project_name}-mandate12-immutable-audit"
+  )
+  immutable_audit_trail_arn = "arn:${data.aws_partition.current.partition}:cloudtrail:${var.aws_region}:${data.aws_caller_identity.current.account_id}:trail/${local.immutable_audit_trail_name}"
+}
+
+resource "aws_s3_bucket" "immutable_audit" {
+  #checkov:skip=CKV_AWS_18:This bucket is the immutable CloudTrail destination; access is audited by CloudTrail and Object Lock evidence, avoiding recursive server access logs.
+  #checkov:skip=CKV_AWS_144:Cross-region replication is intentionally omitted for the capstone budget; CloudTrail is multi-region and log integrity validation is enabled.
+  #checkov:skip=CKV_AWS_145:SSE-S3 keeps the CloudTrail setup simple and reliable for the deadline; log integrity is provided by CloudTrail digest validation and S3 Object Lock.
+  bucket              = local.immutable_audit_bucket_name
+  object_lock_enabled = true
+  force_destroy       = false
+
+  tags = merge(var.tags, {
+    Name      = local.immutable_audit_bucket_name
+    Mandate   = "MD4-MD12"
+    Purpose   = "immutable-cloudtrail-audit"
+    Retention = "${var.immutable_audit_retention_days}d"
+  })
+}
+
+resource "aws_s3_bucket_public_access_block" "immutable_audit" {
+  bucket                  = aws_s3_bucket.immutable_audit.id
+  block_public_acls       = true
+  ignore_public_acls      = true
+  block_public_policy     = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_ownership_controls" "immutable_audit" {
+  bucket = aws_s3_bucket.immutable_audit.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_versioning" "immutable_audit" {
+  bucket = aws_s3_bucket.immutable_audit.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "immutable_audit" {
+  bucket = aws_s3_bucket.immutable_audit.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_object_lock_configuration" "immutable_audit" {
+  bucket = aws_s3_bucket.immutable_audit.id
+
+  rule {
+    default_retention {
+      mode = var.immutable_audit_retention_mode
+      days = var.immutable_audit_retention_days
+    }
+  }
+
+  depends_on = [aws_s3_bucket_versioning.immutable_audit]
+}
+
+data "aws_iam_policy_document" "immutable_audit_bucket" {
+  statement {
+    sid    = "DenyInsecureTransport"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions = ["s3:*"]
+    resources = [
+      aws_s3_bucket.immutable_audit.arn,
+      "${aws_s3_bucket.immutable_audit.arn}/*",
+    ]
+
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+
+  statement {
+    sid    = "AWSCloudTrailAclCheck"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions   = ["s3:GetBucketAcl"]
+    resources = [aws_s3_bucket.immutable_audit.arn]
+
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [local.immutable_audit_trail_arn]
+    }
+  }
+
+  statement {
+    sid    = "AWSCloudTrailWrite"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.immutable_audit.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [local.immutable_audit_trail_arn]
+    }
+  }
+
+  statement {
+    sid    = "DenyAuditLogDelete"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions = [
+      "s3:DeleteObject",
+      "s3:DeleteObjectVersion",
+    ]
+    resources = ["${aws_s3_bucket.immutable_audit.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"]
+  }
+
+  statement {
+    sid    = "DenyAuditLogOverwriteByNonCloudTrail"
+    effect = "Deny"
+
+    not_principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.immutable_audit.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"]
+  }
+
+  statement {
+    sid    = "DenyObjectLockBypass"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions = [
+      "s3:BypassGovernanceRetention",
+      "s3:PutObjectLegalHold",
+      "s3:PutObjectRetention",
+    ]
+    resources = ["${aws_s3_bucket.immutable_audit.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"]
+  }
+}
+
+resource "aws_s3_bucket_policy" "immutable_audit" {
+  bucket = aws_s3_bucket.immutable_audit.id
+  policy = data.aws_iam_policy_document.immutable_audit_bucket.json
+
+  depends_on = [aws_s3_bucket_public_access_block.immutable_audit]
+}
+
+resource "aws_cloudtrail" "immutable_audit" {
+  name                          = local.immutable_audit_trail_name
+  s3_bucket_name                = aws_s3_bucket.immutable_audit.id
+  include_global_service_events = true
+  is_multi_region_trail         = true
+  enable_log_file_validation    = true
+  enable_logging                = true
+
+  event_selector {
+    read_write_type           = "All"
+    include_management_events = true
+  }
+
+  tags = merge(var.tags, {
+    Name    = local.immutable_audit_trail_name
+    Mandate = "MD4-MD12"
+    Purpose = "immutable-cloudtrail-audit"
+  })
+
+  depends_on = [
+    aws_s3_bucket_object_lock_configuration.immutable_audit,
+    aws_s3_bucket_policy.immutable_audit,
+  ]
+}
+
 module "ecr" {
   source = "../../modules/ecr"
 
@@ -472,4 +693,3 @@ module "cost_optimization_backlog" {
   tags                        = var.tags
 }
 # Change trail: @hungxqt - 2026-07-19 - Hybrid CA on system MNG; remove dual-autoscaler mutual exclusion.
-
