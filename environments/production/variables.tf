@@ -53,6 +53,12 @@ variable "immutable_audit_cloudwatch_retention_days" {
   default     = 90
 }
 
+variable "immutable_audit_alert_email_endpoints" {
+  type        = set(string)
+  description = "Email endpoints subscribed to Mandate 12.1 immutable audit tamper SNS email-json alerts. Subscribers must confirm the AWS email."
+  default     = []
+}
+
 variable "ecr_project_name" {
   type        = string
   description = "ECR project path segment (e.g. techx-corp). Full image: registry/ecr_project_name/service:tag"
