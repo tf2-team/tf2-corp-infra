@@ -104,6 +104,28 @@ data "aws_iam_policy_document" "immutable_audit_kms" {
     ]
     resources = ["*"]
   }
+
+  statement {
+    sid    = "AllowCloudTrailSnsNotificationEncryption"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:GenerateDataKey*",
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [local.immutable_audit_trail_arn]
+    }
+  }
 }
 
 resource "aws_kms_key" "immutable_audit" {
