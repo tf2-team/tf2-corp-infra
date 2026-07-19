@@ -59,6 +59,17 @@ variable "immutable_audit_alert_email_endpoints" {
   default     = []
 }
 
+variable "immutable_audit_s3_data_event_object_arns" {
+  type        = set(string)
+  description = "S3 object ARN scopes logged as CloudTrail data events for Mandate 12.2. Use trailing slash for all objects in a bucket, for example arn:aws:s3:::bucket-name/."
+  default     = []
+
+  validation {
+    condition     = alltrue([for arn in var.immutable_audit_s3_data_event_object_arns : startswith(arn, "arn:aws:s3:::")])
+    error_message = "immutable_audit_s3_data_event_object_arns must contain S3 object ARN scopes such as arn:aws:s3:::bucket-name/."
+  }
+}
+
 variable "ecr_project_name" {
   type        = string
   description = "ECR project path segment (e.g. techx-corp). Full image: registry/ecr_project_name/service:tag"

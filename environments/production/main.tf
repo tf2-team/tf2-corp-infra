@@ -480,6 +480,15 @@ resource "aws_cloudtrail" "immutable_audit" {
   event_selector {
     read_write_type           = "All"
     include_management_events = true
+
+    dynamic "data_resource" {
+      for_each = var.immutable_audit_s3_data_event_object_arns
+
+      content {
+        type   = "AWS::S3::Object"
+        values = [data_resource.value]
+      }
+    }
   }
 
   tags = merge(var.tags, {

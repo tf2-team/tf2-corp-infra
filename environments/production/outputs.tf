@@ -63,6 +63,11 @@ output "immutable_audit_tamper_alert_topic_arn" {
   description = "SNS topic that receives Mandate 12.1 immutable audit tamper alerts and forwards them to confirmed email subscribers"
 }
 
+output "immutable_audit_s3_data_event_object_arns" {
+  value       = var.immutable_audit_s3_data_event_object_arns
+  description = "S3 object ARN scopes logged as CloudTrail data events for Mandate 12.2"
+}
+
 # ──────────────────────────────────────────────
 # ECR Outputs
 # ──────────────────────────────────────────────

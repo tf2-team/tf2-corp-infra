@@ -10,6 +10,11 @@ tags = {
 # Mandate 12.1 audit tamper email alerts. Add real inboxes and confirm AWS SNS subscription emails after apply.
 immutable_audit_alert_email_endpoints = ["ctran13904@gmail.com"]
 
+# Mandate 12.2 S3 data events. Scope narrowly to sensitive model artifacts to limit CloudTrail data-event cost.
+immutable_audit_s3_data_event_object_arns = [
+  "arn:aws:s3:::techx-prod-tf2-ai-models-493499579600/"
+]
+
 # Image format: REGISTRY/techx-prod-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
 # Lifecycle matches development (keep last 5 images + 1 buildcache).
