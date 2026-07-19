@@ -741,6 +741,16 @@ resource "helm_release" "karpenter" {
       nodeSelector = {
         "workload-class" = "critical"
       }
+      resources = {
+        requests = {
+          cpu    = "100m"
+          memory = "128Mi"
+        }
+        limits = {
+          cpu    = "1"
+          memory = "1Gi"
+        }
+      }
       # Phase 2: add matching toleration when MNG is tainted workload-class=critical:NoSchedule.
       # tolerations = [{
       #   key      = "workload-class"

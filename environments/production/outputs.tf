@@ -108,6 +108,7 @@ output "aws_load_balancer_controller_helm_command" {
   description = "Helm command to install AWS Load Balancer Controller (region + vpcId avoid IMDS hop-limit failures)"
   value       = <<-EOT
     helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+      --version 3.4.1 \
       -n kube-system \
       --set clusterName=${module.eks.cluster_name} \
       --set region=${var.aws_region} \
@@ -115,7 +116,12 @@ output "aws_load_balancer_controller_helm_command" {
       --set serviceAccount.create=true \
       --set serviceAccount.name=aws-load-balancer-controller \
       --set serviceAccount.annotations.eks\.amazonaws\.com/role-arn=${module.eks.aws_load_balancer_controller_role_arn} \
-      --set nodeSelector.workload-class=critical
+      --set nodeSelector.workload-class=critical \
+      --set securityContext.capabilities.drop[0]=ALL \
+      --set resources.requests.cpu=50m \
+      --set resources.requests.memory=128Mi \
+      --set resources.limits.cpu=500m \
+      --set resources.limits.memory=512Mi
   EOT
 }
 
