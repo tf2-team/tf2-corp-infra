@@ -12,6 +12,7 @@ tags = {
 # Lifecycle matches development (keep last 5 images + 1 buildcache).
 ecr_project_name           = "techx-prod-corp"
 ecr_naming_mode            = "nested"
+ecr_image_tag_mutability   = "IMMUTABLE"
 ecr_keep_last_n_images     = 5
 ecr_keep_last_n_buildcache = 1
 ecr_scan_on_push           = false
@@ -364,4 +365,4 @@ cost_optimization_backlog_athena_bytes_cutoff         = 1073741824
 cost_optimization_backlog_include_member_accounts     = false
 cost_optimization_backlog_manage_enrollment           = false
 cost_optimization_backlog_include_all_recommendations = false
-# Change trail: @hungxqt - 2026-07-15 - Set Karpenter consolidateAfter to 0s for immediate empty (DaemonSet-only) reclaim.
+# Change trail: @hungxqt - 2026-07-19 - Set ecr_image_tag_mutability to IMMUTABLE for all service repos.

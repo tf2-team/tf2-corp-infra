@@ -65,8 +65,10 @@ resource "aws_ecr_lifecycle_policy" "this" {
 
   repository = aws_ecr_repository.this[each.key].name
 
-  # Platform CI uses :buildcache as a movable registry cache tag (docker-bake.hcl).
-  # Rule 1 expires extra buildcache digests so they do not compete with runtime retention.
+  # Platform CI historically used :buildcache as a movable registry cache tag (docker-bake.hcl).
+  # Under image_tag_mutability=IMMUTABLE, overwriting :buildcache fails — use unique tags
+  # or a non-ECR cache (e.g. GHA cache) for build cache. Rule 1 still expires leftover
+  # buildcache digests so they do not compete with runtime retention.
   # Rule 2 keeps the last N remaining images (sha-* / other tags + untagged layers).
   policy = jsonencode({
     rules = [
@@ -98,3 +100,5 @@ resource "aws_ecr_lifecycle_policy" "this" {
     ]
   })
 }
+
+# Change trail: @hungxqt - 2026-07-19 - Document IMMUTABLE impact on movable :buildcache tags.

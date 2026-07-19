@@ -64,8 +64,18 @@ variable "services" {
 
 variable "image_tag_mutability" {
   type        = string
-  default     = "MUTABLE"
-  description = "Default image tag mutability for all service repositories"
+  default     = "IMMUTABLE"
+  description = <<-EOT
+    Default image tag mutability for all service repositories.
+    IMMUTABLE prevents retagging of any existing tag (including :buildcache).
+    Platform CI must use unique runtime tags (e.g. sha-*) and a cache strategy
+    that does not overwrite the same ECR tag when this is IMMUTABLE.
+  EOT
+
+  validation {
+    condition     = contains(["MUTABLE", "IMMUTABLE"], var.image_tag_mutability)
+    error_message = "image_tag_mutability must be \"MUTABLE\" or \"IMMUTABLE\"."
+  }
 }
 
 variable "scan_on_push" {
@@ -116,3 +126,5 @@ variable "repositories" {
     Values merge over the module defaults.
   EOT
 }
+
+# Change trail: @hungxqt - 2026-07-19 - Default image_tag_mutability to IMMUTABLE for all service repos.
