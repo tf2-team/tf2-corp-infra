@@ -33,10 +33,11 @@ run "consumer_roles_are_isolated" {
         allow_list_bucket    = true
       }
       shopping-copilot = {
-        namespace            = "techx-corp-dev"
-        service_account_name = "shopping-copilot"
-        model_prefix         = "protectai/deberta-v3-base-prompt-injection-v2/"
-        allow_list_bucket    = true
+        namespace                     = "techx-corp-dev"
+        service_account_name          = "shopping-copilot"
+        model_prefix                  = "protectai/deberta-v3-base-prompt-injection-v2/"
+        allow_list_bucket             = true
+        bedrock_inference_profile_ids = ["global.amazon.nova-2-lite-v1:0"]
       }
       mem0 = {
         namespace            = "techx-corp-dev"
@@ -110,6 +111,11 @@ run "consumer_roles_are_isolated" {
   assert {
     condition     = output.consumer_access_contracts["shopping-copilot"].allow_list_bucket
     error_message = "Shopping Copilot must retain ListBucket on the ProtectAI prefix for init-container download."
+  }
+
+  assert {
+    condition     = length(output.consumer_access_contracts["shopping-copilot"].bedrock_inference_profile_ids) == 1 && contains(output.consumer_access_contracts["shopping-copilot"].bedrock_inference_profile_ids, "global.amazon.nova-2-lite-v1:0")
+    error_message = "Shopping Copilot must be limited to the approved Nova inference profile."
   }
 }
 

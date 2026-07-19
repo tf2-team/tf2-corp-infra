@@ -30,12 +30,13 @@ variable "oidc_issuer_url" {
 
 variable "consumers" {
   type = map(object({
-    namespace            = string
-    service_account_name = string
-    model_prefix         = string
-    allow_list_bucket    = optional(bool, false)
+    namespace                     = string
+    service_account_name          = string
+    model_prefix                  = string
+    allow_list_bucket             = optional(bool, false)
+    bedrock_inference_profile_ids = optional(list(string), [])
   }))
-  description = "Model consumers with an isolated IRSA role and least-privilege S3 prefix"
+  description = "Model consumers with an isolated IRSA role and least-privilege S3/Bedrock access"
 
   validation {
     condition     = length(var.consumers) > 0

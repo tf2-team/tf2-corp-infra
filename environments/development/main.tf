@@ -151,10 +151,11 @@ module "ai_model_storage" {
       allow_list_bucket    = true
     }
     shopping-copilot = {
-      namespace            = "techx-corp-dev"
-      service_account_name = "shopping-copilot"
-      model_prefix         = "protectai/deberta-v3-base-prompt-injection-v2/"
-      allow_list_bucket    = true
+      namespace                     = "techx-corp-dev"
+      service_account_name          = "shopping-copilot"
+      model_prefix                  = "protectai/deberta-v3-base-prompt-injection-v2/"
+      allow_list_bucket             = true
+      bedrock_inference_profile_ids = ["global.amazon.nova-2-lite-v1:0"]
     }
     mem0 = {
       namespace            = "techx-corp-dev"
