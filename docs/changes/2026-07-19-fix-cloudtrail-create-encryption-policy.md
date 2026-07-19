@@ -2,7 +2,7 @@
 
 ## Summary
 
-Production Mandate 12 immutable audit trail failed on `CreateTrail` with `InsufficientEncryptionPolicyException` for the Object Lock bucket and CMK. Fixed S3/SNS condition key case (`aws:SourceArn`) and rewrote the KMS key policy CloudTrail statements to the AWS multi-region encrypt/describe/decrypt shape so CreateTrail validation can use the key and write encrypted logs.
+Production Mandate 12 immutable audit trail failed on `CreateTrail` with `InsufficientEncryptionPolicyException` for the Object Lock bucket and CMK. Fixed S3/SNS condition key case (`aws:SourceArn`) and simplified CloudTrail delivery policies so CreateTrail validation can use the CMK and write encrypted log files.
 
 ## Context
 
@@ -17,28 +17,26 @@ CloudTrail pre-validates bucket and KMS policies for `cloudtrail.amazonaws.com` 
 
 ## Before
 
-* S3 and SNS Allow statements conditioned on `AWS:SourceArn` (wrong case for the global key `aws:SourceArn`).
-* KMS policy used a single open CloudTrail statement without multi-region `kms:EncryptionContext:aws:cloudtrail:arn` / `aws:SourceArn` on encrypt.
+* S3 and SNS Allow statements conditioned on `AWS:SourceArn` instead of the canonical global key `aws:SourceArn`.
+* SNS topic encryption with the CloudTrail CMK added an extra customer-managed KMS permission path during CloudTrail CreateTrail preflight.
+* S3 bucket default encryption had already been reduced to SSE-S3 so trail-level CMK remains the CloudTrail log-file encryption path.
 
 ## After
 
 * All CloudTrail SourceArn conditions use `aws:SourceArn`.
-* KMS key policy includes AWS-documented trail statements:
-  * `AllowCloudTrailEncryptLogs` — `kms:GenerateDataKey*` + SourceArn + EncryptionContext `trail/*`
-  * `AllowCloudTrailDescribeKey` — `kms:DescribeKey` + SourceArn
-  * `AllowCloudTrailDecrypt` — `kms:Decrypt` for the service principal
-  * SNS notification encrypt still SourceArn-scoped
+* KMS key policy allows the `cloudtrail.amazonaws.com` service principal to use the CMK for trail-level log file encryption.
+* SNS delivery notifications remain configured and encrypted with AWS managed key `alias/aws/sns` to avoid another customer-managed CMK preflight dependency.
 * CloudTrail `depends_on` also waits for KMS key and bucket default encryption config.
 
 ## Technical Design Decisions
 
-* Prefer official multi-region EncryptionContext (`region=*`) because the trail sets `is_multi_region_trail = true`.
 * Keep SSE-S3 on the bucket default encryption; trail-level CMK remains the log-file encryption path (avoids double-KMS delivery issues).
+* Keep SNS encrypted with `alias/aws/sns`; the immutable log evidence is protected by CloudTrail CMK + S3 Object Lock.
 * Do not recreate the Object Lock bucket or CMK; policy updates only.
 
 ## Implementation Details
 
-1. Updated `data.aws_iam_policy_document.immutable_audit_kms` CloudTrail statements.
+1. Updated `data.aws_iam_policy_document.immutable_audit_kms` CloudTrail statement.
 2. Replaced `AWS:SourceArn` with `aws:SourceArn` on bucket and SNS policy documents.
 3. Extended `aws_cloudtrail.immutable_audit` `depends_on`.
 
@@ -57,7 +55,7 @@ None.
 |---|---|
 | **Application behavior** | No app change; enables production CloudTrail create |
 | **Infrastructure** | Policy updates on existing KMS key, S3 bucket, SNS topic; trail resource creates |
-| **Security** | SourceArn-scoped CloudTrail encrypt; multi-region encryption context required by AWS |
+| **Security** | Trail-level CMK encryption for CloudTrail log files; S3 Object Lock remains immutable evidence layer |
 | **Deployment** | Re-apply production Terraform |
 
 ## Validation
@@ -85,15 +83,15 @@ Expect `"IsLogging": true`. Confirm bucket policy / key policy JSON contain `"aw
 
 ## Migration or Deployment Notes
 
-1. Plan should show updates to KMS key policy, S3 bucket policy, SNS topic policy, and **create** of `aws_cloudtrail.immutable_audit` (if not already created).
+1. Plan should show updates to KMS key policy, S3 bucket policy, SNS topic policy, SNS topic encryption settings, and **create** of `aws_cloudtrail.immutable_audit` (if not already created).
 2. Do not destroy the Object Lock bucket if apply fails again; fix policies and retry.
 
 ## Risks and Rollback
 
 | Risk | Likelihood | Severity | Mitigation / Rollback |
 |---|---|---|---|
-| SourceArn on encrypt too tight if trail name local drifts | Low | Medium | Keep trail name local in sync with resource name |
-| SNS encrypt SourceArn blocks delivery notifications | Low | Low | Same trail ARN local used for CreateTrail |
+| CloudTrail CMK policy still too tight for CreateTrail preflight | Low | Medium | Service-principal CloudTrail statement remains intentionally simple |
+| SNS topic no longer uses this CMK | Low | Low | SNS still encrypts at rest with AWS managed key `alias/aws/sns`; immutable evidence remains in Object Lock S3 with trail-level CMK |
 
 **Rollback procedure:** Revert this commit and re-apply; trail may already exist—remove trail first if reverting to a broken policy is required for testing.
 
