@@ -67,6 +67,9 @@ module "eks" {
 
   # Tag MNG ASGs for CA auto-discovery when Cluster Autoscaler is enabled (IAM-only is enough).
   enable_cluster_autoscaler_asg_tags = var.cluster_autoscaler_enabled
+
+  enabled_cluster_log_types = ["api", "audit"]
+
 }
 
 # GitOps control plane (REL-09). Same enablement model as development (API access required at apply).
@@ -473,3 +476,23 @@ module "cost_optimization_backlog" {
 }
 # Change trail: @hungxqt - 2026-07-19 - Hybrid CA on system MNG; remove dual-autoscaler mutual exclusion.
 
+module "audit_pipeline" {
+  source = "../../modules/audit-pipeline"
+
+  project_name      = var.project_name       # "techx-prod-tf2"
+  aws_region        = var.aws_region          # "us-east-1"
+  eks_cluster_name  = var.cluster_name        # "techx-tf2-prod"
+
+  audit_bucket_name         = "techx-prod-tf2-audit-events"
+  cloudtrail_name            = "techx-prod-tf2-audit-trail"
+  cloudtrail_log_group_name  = "techx-prod-tf2-cloudtrail"
+  firehose_stream_name       = "techx-prod-tf2-audit-events-stream"
+
+  # Điền sau khi có danh sách thật (kubectl get clusterrolebindings ...)
+  allowed_actors_csv = "system:serviceaccount:argocd:argocd-application-controller,system:serviceaccount:kube-system:karpenter,system:serviceaccount:kube-system:cluster-autoscaler"
+
+  manage_eks_log_group_retention = true
+
+  tags = var.tags
+}
+# Audit Pipeline Production - MD11

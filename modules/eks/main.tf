@@ -66,6 +66,7 @@ resource "aws_eks_cluster" "this" {
   version                       = var.kubernetes_version
   role_arn                      = aws_iam_role.cluster.arn
   bootstrap_self_managed_addons = false
+  enabled_cluster_log_types = var.enabled_cluster_log_types
 
   # STANDARD = regular support window (no extended-support billing after end of standard support).
   # EXTENDED keeps the cluster on an older version past standard EOL (extra cost).
@@ -80,8 +81,6 @@ resource "aws_eks_cluster" "this" {
     bootstrap_cluster_creator_admin_permissions = true
   }
 
-  enabled_cluster_log_types = ["api", "audit", "authenticator"]
-
   vpc_config {
     subnet_ids              = var.subnet_ids
     endpoint_public_access  = var.endpoint_public_access
@@ -90,6 +89,7 @@ resource "aws_eks_cluster" "this" {
   }
 
   depends_on = [aws_iam_role_policy_attachment.cluster_policy]
+  
 }
 
 # Karpenter security-group discovery (EC2NodeClass securityGroupSelectorTerms).

@@ -3,6 +3,7 @@ variable "cluster_name" {
   description = "Tên EKS cluster"
 }
 
+
 variable "kubernetes_version" {
   type        = string
   default     = "1.31"
@@ -158,6 +159,12 @@ variable "enable_cluster_autoscaler_asg_tags" {
     Enable when cluster_autoscaler_enabled is true. Safe alongside Karpenter
     (CA owns tagged MNG ASGs only; Karpenter owns non-ASG Spot/OD nodes).
   EOT
+}
+
+variable "enabled_cluster_log_types" {
+  type        = list(string)
+  default     = []
+  description = "Control plane log types gửi vào CloudWatch, vd [\"api\", \"audit\"]"
 }
 
 variable "cluster_autoscaler_node_group_name_prefixes" {
