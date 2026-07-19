@@ -349,6 +349,7 @@ resource "aws_cloudwatch_log_subscription_filter" "k8s_audit_high_risk" {
 resource "aws_sqs_queue" "lambda_dlq" {
   name                      = "${var.project_name}-k8s-audit-filter-dlq"
   message_retention_seconds = 1209600 # 14 ngày
+  kms_master_key_id         = aws_kms_key.audit_pipeline.arn
   tags                       = var.tags
 }
 
@@ -372,6 +373,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "audit_events" {
     id     = "expire-old-audit-events"
     status = "Enabled"
     filter {}
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+
     transition {
       days          = 90
       storage_class = "STANDARD_IA"
@@ -383,8 +389,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "audit_events" {
 }
 
 resource "aws_kms_key" "audit_pipeline" {
-  description             = "${var.project_name} audit pipeline encryption (Lambda env vars, S3, Firehose)"
+  description             = "${var.project_name} audit pipeline encryption (Lambda env vars, S3, Firehose, SQS)"
   deletion_window_in_days = 7
+  enable_key_rotation     = true
   tags                    = var.tags
 }
 

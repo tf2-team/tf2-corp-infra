@@ -489,7 +489,7 @@ module "audit_pipeline" {
   firehose_stream_name       = "techx-prod-tf2-audit-events-stream"
 
   # Điền sau khi có danh sách thật (kubectl get clusterrolebindings ...)
-  allowed_actors_csv = "system:serviceaccount:argocd:argocd-application-controller,system:serviceaccount:kube-system:karpenter,system:serviceaccount:kube-system:cluster-autoscaler"
+  allowed_actors_csv = ""
 
   manage_eks_log_group_retention = true
 
