@@ -274,5 +274,72 @@ module "client_vpn" {
   tags                           = var.tags
 }
 
+# ──────────────────────────────────────────────
+# Mandate 10: Sigstore policy-controller IRSA Role
+# ──────────────────────────────────────────────
+
+data "aws_kms_alias" "cosign" {
+  name = "alias/tf2-cosign-signing-key"
+}
+
+data "aws_iam_policy_document" "policy_controller_assume" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect  = "Allow"
+    principals {
+      type        = "Federated"
+      identifiers = [module.eks.oidc_provider_arn]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.oidc_issuer, "https://", "")}:sub"
+      values   = ["system:serviceaccount:cosign-system:policy-controller"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.oidc_issuer, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "policy_controller" {
+  name               = "${var.project_name}-policy-controller"
+  assume_role_policy = data.aws_iam_policy_document.policy_controller_assume.json
+  tags               = var.tags
+}
+
+data "aws_iam_policy_document" "policy_controller" {
+  statement {
+    sid    = "EcrRead"
+    effect = "Allow"
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchGetImage",
+      "ecr:DescribeImages",
+      "ecr:DescribeRepositories",
+      "ecr:ListImages"
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "KmsRead"
+    effect = "Allow"
+    actions = [
+      "kms:GetPublicKey",
+      "kms:DescribeKey"
+    ]
+    resources = [data.aws_kms_alias.cosign.target_key_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "policy_controller" {
+  name   = "${var.project_name}-policy-controller"
+  role   = aws_iam_role.policy_controller.id
+  policy = data.aws_iam_policy_document.policy_controller.json
+}
+
 # Change trail: @hungxqt - 2026-07-19 - Add shopping-copilot ProtectAI model IRSA consumer.
 

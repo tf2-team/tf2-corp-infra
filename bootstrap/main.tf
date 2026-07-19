@@ -129,6 +129,43 @@ resource "aws_s3_bucket_lifecycle_configuration" "state_bucket_lifecycle" {
 }
 
 # ──────────────────────────────────────────────
+# KMS Key configuration for Cosign Image Signing
+# ──────────────────────────────────────────────
+
+resource "aws_kms_key" "cosign" {
+  description              = "TF2 Cosign image signing key"
+  customer_master_key_spec = "ECC_NIST_P256"
+  key_usage                = "SIGN_VERIFY"
+  deletion_window_in_days  = 7
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Id      = "cosign-key-policy"
+    Statement = [
+      {
+        Sid       = "Enable IAM User Permits"
+        Effect    = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${local.account_id}:root"
+        }
+        Action    = "kms:*"
+        Resource  = "*"
+      }
+    ]
+  })
+
+  tags = merge(var.tags, {
+    Purpose = "cosign-image-signing"
+    Mandate = "MD10"
+  })
+}
+
+resource "aws_kms_alias" "cosign" {
+  name          = "alias/tf2-cosign-signing-key"
+  target_key_id = aws_kms_key.cosign.key_id
+}
+
+# ──────────────────────────────────────────────
 # GitHub Actions OIDC (account-level singleton)
 # + ECR push roles for platform CI/CD
 # ──────────────────────────────────────────────
@@ -217,6 +254,7 @@ module "github_actions_ecr" {
   s3_publish_bucket_arns   = each.value.s3_publish_bucket_arns
   s3_publish_object_arns   = each.value.s3_publish_object_arns
   s3_publish_list_prefixes = each.value.s3_publish_list_prefixes
+  cosign_kms_key_arn       = aws_kms_key.cosign.arn
 
   tags = merge(var.tags, {
     Purpose = "github-actions-ecr-push"
