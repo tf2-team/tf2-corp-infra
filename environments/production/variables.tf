@@ -184,6 +184,13 @@ variable "kubernetes_version" {
   description = "Phiên bản Kubernetes cho EKS cluster"
 }
 
+variable "enabled_cluster_log_types" {
+  type        = list(string)
+  default     = ["api", "audit", "authenticator"]
+  nullable    = false
+  description = "EKS control-plane log types to enable for auditability."
+}
+
 variable "node_groups" {
   type = map(object({
     instance_types = list(string)
@@ -1054,6 +1061,62 @@ variable "cost_anomaly_routing_aggregation_duration" {
   default     = "SHORT"
   nullable    = false
   description = "AWS User Notifications aggregation duration: NONE, SHORT, or LONG"
+}
+
+# DIRECTIVE #11: audit detection alert routing
+
+variable "audit_detection_routing_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, route high-signal audit/security events to Discord via EventBridge/Lambda."
+}
+
+variable "audit_detection_allowed_aws_principal_arn_patterns" {
+  type        = list(string)
+  default     = []
+  nullable    = false
+  description = "Regex patterns for expected automation/break-glass AWS principal ARNs suppressed by selected audit detections."
+}
+
+variable "audit_detection_kubernetes_audit_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, subscribe the existing EKS audit CloudWatch log group to the audit alert router."
+}
+
+variable "audit_detection_kubernetes_audit_log_group_name" {
+  type        = string
+  default     = null
+  description = "Existing EKS control-plane audit log group. Defaults to /aws/eks/<cluster_name>/cluster when null."
+}
+
+variable "audit_detection_production_namespace_patterns" {
+  type        = list(string)
+  default     = ["^techx-corp-prod$", "^techx-.*"]
+  nullable    = false
+  description = "Regex namespace patterns treated as production for Kubernetes audit detections."
+}
+
+variable "audit_detection_allowed_kubernetes_user_patterns" {
+  type = list(string)
+  default = [
+    "^system:",
+    "^eks:",
+    "system:serviceaccount:kube-system:",
+    "system:serviceaccount:external-secrets:",
+    "system:serviceaccount:argocd:",
+  ]
+  nullable    = false
+  description = "Regex user patterns suppressed for Kubernetes audit events such as secret reads."
+}
+
+variable "audit_detection_log_retention_days" {
+  type        = number
+  default     = 14
+  nullable    = false
+  description = "CloudWatch Logs retention in days for the audit routing Lambda."
 }
 
 # ──────────────────────────────────────────────

@@ -656,6 +656,41 @@ output "cost_anomaly_routing_operator_note" {
   description = "Post-apply steps for Cost Anomaly routing"
 }
 
+output "audit_detection_lambda_function_name" {
+  value       = module.audit_detection_routing.lambda_function_name
+  description = "Audit alert router Lambda function name"
+}
+
+output "audit_detection_cloudtrail_event_rule_arn" {
+  value       = module.audit_detection_routing.cloudtrail_event_rule_arn
+  description = "EventBridge rule ARN for dangerous CloudTrail API events"
+}
+
+output "audit_detection_sqs_queue_url" {
+  value       = module.audit_detection_routing.sqs_queue_url
+  description = "SQS queue URL for Task 11.3 alert payload delivery"
+}
+
+output "audit_detection_sqs_queue_arn" {
+  value       = module.audit_detection_routing.sqs_queue_arn
+  description = "SQS queue ARN for audit alert routing"
+}
+
+output "audit_detection_sqs_dlq_url" {
+  value       = module.audit_detection_routing.sqs_dlq_url
+  description = "Dead-letter queue URL for failed Discord deliveries"
+}
+
+output "audit_detection_kubernetes_audit_subscription_name" {
+  value       = module.audit_detection_routing.kubernetes_audit_subscription_name
+  description = "CloudWatch Logs subscription filter name for Kubernetes audit logs"
+}
+
+output "audit_detection_operator_note" {
+  value       = module.audit_detection_routing.operator_note
+  description = "Post-apply steps for Directive #11 audit detection routing"
+}
+
 output "cost_optimization_backlog_bucket_name" {
   value       = module.cost_optimization_backlog.bucket_name
   description = "S3 bucket for Cost Optimization Hub recommendation exports"

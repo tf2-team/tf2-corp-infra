@@ -66,6 +66,7 @@ resource "aws_eks_cluster" "this" {
   version                       = var.kubernetes_version
   role_arn                      = aws_iam_role.cluster.arn
   bootstrap_self_managed_addons = false
+  enabled_cluster_log_types     = var.enabled_cluster_log_types
 
   # STANDARD = regular support window (no extended-support billing after end of standard support).
   # EXTENDED keeps the cluster on an older version past standard EOL (extra cost).

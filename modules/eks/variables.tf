@@ -30,6 +30,20 @@ variable "subnet_ids" {
   description = "Danh sách subnet IDs cho cluster control plane và node groups (mặc định). Nên gồm cả public và private subnets."
 }
 
+variable "enabled_cluster_log_types" {
+  type        = list(string)
+  default     = ["api", "audit", "authenticator"]
+  nullable    = false
+  description = "EKS control-plane log types to enable. Keep audit visibility on for Directive #11."
+
+  validation {
+    condition = alltrue([
+      for log_type in var.enabled_cluster_log_types : contains(["api", "audit", "authenticator", "controllerManager", "scheduler"], log_type)
+    ])
+    error_message = "enabled_cluster_log_types may contain only api, audit, authenticator, controllerManager, or scheduler."
+  }
+}
+
 variable "endpoint_public_access" {
   type        = bool
   default     = true

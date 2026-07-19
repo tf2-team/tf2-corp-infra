@@ -57,8 +57,9 @@ module "eks" {
   kubernetes_version = var.kubernetes_version
   subnet_ids         = module.vpc.private_subnet_ids_list
 
-  node_groups = local.node_groups
-  addons      = var.addons
+  node_groups               = local.node_groups
+  addons                    = var.addons
+  enabled_cluster_log_types = var.enabled_cluster_log_types
 
   create_oidc_provider       = var.create_oidc_provider
   existing_oidc_provider_arn = var.existing_oidc_provider_arn
@@ -447,6 +448,25 @@ module "cost_anomaly_routing" {
   impact_absolute_usd     = var.cost_anomaly_routing_impact_absolute_usd
   aggregation_duration    = var.cost_anomaly_routing_aggregation_duration
   tags                    = var.tags
+}
+
+# DIRECTIVE #11: audit detection alert routing to Discord.
+module "audit_detection_routing" {
+  source = "../../modules/audit-detection-routing"
+
+  enabled                            = var.audit_detection_routing_enabled
+  name_prefix                        = var.project_name
+  environment                        = var.tags["Environment"]
+  cluster_name                       = var.cluster_name
+  discord_webhook_secret_name        = "${var.secrets_manager_name_prefix}/grafana-discord"
+  discord_webhook_secret_json_key    = "webhook-url"
+  allowed_aws_principal_arn_patterns = var.audit_detection_allowed_aws_principal_arn_patterns
+  kubernetes_audit_enabled           = var.audit_detection_kubernetes_audit_enabled
+  kubernetes_audit_log_group_name    = var.audit_detection_kubernetes_audit_log_group_name
+  production_namespace_patterns      = var.audit_detection_production_namespace_patterns
+  allowed_kubernetes_user_patterns   = var.audit_detection_allowed_kubernetes_user_patterns
+  log_retention_days                 = var.audit_detection_log_retention_days
+  tags                               = var.tags
 }
 
 # ──────────────────────────────────────────────
