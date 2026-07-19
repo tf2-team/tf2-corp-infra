@@ -301,7 +301,8 @@ resource "aws_s3_bucket_policy" "immutable_audit" {
 }
 
 resource "aws_sns_topic" "immutable_audit" {
-  name = "${local.immutable_audit_trail_name}-notifications"
+  name              = "${local.immutable_audit_trail_name}-notifications"
+  kms_master_key_id = "alias/aws/sns"
 
   tags = merge(var.tags, {
     Name    = "${local.immutable_audit_trail_name}-notifications"
