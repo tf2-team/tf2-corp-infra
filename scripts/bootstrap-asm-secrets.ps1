@@ -112,6 +112,12 @@ Put-SecretJson -SecretId "$Prefix/product-reviews" -Data @{
     OPENAI_API_KEY = $openAiApiKey
 }
 
+# Shopping Copilot (platform PR #36): same OPENAI_API_KEY shape as product-reviews.
+# Separate ASM shell so chart ESO can wire IRSA-backed pods independently.
+Put-SecretJson -SecretId "$Prefix/shopping-copilot" -Data @{
+    OPENAI_API_KEY = $openAiApiKey
+}
+
 Put-SecretJson -SecretId "$Prefix/grafana" -Data @{
     "admin-user"     = $grafanaUser
     "admin-password" = $grafanaPassword
@@ -137,3 +143,5 @@ if (-not [string]::IsNullOrWhiteSpace($aiopsGrafanaWebhookSecret)) {
 
 Write-Host "Done. Bootstrap complete for prefix=$Prefix region=$Region"
 Write-Host "Next: install ESO + ClusterSecretStore, then helm techx-corp-secrets, wait Ready, then app chart."
+
+# Change trail: @hungxqt - 2026-07-19 - Bootstrap shopping-copilot OPENAI_API_KEY ASM shell.

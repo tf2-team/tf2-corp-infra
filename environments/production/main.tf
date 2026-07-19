@@ -1,3 +1,504 @@
+data "aws_caller_identity" "current" {}
+
+data "aws_partition" "current" {}
+
+locals {
+  immutable_audit_bucket_name = (
+    var.immutable_audit_bucket_name != ""
+    ? var.immutable_audit_bucket_name
+    : "${var.project_name}-cloudtrail-immutable-${data.aws_caller_identity.current.account_id}"
+  )
+  immutable_audit_trail_name = (
+    var.immutable_audit_trail_name != ""
+    ? var.immutable_audit_trail_name
+    : "${var.project_name}-mandate12-immutable-audit"
+  )
+  immutable_audit_trail_arn = "arn:${data.aws_partition.current.partition}:cloudtrail:${var.aws_region}:${data.aws_caller_identity.current.account_id}:trail/${local.immutable_audit_trail_name}"
+}
+
+data "aws_iam_policy_document" "immutable_audit_kms" {
+  #checkov:skip=CKV_AWS_109:KMS key policies are scoped by the attached key; the root statement follows AWS KMS guidance so IAM can administer the key.
+  #checkov:skip=CKV_AWS_111:KMS key policies require Resource "*" because the policy is attached directly to one key; service statements are constrained by SourceArn/encryption context where supported.
+  #checkov:skip=CKV_AWS_356:KMS key policies require Resource "*" because the key policy itself is the resource boundary.
+  statement {
+    sid    = "EnableRootPermissions"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowCloudTrailEncryption"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:GenerateDataKey*",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowCloudWatchLogsEncryption"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["logs.${var.aws_region}.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey*",
+      "kms:ReEncrypt*",
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "ArnLike"
+      variable = "kms:EncryptionContext:aws:logs:arn"
+      values   = ["arn:${data.aws_partition.current.partition}:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/cloudtrail/${local.immutable_audit_trail_name}"]
+    }
+  }
+
+}
+
+resource "aws_kms_key" "immutable_audit" {
+  description             = "KMS key for ${local.immutable_audit_trail_name} CloudTrail and CloudWatch Logs"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.immutable_audit_kms.json
+
+  tags = merge(var.tags, {
+    Name    = "${local.immutable_audit_trail_name}-kms"
+    Mandate = "MD4-MD12"
+    Purpose = "immutable-cloudtrail-audit"
+  })
+}
+
+resource "aws_kms_alias" "immutable_audit" {
+  name          = "alias/${local.immutable_audit_trail_name}"
+  target_key_id = aws_kms_key.immutable_audit.key_id
+}
+
+data "aws_iam_policy_document" "immutable_audit_sns_kms" {
+  #checkov:skip=CKV_AWS_109:KMS key policies are scoped by the attached key; the root statement follows AWS KMS guidance so IAM can administer the key.
+  #checkov:skip=CKV_AWS_111:KMS key policies require Resource "*" because the policy is attached directly to one key; service statements are limited to SNS and CloudTrail.
+  #checkov:skip=CKV_AWS_356:KMS key policies require Resource "*" because the key policy itself is the resource boundary.
+  statement {
+    sid    = "EnableRootPermissions"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowSnsUseOfKey"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["sns.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey*",
+      "kms:ReEncrypt*",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowCloudTrailPublishToEncryptedSns"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:GenerateDataKey*",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_kms_key" "immutable_audit_sns" {
+  description             = "KMS key for ${local.immutable_audit_trail_name} SNS delivery notifications"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.immutable_audit_sns_kms.json
+
+  tags = merge(var.tags, {
+    Name    = "${local.immutable_audit_trail_name}-sns-kms"
+    Mandate = "MD4-MD12"
+    Purpose = "immutable-cloudtrail-audit-notifications"
+  })
+}
+
+resource "aws_kms_alias" "immutable_audit_sns" {
+  name          = "alias/${local.immutable_audit_trail_name}-sns"
+  target_key_id = aws_kms_key.immutable_audit_sns.key_id
+}
+
+resource "aws_s3_bucket" "immutable_audit" {
+  #checkov:skip=CKV_AWS_18:This bucket is the immutable CloudTrail destination; access is audited by CloudTrail, SNS notifications, CloudWatch Logs, and Object Lock evidence.
+  #checkov:skip=CKV_AWS_144:Cross-region replication is intentionally omitted for the capstone budget; CloudTrail is multi-region and log integrity validation is enabled.
+  #checkov:skip=CKV_AWS_145:Bucket default encryption uses SSE-S3 to avoid double-KMS delivery failures; CloudTrail log files are still encrypted by the trail-level customer-managed KMS key.
+  bucket              = local.immutable_audit_bucket_name
+  object_lock_enabled = true
+  force_destroy       = false
+
+  tags = merge(var.tags, {
+    Name      = local.immutable_audit_bucket_name
+    Mandate   = "MD4-MD12"
+    Purpose   = "immutable-cloudtrail-audit"
+    Retention = "${var.immutable_audit_retention_days}d"
+  })
+}
+
+resource "aws_s3_bucket_public_access_block" "immutable_audit" {
+  bucket                  = aws_s3_bucket.immutable_audit.id
+  block_public_acls       = true
+  ignore_public_acls      = true
+  block_public_policy     = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_ownership_controls" "immutable_audit" {
+  bucket = aws_s3_bucket.immutable_audit.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_versioning" "immutable_audit" {
+  bucket = aws_s3_bucket.immutable_audit.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "immutable_audit" {
+  bucket = aws_s3_bucket.immutable_audit.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "immutable_audit" {
+  bucket = aws_s3_bucket.immutable_audit.id
+
+  rule {
+    id     = "retain-immutable-cloudtrail-logs"
+    status = "Enabled"
+
+    filter {
+      prefix = "AWSLogs/"
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = max(var.immutable_audit_retention_days + 1, 91)
+    }
+
+  }
+
+  rule {
+    id     = "abort-incomplete-multipart-uploads"
+    status = "Enabled"
+
+    filter {}
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 1
+    }
+  }
+
+  depends_on = [
+    aws_s3_bucket_object_lock_configuration.immutable_audit,
+    aws_s3_bucket_versioning.immutable_audit,
+  ]
+}
+
+resource "aws_s3_bucket_object_lock_configuration" "immutable_audit" {
+  bucket = aws_s3_bucket.immutable_audit.id
+
+  rule {
+    default_retention {
+      mode = var.immutable_audit_retention_mode
+      days = var.immutable_audit_retention_days
+    }
+  }
+
+  depends_on = [aws_s3_bucket_versioning.immutable_audit]
+}
+
+data "aws_iam_policy_document" "immutable_audit_bucket" {
+  statement {
+    sid    = "DenyInsecureTransport"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions = ["s3:*"]
+    resources = [
+      aws_s3_bucket.immutable_audit.arn,
+      "${aws_s3_bucket.immutable_audit.arn}/*",
+    ]
+
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+
+  statement {
+    sid    = "AWSCloudTrailAclCheck"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions   = ["s3:GetBucketAcl"]
+    resources = [aws_s3_bucket.immutable_audit.arn]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceArn"
+      values   = [local.immutable_audit_trail_arn]
+    }
+  }
+
+  statement {
+    sid    = "AWSCloudTrailWrite"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.immutable_audit.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "s3:x-amz-acl"
+      values   = ["bucket-owner-full-control"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceArn"
+      values   = [local.immutable_audit_trail_arn]
+    }
+  }
+
+  statement {
+    sid    = "DenyAuditLogDelete"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions = [
+      "s3:DeleteObject",
+      "s3:DeleteObjectVersion",
+    ]
+    resources = ["${aws_s3_bucket.immutable_audit.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"]
+  }
+
+  statement {
+    sid    = "DenyObjectLockBypass"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions = [
+      "s3:BypassGovernanceRetention",
+      "s3:PutObjectLegalHold",
+      "s3:PutObjectRetention",
+    ]
+    resources = ["${aws_s3_bucket.immutable_audit.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"]
+  }
+}
+
+resource "aws_s3_bucket_policy" "immutable_audit" {
+  bucket = aws_s3_bucket.immutable_audit.id
+  policy = data.aws_iam_policy_document.immutable_audit_bucket.json
+
+  depends_on = [aws_s3_bucket_public_access_block.immutable_audit]
+}
+
+resource "aws_sns_topic" "immutable_audit" {
+  name              = "${local.immutable_audit_trail_name}-notifications"
+  kms_master_key_id = aws_kms_key.immutable_audit_sns.arn
+
+  tags = merge(var.tags, {
+    Name    = "${local.immutable_audit_trail_name}-notifications"
+    Mandate = "MD4-MD12"
+    Purpose = "immutable-cloudtrail-audit"
+  })
+}
+
+data "aws_iam_policy_document" "immutable_audit_sns" {
+  statement {
+    sid    = "AllowCloudTrailPublish"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions   = ["sns:Publish"]
+    resources = [aws_sns_topic.immutable_audit.arn]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceArn"
+      values   = [local.immutable_audit_trail_arn]
+    }
+  }
+}
+
+resource "aws_sns_topic_policy" "immutable_audit" {
+  arn    = aws_sns_topic.immutable_audit.arn
+  policy = data.aws_iam_policy_document.immutable_audit_sns.json
+}
+
+resource "aws_cloudwatch_log_group" "immutable_audit" {
+  name              = "/aws/cloudtrail/${local.immutable_audit_trail_name}"
+  retention_in_days = var.immutable_audit_cloudwatch_retention_days
+  kms_key_id        = aws_kms_key.immutable_audit.arn
+
+  tags = merge(var.tags, {
+    Name    = "/aws/cloudtrail/${local.immutable_audit_trail_name}"
+    Mandate = "MD4-MD12"
+    Purpose = "immutable-cloudtrail-audit"
+  })
+}
+
+data "aws_iam_policy_document" "immutable_audit_cloudtrail_assume" {
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+
+    actions = ["sts:AssumeRole"]
+  }
+}
+
+resource "aws_iam_role" "immutable_audit_cloudtrail_logs" {
+  name               = "${local.immutable_audit_trail_name}-logs"
+  assume_role_policy = data.aws_iam_policy_document.immutable_audit_cloudtrail_assume.json
+
+  tags = merge(var.tags, {
+    Name    = "${local.immutable_audit_trail_name}-logs"
+    Mandate = "MD4-MD12"
+    Purpose = "immutable-cloudtrail-audit"
+  })
+}
+
+data "aws_iam_policy_document" "immutable_audit_cloudtrail_logs" {
+  statement {
+    sid    = "WriteCloudWatchLogs"
+    effect = "Allow"
+
+    actions = [
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+    ]
+
+    resources = ["${aws_cloudwatch_log_group.immutable_audit.arn}:*"]
+  }
+}
+
+resource "aws_iam_role_policy" "immutable_audit_cloudtrail_logs" {
+  name   = "${local.immutable_audit_trail_name}-logs"
+  role   = aws_iam_role.immutable_audit_cloudtrail_logs.id
+  policy = data.aws_iam_policy_document.immutable_audit_cloudtrail_logs.json
+}
+
+resource "aws_cloudtrail" "immutable_audit" {
+  name                          = local.immutable_audit_trail_name
+  s3_bucket_name                = aws_s3_bucket.immutable_audit.id
+  kms_key_id                    = aws_kms_key.immutable_audit.arn
+  sns_topic_name                = aws_sns_topic.immutable_audit.name
+  cloud_watch_logs_group_arn    = "${aws_cloudwatch_log_group.immutable_audit.arn}:*"
+  cloud_watch_logs_role_arn     = aws_iam_role.immutable_audit_cloudtrail_logs.arn
+  include_global_service_events = true
+  is_multi_region_trail         = true
+  enable_log_file_validation    = true
+  enable_logging                = true
+
+  event_selector {
+    read_write_type           = "All"
+    include_management_events = true
+  }
+
+  tags = merge(var.tags, {
+    Name    = local.immutable_audit_trail_name
+    Mandate = "MD4-MD12"
+    Purpose = "immutable-cloudtrail-audit"
+  })
+
+  depends_on = [
+    aws_kms_key.immutable_audit,
+    aws_kms_key.immutable_audit_sns,
+    aws_iam_role_policy.immutable_audit_cloudtrail_logs,
+    aws_s3_bucket_object_lock_configuration.immutable_audit,
+    aws_s3_bucket_policy.immutable_audit,
+    aws_s3_bucket_server_side_encryption_configuration.immutable_audit,
+    aws_sns_topic_policy.immutable_audit,
+  ]
+}
+
 module "ecr" {
   source = "../../modules/ecr"
 
@@ -170,6 +671,12 @@ module "ai_model_storage" {
     product-reviews = {
       namespace            = "techx-corp-prod"
       service_account_name = "product-reviews"
+      model_prefix         = "protectai/deberta-v3-base-prompt-injection-v2/"
+      allow_list_bucket    = true
+    }
+    shopping-copilot = {
+      namespace            = "techx-corp-prod"
+      service_account_name = "shopping-copilot"
       model_prefix         = "protectai/deberta-v3-base-prompt-injection-v2/"
       allow_list_bucket    = true
     }
