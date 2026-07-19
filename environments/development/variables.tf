@@ -49,6 +49,17 @@ variable "ecr_force_delete" {
   default     = true
 }
 
+variable "ecr_image_tag_mutability" {
+  type        = string
+  description = "ECR image tag mutability for all service repositories (MUTABLE or IMMUTABLE)"
+  default     = "IMMUTABLE"
+
+  validation {
+    condition     = contains(["MUTABLE", "IMMUTABLE"], var.ecr_image_tag_mutability)
+    error_message = "ecr_image_tag_mutability must be \"MUTABLE\" or \"IMMUTABLE\"."
+  }
+}
+
 variable "ecr_repository_overrides" {
   type = map(object({
     image_tag_mutability   = optional(string)
@@ -623,7 +634,6 @@ variable "client_vpn_alb_security_group_ids" {
     Do not take exclusive SG ownership via Ingress annotations (CloudFront VPC origin).
   EOT
 }
-# Change trail: @hungxqt - 2026-07-15 - Default karpenter_consolidate_after to 0s for immediate empty reclaim.
 
 # Mem0 managed PostgreSQL
 
@@ -698,3 +708,5 @@ variable "mem0_postgresql_kms_key_id" {
   default     = null
   description = "Optional customer-managed KMS key for Mem0 RDS"
 }
+
+# Change trail: @hungxqt - 2026-07-19 - Default and wire ecr_image_tag_mutability to IMMUTABLE.

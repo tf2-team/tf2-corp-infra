@@ -4,6 +4,7 @@ module "ecr" {
   # Creates techx-corp/<service> for every platform bake service (module default catalog)
   project_name           = var.ecr_project_name
   naming_mode            = var.ecr_naming_mode
+  image_tag_mutability   = var.ecr_image_tag_mutability
   keep_last_n_images     = var.ecr_keep_last_n_images
   keep_last_n_buildcache = var.ecr_keep_last_n_buildcache
   scan_on_push           = var.ecr_scan_on_push
@@ -487,4 +488,4 @@ module "cost_optimization_backlog" {
   include_all_recommendations = var.cost_optimization_backlog_include_all_recommendations
   tags                        = var.tags
 }
-# Change trail: @hungxqt - 2026-07-15 - Wire bounded production Karpenter lifecycle settings.
+# Change trail: @hungxqt - 2026-07-19 - Pass ecr_image_tag_mutability (IMMUTABLE) into the ECR module.

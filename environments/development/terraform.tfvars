@@ -12,6 +12,7 @@ tags = {
 # Lifecycle matches production (keep last 5 images + 1 buildcache).
 ecr_project_name           = "techx-dev-corp"
 ecr_naming_mode            = "nested"
+ecr_image_tag_mutability   = "IMMUTABLE"
 ecr_keep_last_n_images     = 5
 ecr_keep_last_n_buildcache = 1
 ecr_scan_on_push           = false
@@ -238,4 +239,4 @@ client_vpn_client_cidr_block = "10.101.0.0/22"
 # Trigger CICD
 
 # -----------------------------------------------
-# Change trail: @hungxqt - 2026-07-15 - Set Karpenter consolidateAfter to 0s for immediate empty (DaemonSet-only) reclaim.
+# Change trail: @hungxqt - 2026-07-19 - Set ecr_image_tag_mutability to IMMUTABLE for all service repos.

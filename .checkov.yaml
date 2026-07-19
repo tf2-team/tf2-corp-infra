@@ -7,7 +7,8 @@ framework:
 compact: true
 
 skip-check:
-  # ECR: image_tag_mutability is configurable per repository via tfvars (MUTABLE for dev, can be IMMUTABLE for prod)
+  # ECR: image_tag_mutability is still configurable via tfvars (default/IMMUTABLE in both envs);
+  # skip remains because Checkov evaluates the module default/variable rather than applied tfvars.
   - CKV_AWS_51
   # ECR: scan_on_push is configurable per repository via tfvars - already enabled in tfvars
   - CKV_AWS_163
@@ -65,3 +66,4 @@ skip-check:
   # PostgreSQL logs and 7-day Performance Insights remain enabled for operational visibility.
   - CKV_AWS_118
 
+# Change trail: @hungxqt - 2026-07-19 - Note ECR IMMUTABLE default while keeping CKV_AWS_51 skip rationale.

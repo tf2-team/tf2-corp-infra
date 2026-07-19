@@ -49,6 +49,17 @@ variable "ecr_force_delete" {
   default     = true
 }
 
+variable "ecr_image_tag_mutability" {
+  type        = string
+  description = "ECR image tag mutability for all service repositories (MUTABLE or IMMUTABLE)"
+  default     = "IMMUTABLE"
+
+  validation {
+    condition     = contains(["MUTABLE", "IMMUTABLE"], var.ecr_image_tag_mutability)
+    error_message = "ecr_image_tag_mutability must be \"MUTABLE\" or \"IMMUTABLE\"."
+  }
+}
+
 variable "ecr_repository_overrides" {
   type = map(object({
     image_tag_mutability   = optional(string)
@@ -1132,7 +1143,6 @@ variable "cost_optimization_backlog_include_all_recommendations" {
   nullable    = false
   description = "Export all recommendations for a resource rather than the de-duplicated recommendation"
 }
-# Change trail: @hungxqt - 2026-07-15 - Default karpenter_consolidate_after to 0s for immediate empty reclaim.
 
 # Mem0 managed PostgreSQL
 
@@ -1207,3 +1217,5 @@ variable "mem0_postgresql_kms_key_id" {
   default     = null
   description = "Optional customer-managed KMS key for Mem0 RDS"
 }
+
+# Change trail: @hungxqt - 2026-07-19 - Default and wire ecr_image_tag_mutability to IMMUTABLE.
