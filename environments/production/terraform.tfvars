@@ -370,7 +370,7 @@ cost_anomaly_routing_aggregation_duration = "SHORT"
 # GuardDuty Runtime Monitoring and node-role anomaly routing require separate
 # baseline/cost approval before flipping the flags below.
 runtime_security_alerting_enabled                = true
-runtime_security_alert_email                     = "ctran13904@gmail.com"
+runtime_security_alert_email                     = "vovudn95@gmail.com"
 runtime_security_enable_guardduty_eventbridge    = false
 runtime_security_enable_node_role_anomaly_events = false
 
