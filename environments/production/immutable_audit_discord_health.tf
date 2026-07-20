@@ -109,7 +109,7 @@ data "archive_file" "immutable_audit_discord_forwarder" {
 
   type        = "zip"
   source_file = "${path.module}/lambda/immutable_audit_discord_forwarder.py"
-  output_path = "${path.module}/.terraform/immutable-audit-discord-forwarder.zip"
+  output_path = "${path.module}/lambda/build/immutable-audit-discord-forwarder.zip"
 }
 
 data "archive_file" "immutable_audit_health_check" {
@@ -117,7 +117,7 @@ data "archive_file" "immutable_audit_health_check" {
 
   type        = "zip"
   source_file = "${path.module}/lambda/immutable_audit_health_check.py"
-  output_path = "${path.module}/.terraform/immutable-audit-health-check.zip"
+  output_path = "${path.module}/lambda/build/immutable-audit-health-check.zip"
 }
 
 resource "aws_sqs_queue" "immutable_audit_discord_dlq" {
@@ -213,11 +213,77 @@ data "aws_iam_policy_document" "immutable_audit_discord_queue" {
       identifiers = ["*"]
     }
 
-    actions = ["sqs:*"]
-    resources = [
-      aws_sqs_queue.immutable_audit_discord[0].arn,
-      aws_sqs_queue.immutable_audit_discord_dlq[0].arn,
-    ]
+    actions   = ["sqs:*"]
+    resources = [aws_sqs_queue.immutable_audit_discord[0].arn]
+
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "immutable_audit_discord_dlq" {
+  count = local.immutable_audit_discord_enabled ? 1 : 0
+
+  statement {
+    sid    = "DenyInsecureTransport"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions   = ["sqs:*"]
+    resources = [aws_sqs_queue.immutable_audit_discord_dlq[0].arn]
+
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "immutable_audit_discord_lambda_dlq" {
+  count = local.immutable_audit_discord_enabled ? 1 : 0
+
+  statement {
+    sid    = "DenyInsecureTransport"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions   = ["sqs:*"]
+    resources = [aws_sqs_queue.immutable_audit_discord_lambda_dlq[0].arn]
+
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "immutable_audit_health_lambda_dlq" {
+  count = local.immutable_audit_health_enabled ? 1 : 0
+
+  statement {
+    sid    = "DenyInsecureTransport"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions   = ["sqs:*"]
+    resources = [aws_sqs_queue.immutable_audit_health_lambda_dlq[0].arn]
 
     condition {
       test     = "Bool"
@@ -232,6 +298,27 @@ resource "aws_sqs_queue_policy" "immutable_audit_discord" {
 
   queue_url = aws_sqs_queue.immutable_audit_discord[0].url
   policy    = data.aws_iam_policy_document.immutable_audit_discord_queue[0].json
+}
+
+resource "aws_sqs_queue_policy" "immutable_audit_discord_dlq" {
+  count = local.immutable_audit_discord_enabled ? 1 : 0
+
+  queue_url = aws_sqs_queue.immutable_audit_discord_dlq[0].url
+  policy    = data.aws_iam_policy_document.immutable_audit_discord_dlq[0].json
+}
+
+resource "aws_sqs_queue_policy" "immutable_audit_discord_lambda_dlq" {
+  count = local.immutable_audit_discord_enabled ? 1 : 0
+
+  queue_url = aws_sqs_queue.immutable_audit_discord_lambda_dlq[0].url
+  policy    = data.aws_iam_policy_document.immutable_audit_discord_lambda_dlq[0].json
+}
+
+resource "aws_sqs_queue_policy" "immutable_audit_health_lambda_dlq" {
+  count = local.immutable_audit_health_enabled ? 1 : 0
+
+  queue_url = aws_sqs_queue.immutable_audit_health_lambda_dlq[0].url
+  policy    = data.aws_iam_policy_document.immutable_audit_health_lambda_dlq[0].json
 }
 
 resource "aws_cloudwatch_event_target" "immutable_audit_tamper_discord" {
@@ -355,16 +442,19 @@ resource "aws_lambda_function" "immutable_audit_discord_forwarder" {
   #checkov:skip=CKV_AWS_272:Code signing is deferred because this repo does not yet manage a signing profile; source hash and Terraform review remain the deployment control for this capstone.
   count = local.immutable_audit_discord_enabled ? 1 : 0
 
-  function_name                  = "${local.immutable_audit_trail_name}-discord-forwarder"
-  description                    = "Forwards Mandate 12 audit tamper events from SQS to Discord."
-  role                           = aws_iam_role.immutable_audit_discord_forwarder[0].arn
-  handler                        = "immutable_audit_discord_forwarder.handler"
-  runtime                        = "python3.12"
-  filename                       = data.archive_file.immutable_audit_discord_forwarder[0].output_path
-  kms_key_arn                    = aws_kms_key.immutable_audit_alert_runtime[0].arn
-  source_code_hash               = data.archive_file.immutable_audit_discord_forwarder[0].output_base64sha256
-  timeout                        = 10
-  reserved_concurrent_executions = 2
+  function_name    = "${local.immutable_audit_trail_name}-discord-forwarder"
+  description      = "Forwards Mandate 12 audit tamper events from SQS to Discord."
+  role             = aws_iam_role.immutable_audit_discord_forwarder[0].arn
+  handler          = "immutable_audit_discord_forwarder.handler"
+  runtime          = "python3.12"
+  filename         = data.archive_file.immutable_audit_discord_forwarder[0].output_path
+  kms_key_arn      = aws_kms_key.immutable_audit_alert_runtime[0].arn
+  source_code_hash = data.archive_file.immutable_audit_discord_forwarder[0].output_base64sha256
+  timeout          = 10
+  # Keep these audit Lambdas on account-level unreserved concurrency. The
+  # workload account currently cannot reserve more concurrency without dropping
+  # below Lambda's required unreserved concurrency floor.
+  reserved_concurrent_executions = -1
 
   dead_letter_config {
     target_arn = aws_sqs_queue.immutable_audit_discord_lambda_dlq[0].arn
@@ -558,16 +648,19 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
   #checkov:skip=CKV_AWS_272:Code signing is deferred because this repo does not yet manage a signing profile; source hash and Terraform review remain the deployment control for this capstone.
   count = local.immutable_audit_health_enabled ? 1 : 0
 
-  function_name                  = "${local.immutable_audit_trail_name}-health-check"
-  description                    = "Checks Mandate 12 audit controls and publishes a health metric."
-  role                           = aws_iam_role.immutable_audit_health_check[0].arn
-  handler                        = "immutable_audit_health_check.handler"
-  runtime                        = "python3.12"
-  filename                       = data.archive_file.immutable_audit_health_check[0].output_path
-  kms_key_arn                    = aws_kms_key.immutable_audit_alert_runtime[0].arn
-  source_code_hash               = data.archive_file.immutable_audit_health_check[0].output_base64sha256
-  timeout                        = 30
-  reserved_concurrent_executions = 1
+  function_name    = "${local.immutable_audit_trail_name}-health-check"
+  description      = "Checks Mandate 12 audit controls and publishes a health metric."
+  role             = aws_iam_role.immutable_audit_health_check[0].arn
+  handler          = "immutable_audit_health_check.handler"
+  runtime          = "python3.12"
+  filename         = data.archive_file.immutable_audit_health_check[0].output_path
+  kms_key_arn      = aws_kms_key.immutable_audit_alert_runtime[0].arn
+  source_code_hash = data.archive_file.immutable_audit_health_check[0].output_base64sha256
+  timeout          = 30
+  # Keep these audit Lambdas on account-level unreserved concurrency. The
+  # workload account currently cannot reserve more concurrency without dropping
+  # below Lambda's required unreserved concurrency floor.
+  reserved_concurrent_executions = -1
 
   dead_letter_config {
     target_arn = aws_sqs_queue.immutable_audit_health_lambda_dlq[0].arn
@@ -580,14 +673,19 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
       CLOUDWATCH_RETENTION_DAYS   = tostring(var.immutable_audit_cloudwatch_retention_days)
       DISCORD_WEBHOOK_SECRET_ARN  = local.immutable_audit_discord_enabled ? local.immutable_audit_discord_webhook_secret_arn : ""
       EXPECTED_S3_DATA_EVENT_ARNS = jsonencode(sort(tolist(var.immutable_audit_s3_data_event_object_arns)))
-      EXPECTED_TAMPER_TARGET_ARNS = jsonencode(compact([aws_sns_topic.immutable_audit_tamper_alerts.arn, local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord[0].arn : ""]))
-      KMS_KEY_IDS                 = jsonencode([aws_kms_key.immutable_audit.arn, aws_kms_key.immutable_audit_sns.arn, aws_kms_key.immutable_audit_alert_sns.arn])
-      MAX_DELIVERY_AGE_MINUTES    = tostring(var.immutable_audit_health_check_max_delivery_age_minutes)
-      OBJECT_LOCK_DAYS            = tostring(var.immutable_audit_retention_days)
-      OBJECT_LOCK_MODE            = var.immutable_audit_retention_mode
-      TAMPER_RULE_NAMES           = jsonencode([for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.name])
-      TAMPER_TOPIC_ARN            = aws_sns_topic.immutable_audit_tamper_alerts.arn
-      TRAIL_NAME                  = aws_cloudtrail.immutable_audit.name
+      EXPECTED_TAMPER_TARGETS_BY_RULE = jsonencode({
+        for key, rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.name => compact([
+          contains(local.immutable_audit_email_tamper_rule_keys, key) ? aws_sns_topic.immutable_audit_tamper_alerts.arn : "",
+          local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord[0].arn : "",
+        ])
+      })
+      KMS_KEY_IDS              = jsonencode([aws_kms_key.immutable_audit.arn, aws_kms_key.immutable_audit_sns.arn, aws_kms_key.immutable_audit_alert_sns.arn])
+      MAX_DELIVERY_AGE_MINUTES = tostring(var.immutable_audit_health_check_max_delivery_age_minutes)
+      OBJECT_LOCK_DAYS         = tostring(var.immutable_audit_retention_days)
+      OBJECT_LOCK_MODE         = var.immutable_audit_retention_mode
+      TAMPER_RULE_NAMES        = jsonencode([for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.name])
+      TAMPER_TOPIC_ARN         = aws_sns_topic.immutable_audit_tamper_alerts.arn
+      TRAIL_NAME               = aws_cloudtrail.immutable_audit.name
     }
   }
 

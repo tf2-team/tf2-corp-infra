@@ -600,6 +600,8 @@ resource "aws_sns_topic_subscription" "immutable_audit_tamper_email" {
 }
 
 locals {
+  immutable_audit_email_tamper_rule_keys = toset(["trail", "bucket", "kms"])
+
   immutable_audit_tamper_event_rules = {
     trail = {
       name        = "${local.immutable_audit_trail_name}-trail-tamper"
@@ -774,39 +776,14 @@ resource "aws_cloudwatch_event_rule" "immutable_audit_tamper" {
 }
 
 resource "aws_cloudwatch_event_target" "immutable_audit_tamper" {
-  for_each = aws_cloudwatch_event_rule.immutable_audit_tamper
+  for_each = {
+    for key, rule in aws_cloudwatch_event_rule.immutable_audit_tamper : key => rule
+    if contains(local.immutable_audit_email_tamper_rule_keys, key)
+  }
 
   rule      = each.value.name
   target_id = "email-audit-alert"
   arn       = aws_sns_topic.immutable_audit_tamper_alerts.arn
-
-  depends_on = [aws_sns_topic_policy.immutable_audit_tamper_alerts]
-}
-
-data "aws_iam_policy_document" "immutable_audit_tamper_alerts" {
-  statement {
-    sid    = "AllowEventBridgePublishTamperAlerts"
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["events.amazonaws.com"]
-    }
-
-    actions   = ["sns:Publish"]
-    resources = [aws_sns_topic.immutable_audit_tamper_alerts.arn]
-
-    condition {
-      test     = "ArnLike"
-      variable = "aws:SourceArn"
-      values   = [for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.arn]
-    }
-  }
-}
-
-resource "aws_sns_topic_policy" "immutable_audit_tamper_alerts" {
-  arn    = aws_sns_topic.immutable_audit_tamper_alerts.arn
-  policy = data.aws_iam_policy_document.immutable_audit_tamper_alerts.json
 }
 
 module "ecr" {
