@@ -143,13 +143,13 @@ resource "aws_kms_key" "cosign" {
     Id      = "cosign-key-policy"
     Statement = [
       {
-        Sid       = "Enable IAM User Permits"
-        Effect    = "Allow"
+        Sid    = "Enable IAM User Permits"
+        Effect = "Allow"
         Principal = {
           AWS = "arn:aws:iam::${local.account_id}:root"
         }
-        Action    = "kms:*"
-        Resource  = "*"
+        Action   = "kms:*"
+        Resource = "*"
       }
     ]
   })
