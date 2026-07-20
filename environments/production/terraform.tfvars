@@ -88,6 +88,11 @@ nat_gateways = {
 cluster_name       = "techx-tf2-prod"
 kubernetes_version = "1.36"
 
+# EKS control plane → CloudWatch Logs (/aws/eks/techx-tf2-prod/cluster)
+# api/audit/authenticator only (security-relevant; skip higher-volume scheduler/controllerManager).
+enabled_cluster_log_types  = ["api", "audit", "authenticator"]
+cluster_log_retention_days = 30
+
 # Directive #3 managed stateful dependencies. Two small Valkey nodes span the
 # private subnets/AZs; DynamoDB outbox is on-demand and has no idle capacity fee.
 commerce_valkey_node_type      = "cache.t4g.micro"
@@ -373,4 +378,4 @@ cost_optimization_backlog_athena_bytes_cutoff         = 1073741824
 cost_optimization_backlog_include_member_accounts     = false
 cost_optimization_backlog_manage_enrollment           = false
 cost_optimization_backlog_include_all_recommendations = false
-# Change trail: @hungxqt - 2026-07-19 - Enable hybrid Cluster Autoscaler on system MNG; raise max_size headroom.
+# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.

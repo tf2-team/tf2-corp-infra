@@ -70,6 +70,16 @@ output "cluster_name" {
   description = "Tên EKS Cluster"
 }
 
+output "cluster_log_group_name" {
+  value       = module.eks.cluster_log_group_name
+  description = "CloudWatch Logs group for EKS control plane logs"
+}
+
+output "enabled_cluster_log_types" {
+  value       = module.eks.enabled_cluster_log_types
+  description = "EKS control plane log types enabled"
+}
+
 output "cluster_endpoint" {
   value       = module.eks.cluster_endpoint
   description = "Endpoint của Kubernetes API server"
@@ -439,7 +449,6 @@ output "client_vpn_operator_note" {
   value       = module.client_vpn.operator_note
   description = "Operator enable sequence for Client VPN admin access"
 }
-# Change trail: @hungxqt - 2026-07-16 - Point Argo bootstrap output at root app-of-apps path.
 
 output "mem0_postgresql_endpoint" {
   value       = module.mem0_postgresql.endpoint
@@ -465,3 +474,5 @@ output "mem0_postgresql_security_group_id" {
   value       = module.mem0_postgresql.security_group_id
   description = "Security group attached to Mem0 RDS"
 }
+
+# Change trail: @hungxqt - 2026-07-20 - Export EKS control plane log group and enabled log types.

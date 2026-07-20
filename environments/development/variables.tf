@@ -124,6 +124,20 @@ variable "kubernetes_version" {
   description = "Phiên bản Kubernetes cho EKS cluster"
 }
 
+variable "enabled_cluster_log_types" {
+  type        = list(string)
+  default     = ["api", "audit", "authenticator"]
+  nullable    = false
+  description = "EKS control plane log types exported to CloudWatch (api/audit/authenticator by default)"
+}
+
+variable "cluster_log_retention_days" {
+  type        = number
+  default     = 7
+  nullable    = false
+  description = "CloudWatch Logs retention days for /aws/eks/<cluster>/cluster (dev cost posture: 7)"
+}
+
 variable "node_groups" {
   type = map(object({
     instance_types = list(string)
@@ -709,5 +723,4 @@ variable "mem0_postgresql_kms_key_id" {
   description = "Optional customer-managed KMS key for Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-19 - Cluster Autoscaler variables document hybrid system-MNG + Karpenter.
-
+# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.
