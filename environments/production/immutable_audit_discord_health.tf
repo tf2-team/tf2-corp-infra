@@ -9,10 +9,92 @@ locals {
   )
 }
 
+data "aws_iam_policy_document" "immutable_audit_alert_runtime_kms" {
+  #checkov:skip=CKV_AWS_109:KMS key policies are scoped by the attached key; the root statement follows AWS KMS guidance so IAM can administer the key.
+  #checkov:skip=CKV_AWS_111:KMS key policies require Resource "*" because the policy is attached directly to one key; service statements are limited to Lambda and Secrets Manager.
+  #checkov:skip=CKV_AWS_356:KMS key policies require Resource "*" because the key policy itself is the resource boundary.
+  count = local.immutable_audit_discord_enabled || local.immutable_audit_health_enabled ? 1 : 0
+
+  statement {
+    sid    = "EnableRootPermissions"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowLambdaUseOfKey"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey*",
+      "kms:ReEncrypt*",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowSecretsManagerUseOfKey"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["secretsmanager.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey*",
+      "kms:ReEncrypt*",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_kms_key" "immutable_audit_alert_runtime" {
+  count = local.immutable_audit_discord_enabled || local.immutable_audit_health_enabled ? 1 : 0
+
+  description             = "KMS key for ${local.immutable_audit_trail_name} Discord alert and health check runtime secrets"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.immutable_audit_alert_runtime_kms[0].json
+
+  tags = merge(var.tags, {
+    Name    = "${local.immutable_audit_trail_name}-alert-runtime-kms"
+    Mandate = "MD12"
+    Purpose = "audit-anti-defeat-alert-runtime"
+  })
+}
+
+resource "aws_kms_alias" "immutable_audit_alert_runtime" {
+  count = local.immutable_audit_discord_enabled || local.immutable_audit_health_enabled ? 1 : 0
+
+  name          = "alias/${local.immutable_audit_trail_name}-alert-runtime"
+  target_key_id = aws_kms_key.immutable_audit_alert_runtime[0].key_id
+}
+
 resource "aws_secretsmanager_secret" "immutable_audit_discord_webhook" {
   count = local.immutable_audit_discord_enabled && var.immutable_audit_discord_webhook_secret_arn == "" ? 1 : 0
 
-  name        = "${local.immutable_audit_trail_name}-discord-webhook"
+  name       = "${local.immutable_audit_trail_name}-discord-webhook"
+  kms_key_id = aws_kms_key.immutable_audit_alert_runtime[0].arn
+
   description = "Discord webhook URL for Mandate 12 immutable audit alerts. Value is bootstrapped outside Terraform."
 
   tags = merge(var.tags, {
@@ -49,6 +131,34 @@ resource "aws_sqs_queue" "immutable_audit_discord_dlq" {
     Name    = "${local.immutable_audit_trail_name}-discord-dlq"
     Mandate = "MD12"
     Purpose = "audit-anti-defeat-discord-dlq"
+  })
+}
+
+resource "aws_sqs_queue" "immutable_audit_discord_lambda_dlq" {
+  count = local.immutable_audit_discord_enabled ? 1 : 0
+
+  name                      = "${local.immutable_audit_trail_name}-discord-lambda-dlq"
+  message_retention_seconds = 1209600
+  sqs_managed_sse_enabled   = true
+
+  tags = merge(var.tags, {
+    Name    = "${local.immutable_audit_trail_name}-discord-lambda-dlq"
+    Mandate = "MD12"
+    Purpose = "audit-anti-defeat-discord-lambda-dlq"
+  })
+}
+
+resource "aws_sqs_queue" "immutable_audit_health_lambda_dlq" {
+  count = local.immutable_audit_health_enabled ? 1 : 0
+
+  name                      = "${local.immutable_audit_trail_name}-health-lambda-dlq"
+  message_retention_seconds = 1209600
+  sqs_managed_sse_enabled   = true
+
+  tags = merge(var.tags, {
+    Name    = "${local.immutable_audit_trail_name}-health-lambda-dlq"
+    Mandate = "MD12"
+    Purpose = "audit-control-health-lambda-dlq"
   })
 }
 
@@ -183,6 +293,19 @@ data "aws_iam_policy_document" "immutable_audit_discord_forwarder" {
   }
 
   statement {
+    sid    = "UseRuntimeKmsKey"
+    effect = "Allow"
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey*",
+    ]
+    resources = [aws_kms_key.immutable_audit_alert_runtime[0].arn]
+  }
+
+  statement {
     sid    = "ConsumeDiscordQueue"
     effect = "Allow"
 
@@ -193,6 +316,25 @@ data "aws_iam_policy_document" "immutable_audit_discord_forwarder" {
       "sqs:ReceiveMessage",
     ]
     resources = [aws_sqs_queue.immutable_audit_discord[0].arn]
+  }
+
+  statement {
+    sid    = "WriteLambdaDlq"
+    effect = "Allow"
+
+    actions   = ["sqs:SendMessage"]
+    resources = [aws_sqs_queue.immutable_audit_discord_lambda_dlq[0].arn]
+  }
+
+  statement {
+    sid    = "WriteXRay"
+    effect = "Allow"
+
+    actions = [
+      "xray:PutTelemetryRecords",
+      "xray:PutTraceSegments",
+    ]
+    resources = ["*"]
   }
 }
 
@@ -218,6 +360,8 @@ resource "aws_cloudwatch_log_group" "immutable_audit_discord_forwarder" {
 }
 
 resource "aws_lambda_function" "immutable_audit_discord_forwarder" {
+  #checkov:skip=CKV_AWS_117:Discord webhook delivery requires public egress; keeping the Lambda outside VPC avoids NAT dependency for the audit alert path.
+  #checkov:skip=CKV_AWS_272:Code signing is deferred because this repo does not yet manage a signing profile; source hash and Terraform review remain the deployment control for this capstone.
   count = local.immutable_audit_discord_enabled ? 1 : 0
 
   function_name                  = "${local.immutable_audit_trail_name}-discord-forwarder"
@@ -226,14 +370,23 @@ resource "aws_lambda_function" "immutable_audit_discord_forwarder" {
   handler                        = "immutable_audit_discord_forwarder.handler"
   runtime                        = "python3.12"
   filename                       = data.archive_file.immutable_audit_discord_forwarder[0].output_path
+  kms_key_arn                    = aws_kms_key.immutable_audit_alert_runtime[0].arn
   source_code_hash               = data.archive_file.immutable_audit_discord_forwarder[0].output_base64sha256
   timeout                        = 10
   reserved_concurrent_executions = 2
+
+  dead_letter_config {
+    target_arn = aws_sqs_queue.immutable_audit_discord_lambda_dlq[0].arn
+  }
 
   environment {
     variables = {
       DISCORD_WEBHOOK_SECRET_ARN = local.immutable_audit_discord_webhook_secret_arn
     }
+  }
+
+  tracing_config {
+    mode = "Active"
   }
 
   tags = merge(var.tags, {
@@ -271,6 +424,7 @@ resource "aws_iam_role" "immutable_audit_health_check" {
 }
 
 data "aws_iam_policy_document" "immutable_audit_health_check" {
+  #checkov:skip=CKV_AWS_356:cloudwatch:PutMetricData, cloudtrail status reads, and logs:DescribeLogGroups require Resource "*" or are not resource-scoped by AWS; restrictable checks below are scoped to audit resources.
   count = local.immutable_audit_health_enabled ? 1 : 0
 
   statement {
@@ -324,7 +478,21 @@ data "aws_iam_policy_document" "immutable_audit_health_check" {
       aws_kms_key.immutable_audit.arn,
       aws_kms_key.immutable_audit_sns.arn,
       aws_kms_key.immutable_audit_alert_sns.arn,
+      aws_kms_key.immutable_audit_alert_runtime[0].arn,
     ]
+  }
+
+  statement {
+    sid    = "UseRuntimeKmsKey"
+    effect = "Allow"
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey*",
+    ]
+    resources = [aws_kms_key.immutable_audit_alert_runtime[0].arn]
   }
 
   statement {
@@ -365,6 +533,25 @@ data "aws_iam_policy_document" "immutable_audit_health_check" {
       resources = [local.immutable_audit_discord_webhook_secret_arn]
     }
   }
+
+  statement {
+    sid    = "WriteLambdaDlq"
+    effect = "Allow"
+
+    actions   = ["sqs:SendMessage"]
+    resources = [aws_sqs_queue.immutable_audit_health_lambda_dlq[0].arn]
+  }
+
+  statement {
+    sid    = "WriteXRay"
+    effect = "Allow"
+
+    actions = [
+      "xray:PutTelemetryRecords",
+      "xray:PutTraceSegments",
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "immutable_audit_health_check" {
@@ -389,6 +576,8 @@ resource "aws_cloudwatch_log_group" "immutable_audit_health_check" {
 }
 
 resource "aws_lambda_function" "immutable_audit_health_check" {
+  #checkov:skip=CKV_AWS_117:Health checker only calls AWS public APIs; keeping it outside VPC avoids NAT dependency for the audit control plane.
+  #checkov:skip=CKV_AWS_272:Code signing is deferred because this repo does not yet manage a signing profile; source hash and Terraform review remain the deployment control for this capstone.
   count = local.immutable_audit_health_enabled ? 1 : 0
 
   function_name                  = "${local.immutable_audit_trail_name}-health-check"
@@ -397,9 +586,14 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
   handler                        = "immutable_audit_health_check.handler"
   runtime                        = "python3.12"
   filename                       = data.archive_file.immutable_audit_health_check[0].output_path
+  kms_key_arn                    = aws_kms_key.immutable_audit_alert_runtime[0].arn
   source_code_hash               = data.archive_file.immutable_audit_health_check[0].output_base64sha256
   timeout                        = 30
   reserved_concurrent_executions = 1
+
+  dead_letter_config {
+    target_arn = aws_sqs_queue.immutable_audit_health_lambda_dlq[0].arn
+  }
 
   environment {
     variables = {
@@ -417,6 +611,10 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
       TAMPER_TOPIC_ARN            = aws_sns_topic.immutable_audit_tamper_alerts.arn
       TRAIL_NAME                  = aws_cloudtrail.immutable_audit.name
     }
+  }
+
+  tracing_config {
+    mode = "Active"
   }
 
   tags = merge(var.tags, {
@@ -539,6 +737,58 @@ resource "aws_cloudwatch_metric_alarm" "immutable_audit_discord_dlq_visible" {
     Name    = "${local.immutable_audit_trail_name}-discord-dlq-visible"
     Mandate = "MD12"
     Purpose = "audit-anti-defeat-discord-alerts"
+  })
+}
+
+resource "aws_cloudwatch_metric_alarm" "immutable_audit_discord_lambda_dlq_visible" {
+  count = local.immutable_audit_discord_enabled ? 1 : 0
+
+  alarm_name          = "${local.immutable_audit_trail_name}-discord-lambda-dlq-visible"
+  alarm_description   = "Discord audit alert Lambda DLQ contains undelivered async events."
+  namespace           = "AWS/SQS"
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  statistic           = "Maximum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.immutable_audit_tamper_alerts.arn]
+
+  dimensions = {
+    QueueName = aws_sqs_queue.immutable_audit_discord_lambda_dlq[0].name
+  }
+
+  tags = merge(var.tags, {
+    Name    = "${local.immutable_audit_trail_name}-discord-lambda-dlq-visible"
+    Mandate = "MD12"
+    Purpose = "audit-anti-defeat-discord-alerts"
+  })
+}
+
+resource "aws_cloudwatch_metric_alarm" "immutable_audit_health_lambda_dlq_visible" {
+  count = local.immutable_audit_health_enabled ? 1 : 0
+
+  alarm_name          = "${local.immutable_audit_trail_name}-health-lambda-dlq-visible"
+  alarm_description   = "Audit control health check Lambda DLQ contains undelivered async events."
+  namespace           = "AWS/SQS"
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  statistic           = "Maximum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.immutable_audit_tamper_alerts.arn]
+
+  dimensions = {
+    QueueName = aws_sqs_queue.immutable_audit_health_lambda_dlq[0].name
+  }
+
+  tags = merge(var.tags, {
+    Name    = "${local.immutable_audit_trail_name}-health-lambda-dlq-visible"
+    Mandate = "MD12"
+    Purpose = "audit-control-health-check"
   })
 }
 

@@ -654,12 +654,17 @@ locals {
             "ScheduleKeyDeletion",
           ]
           requestParameters = {
-            keyId = [
+            keyId = concat([
               aws_kms_key.immutable_audit.key_id,
               aws_kms_key.immutable_audit.arn,
               aws_kms_key.immutable_audit_sns.key_id,
               aws_kms_key.immutable_audit_sns.arn,
-            ]
+              aws_kms_key.immutable_audit_alert_sns.key_id,
+              aws_kms_key.immutable_audit_alert_sns.arn,
+              ], local.immutable_audit_discord_enabled || local.immutable_audit_health_enabled ? [
+              aws_kms_key.immutable_audit_alert_runtime[0].key_id,
+              aws_kms_key.immutable_audit_alert_runtime[0].arn,
+            ] : [])
           }
         }
       }
