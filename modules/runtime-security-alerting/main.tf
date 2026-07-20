@@ -37,6 +37,18 @@ locals {
   sanitized_vap_names_json = jsonencode(sort(tolist(var.vap_policy_names)))
 }
 
+resource "aws_kms_key" "runtime_security" {
+  count = local.create ? 1 : 0
+
+  description             = "Encrypt runtime security alerting Lambda environment, logs, and DLQ."
+  deletion_window_in_days = 30
+  enable_key_rotation     = true
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-runtime-security-alerting"
+  })
+}
+
 data "aws_iam_policy_document" "runtime_security_kms" {
   count = local.create ? 1 : 0
 
@@ -46,8 +58,32 @@ data "aws_iam_policy_document" "runtime_security_kms" {
       type        = "AWS"
       identifiers = ["arn:${local.partition}:iam::${local.account_id}:root"]
     }
-    actions   = ["kms:*"]
-    resources = ["*"]
+    actions = [
+      "kms:CancelKeyDeletion",
+      "kms:CreateAlias",
+      "kms:DeleteAlias",
+      "kms:DescribeKey",
+      "kms:DisableKey",
+      "kms:DisableKeyRotation",
+      "kms:EnableKey",
+      "kms:EnableKeyRotation",
+      "kms:GetKeyPolicy",
+      "kms:GetKeyRotationStatus",
+      "kms:GetParametersForImport",
+      "kms:GetPublicKey",
+      "kms:ListAliases",
+      "kms:ListGrants",
+      "kms:ListKeyPolicies",
+      "kms:ListResourceTags",
+      "kms:ListRetirableGrants",
+      "kms:PutKeyPolicy",
+      "kms:ScheduleKeyDeletion",
+      "kms:TagResource",
+      "kms:UntagResource",
+      "kms:UpdateAlias",
+      "kms:UpdateKeyDescription",
+    ]
+    resources = [aws_kms_key.runtime_security[0].arn]
   }
 
   statement {
@@ -60,10 +96,12 @@ data "aws_iam_policy_document" "runtime_security_kms" {
       "kms:Decrypt",
       "kms:DescribeKey",
       "kms:Encrypt",
-      "kms:GenerateDataKey*",
-      "kms:ReEncrypt*",
+      "kms:GenerateDataKey",
+      "kms:GenerateDataKeyWithoutPlaintext",
+      "kms:ReEncryptFrom",
+      "kms:ReEncryptTo",
     ]
-    resources = ["*"]
+    resources = [aws_kms_key.runtime_security[0].arn]
     condition {
       test     = "ArnLike"
       variable = "kms:EncryptionContext:aws:logs:arn"
@@ -72,17 +110,11 @@ data "aws_iam_policy_document" "runtime_security_kms" {
   }
 }
 
-resource "aws_kms_key" "runtime_security" {
+resource "aws_kms_key_policy" "runtime_security" {
   count = local.create ? 1 : 0
 
-  description             = "Encrypt runtime security alerting Lambda environment, logs, and DLQ."
-  deletion_window_in_days = 30
-  enable_key_rotation     = true
-  policy                  = data.aws_iam_policy_document.runtime_security_kms[0].json
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-runtime-security-alerting"
-  })
+  key_id = aws_kms_key.runtime_security[0].id
+  policy = data.aws_iam_policy_document.runtime_security_kms[0].json
 }
 
 resource "aws_kms_alias" "runtime_security" {
