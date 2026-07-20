@@ -1346,6 +1346,27 @@ module "runtime_security_alerting" {
 # Overlay: Cost Optimization Hub + Data Export backlog
 # ──────────────────────────────────────────────
 
+# ------------------------------------------------------------------------------
+# Mandate 11.2 audit detection pipeline
+# Coarse filters only: CloudTrail/EventBridge and EKS audit logs are forwarded as
+# raw events to the Task 11.3 parser Lambda. Keep disabled until the 11.3 parser
+# package and end-to-end test window are ready.
+# ------------------------------------------------------------------------------
+
+module "audit_detection_pipeline" {
+  source = "../../modules/audit-detection-pipeline"
+
+  enabled                               = var.audit_detection_pipeline_enabled
+  name_prefix                           = var.project_name
+  cluster_name                          = module.eks.cluster_name
+  audit_log_group_name                  = var.audit_detection_audit_log_group_name != "" ? var.audit_detection_audit_log_group_name : "/aws/eks/${module.eks.cluster_name}/cluster"
+  lambda_function_name                  = var.audit_detection_lambda_function_name
+  eks_audit_filter_pattern              = var.audit_detection_eks_audit_filter_pattern
+  lambda_reserved_concurrent_executions = var.audit_detection_lambda_reserved_concurrent_executions
+  alarm_action_arns                     = var.audit_detection_alarm_action_arns
+  tags                                  = var.tags
+}
+
 module "cost_optimization_backlog" {
   source = "../../modules/cost-optimization-backlog"
 

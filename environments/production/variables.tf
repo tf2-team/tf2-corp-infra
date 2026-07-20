@@ -1200,6 +1200,52 @@ variable "runtime_security_enable_node_role_anomaly_events" {
 # Overlay Cost Optimization Hub backlog — production only
 # ──────────────────────────────────────────────
 
+# ------------------------------------------------------------------------------
+# Mandate 11.2 audit detection pipeline
+# ------------------------------------------------------------------------------
+
+variable "audit_detection_pipeline_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, create Mandate 11.2 EventBridge and EKS audit log filters that forward raw events to the Task 11.3 parser Lambda."
+}
+
+variable "audit_detection_lambda_function_name" {
+  type        = string
+  default     = "techx-audit-alert-parser"
+  nullable    = false
+  description = "Lambda function name for the Task 11.3 audit alert parser."
+}
+
+variable "audit_detection_audit_log_group_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional EKS audit log group override for Mandate 11.2. Empty derives /aws/eks/<cluster>/cluster."
+}
+
+variable "audit_detection_eks_audit_filter_pattern" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional CloudWatch Logs subscription filter override for Mandate 11.2 EKS audit candidates. Empty uses module default."
+}
+
+variable "audit_detection_lambda_reserved_concurrent_executions" {
+  type        = number
+  default     = null
+  nullable    = true
+  description = "Optional reserved concurrency for the Mandate 11 parser Lambda. Null omits the setting."
+}
+
+variable "audit_detection_alarm_action_arns" {
+  type        = list(string)
+  default     = []
+  nullable    = false
+  description = "Optional SNS or incident-management ARNs for Mandate 11.2 CloudWatch alarms."
+}
+
 variable "cost_optimization_backlog_enabled" {
   type        = bool
   default     = true

@@ -380,6 +380,10 @@ runtime_security_alert_email                     = "vovudn95@gmail.com"
 runtime_security_enable_guardduty_eventbridge    = false
 runtime_security_enable_node_role_anomaly_events = false
 
+# Mandate 11.2 audit detection pipeline.
+# Keep disabled until Task 11.3 parser CI/CD and end-to-end test window are ready.
+audit_detection_pipeline_enabled = false
+
 # Overlay: Cost Optimization Hub recommendations export for sprint backlog.
 cost_optimization_backlog_enabled                     = true
 cost_optimization_backlog_bucket_name                 = "techx-prod-tf2-cost-optimization-exports-493499579600-us-east-1"

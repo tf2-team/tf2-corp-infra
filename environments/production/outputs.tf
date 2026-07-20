@@ -791,6 +791,36 @@ output "runtime_security_operator_note" {
   description = "Post-apply steps for runtime security alerting"
 }
 
+output "audit_detection_parser_lambda_function_name" {
+  value       = module.audit_detection_pipeline.parser_lambda_function_name
+  description = "Lambda function name for Mandate 11.2/11.3 audit alert parser"
+}
+
+output "audit_detection_parser_lambda_function_arn" {
+  value       = module.audit_detection_pipeline.parser_lambda_function_arn
+  description = "Lambda function ARN for Mandate 11.2/11.3 audit alert parser"
+}
+
+output "audit_detection_cloudtrail_event_rule_arn" {
+  value       = module.audit_detection_pipeline.cloudtrail_event_rule_arn
+  description = "EventBridge rule ARN for Mandate 11.2 CloudTrail candidate events"
+}
+
+output "audit_detection_eks_audit_subscription_filter_name" {
+  value       = module.audit_detection_pipeline.eks_audit_subscription_filter_name
+  description = "CloudWatch Logs subscription filter for Mandate 11.2 EKS audit candidates"
+}
+
+output "audit_detection_dlq_arn" {
+  value       = module.audit_detection_pipeline.dlq_arn
+  description = "SQS DLQ ARN for Mandate 11.2 failed pipeline events"
+}
+
+output "audit_detection_operator_note" {
+  value       = module.audit_detection_pipeline.operator_note
+  description = "Post-apply steps for Mandate 11.2 audit detection pipeline"
+}
+
 output "cost_optimization_backlog_bucket_name" {
   value       = module.cost_optimization_backlog.bucket_name
   description = "S3 bucket for Cost Optimization Hub recommendation exports"
