@@ -87,6 +87,28 @@ data "aws_iam_policy_document" "runtime_security_kms" {
   }
 
   statement {
+    sid = "AllowRuntimeSecurityKeyUse"
+    principals {
+      type = "AWS"
+      identifiers = [
+        "arn:${local.partition}:iam::${local.account_id}:root",
+        aws_iam_role.audit_classifier[0].arn,
+      ]
+    }
+    actions = [
+      "kms:CreateGrant",
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey",
+      "kms:GenerateDataKeyWithoutPlaintext",
+      "kms:ReEncryptFrom",
+      "kms:ReEncryptTo",
+    ]
+    resources = [aws_kms_key.runtime_security[0].arn]
+  }
+
+  statement {
     sid = "AllowCloudWatchLogsEncryption"
     principals {
       type        = "Service"
@@ -150,7 +172,16 @@ resource "aws_sns_topic_policy" "runtime_security" {
         Principal = {
           AWS = "arn:${local.partition}:iam::${local.account_id}:root"
         }
-        Action   = "SNS:*"
+        Action = [
+          "SNS:AddPermission",
+          "SNS:DeleteTopic",
+          "SNS:GetTopicAttributes",
+          "SNS:ListSubscriptionsByTopic",
+          "SNS:Publish",
+          "SNS:RemovePermission",
+          "SNS:SetTopicAttributes",
+          "SNS:Subscribe",
+        ]
         Resource = aws_sns_topic.runtime_security[0].arn
       },
       {
@@ -322,6 +353,8 @@ resource "aws_cloudwatch_log_group" "audit_classifier" {
   retention_in_days = 30
   kms_key_id        = aws_kms_key.runtime_security[0].arn
   tags              = var.tags
+
+  depends_on = [aws_kms_key_policy.runtime_security]
 }
 
 resource "aws_lambda_function" "audit_classifier" {
@@ -367,6 +400,7 @@ resource "aws_lambda_function" "audit_classifier" {
     aws_cloudwatch_log_group.audit_classifier,
     aws_iam_role_policy.audit_classifier,
     aws_iam_role_policy_attachment.audit_classifier_vpc_access,
+    aws_kms_key_policy.runtime_security,
   ]
   tags = var.tags
 }
