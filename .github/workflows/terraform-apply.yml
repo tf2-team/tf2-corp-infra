@@ -89,7 +89,9 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: terraform-apply-plan-${{ inputs.environment }}
-          path: ${{ inputs.terraform_dir }}/tfplan
+          path: |
+            ${{ inputs.terraform_dir }}/tfplan
+            ${{ inputs.terraform_dir }}/lambda/build/*.zip
           retention-days: 30
 
   apply:
