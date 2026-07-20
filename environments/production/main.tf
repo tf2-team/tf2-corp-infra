@@ -605,10 +605,10 @@ locals {
     "${local.immutable_audit_trail_name}-trail-tamper",
     "${local.immutable_audit_trail_name}-bucket-tamper",
     "${local.immutable_audit_trail_name}-kms-tamper",
-    "${local.immutable_audit_trail_name}-eventbridge-tamper",
     "${local.immutable_audit_trail_name}-eb-rule-tamper",
     "${local.immutable_audit_trail_name}-eb-target-tamper",
-    "${local.immutable_audit_trail_name}-sns-tamper",
+    "${local.immutable_audit_trail_name}-eb-deny-tamper",
+    "${local.immutable_audit_trail_name}-sns-topic-tamper",
     "${local.immutable_audit_trail_name}-sns-sub-tamper",
     "${local.immutable_audit_trail_name}-lambda-tamper",
     "${local.immutable_audit_trail_name}-sqs-tamper",
@@ -705,8 +705,8 @@ locals {
         }
       }
     }
-    eventbridge = {
-      name        = "${local.immutable_audit_trail_name}-eventbridge-tamper"
+    eventbridge_denied = {
+      name        = "${local.immutable_audit_trail_name}-eb-deny-tamper"
       description = "Alert when SCP denies attempts to disable or delete audit EventBridge rules."
       pattern = {
         source      = ["aws.events"]
@@ -760,8 +760,8 @@ locals {
         }
       }
     }
-    sns = {
-      name        = "${local.immutable_audit_trail_name}-sns-tamper"
+    sns_topic = {
+      name        = "${local.immutable_audit_trail_name}-sns-topic-tamper"
       description = "Alert when SNS topics used by audit alerts are changed or removed."
       pattern = {
         source      = ["aws.sns"]
