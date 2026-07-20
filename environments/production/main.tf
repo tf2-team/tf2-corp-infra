@@ -664,6 +664,92 @@ locals {
         }
       }
     }
+    eventbridge = {
+      name        = "${local.immutable_audit_trail_name}-eventbridge-tamper"
+      description = "Alert when EventBridge rules or targets are changed, disabled, or deleted."
+      pattern = {
+        source      = ["aws.events"]
+        detail-type = ["AWS API Call via CloudTrail"]
+        detail = {
+          eventSource = ["events.amazonaws.com"]
+          eventName = [
+            "DeleteRule",
+            "DisableRule",
+            "PutRule",
+            "PutTargets",
+            "RemoveTargets",
+          ]
+        }
+      }
+    }
+    sns = {
+      name        = "${local.immutable_audit_trail_name}-sns-tamper"
+      description = "Alert when SNS topics or subscriptions used by audit alerts are changed or removed."
+      pattern = {
+        source      = ["aws.sns"]
+        detail-type = ["AWS API Call via CloudTrail"]
+        detail = {
+          eventSource = ["sns.amazonaws.com"]
+          eventName = [
+            "DeleteTopic",
+            "SetTopicAttributes",
+            "Subscribe",
+            "Unsubscribe",
+          ]
+        }
+      }
+    }
+    lambda = {
+      name        = "${local.immutable_audit_trail_name}-lambda-tamper"
+      description = "Alert when Lambda functions or event source mappings used by audit alerts are changed."
+      pattern = {
+        source      = ["aws.lambda"]
+        detail-type = ["AWS API Call via CloudTrail"]
+        detail = {
+          eventSource = ["lambda.amazonaws.com"]
+          eventName = [
+            "DeleteEventSourceMapping",
+            "DeleteFunction",
+            "PutFunctionConcurrency",
+            "UpdateEventSourceMapping",
+            "UpdateFunctionCode",
+            "UpdateFunctionConfiguration",
+          ]
+        }
+      }
+    }
+    sqs = {
+      name        = "${local.immutable_audit_trail_name}-sqs-tamper"
+      description = "Alert when SQS queues used by Discord audit alert delivery are deleted, purged, or reconfigured."
+      pattern = {
+        source      = ["aws.sqs"]
+        detail-type = ["AWS API Call via CloudTrail"]
+        detail = {
+          eventSource = ["sqs.amazonaws.com"]
+          eventName = [
+            "DeleteQueue",
+            "PurgeQueue",
+            "SetQueueAttributes",
+          ]
+        }
+      }
+    }
+    secrets = {
+      name        = "${local.immutable_audit_trail_name}-secrets-tamper"
+      description = "Alert when Secrets Manager secrets used by audit alert delivery are changed or deleted."
+      pattern = {
+        source      = ["aws.secretsmanager"]
+        detail-type = ["AWS API Call via CloudTrail"]
+        detail = {
+          eventSource = ["secretsmanager.amazonaws.com"]
+          eventName = [
+            "DeleteSecret",
+            "PutSecretValue",
+            "UpdateSecret",
+          ]
+        }
+      }
+    }
   }
 }
 
