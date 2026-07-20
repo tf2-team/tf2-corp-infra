@@ -74,6 +74,37 @@ variable "lambda_memory_mb" {
   description = "Audit classifier Lambda memory size."
 }
 
+variable "lambda_reserved_concurrent_executions" {
+  type        = number
+  default     = 5
+  nullable    = false
+  description = "Reserved concurrency for the audit classifier Lambda."
+}
+
+variable "vpc_id" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "VPC ID used to place the audit classifier Lambda in private subnets."
+
+  validation {
+    condition     = !var.enabled || var.vpc_id != ""
+    error_message = "vpc_id is required when runtime security alerting is enabled."
+  }
+}
+
+variable "private_subnet_ids" {
+  type        = list(string)
+  default     = []
+  nullable    = false
+  description = "Private subnet IDs used by the audit classifier Lambda."
+
+  validation {
+    condition     = !var.enabled || length(var.private_subnet_ids) > 0
+    error_message = "private_subnet_ids must contain at least one subnet when runtime security alerting is enabled."
+  }
+}
+
 variable "enable_classifier_deadman_alarm" {
   type        = bool
   default     = false

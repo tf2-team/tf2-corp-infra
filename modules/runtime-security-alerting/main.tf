@@ -24,6 +24,9 @@ locals {
   topic_name               = "${var.name_prefix}-runtime-security-alerts"
   audit_classifier_name    = "${var.name_prefix}-runtime-audit-classifier"
   audit_classifier_log     = "/aws/lambda/${local.audit_classifier_name}"
+  audit_classifier_dlq     = "${local.audit_classifier_name}-dlq"
+  audit_classifier_sg_name = "${local.audit_classifier_name}-sg"
+  kms_alias_name           = "alias/${var.name_prefix}-runtime-security-alerting"
   guardduty_rule_name      = "${var.name_prefix}-guardduty-runtime-security"
   node_role_rule_name      = "${var.name_prefix}-node-role-runtime-security"
   partition                = local.create ? data.aws_partition.current[0].partition : "aws"
@@ -32,6 +35,61 @@ locals {
   enable_node_role_rule    = local.create && var.enable_node_role_anomaly_events && length(local.node_role_arns) > 0
   enable_guardduty_rule    = local.create && var.enable_guardduty_eventbridge
   sanitized_vap_names_json = jsonencode(sort(tolist(var.vap_policy_names)))
+}
+
+data "aws_iam_policy_document" "runtime_security_kms" {
+  count = local.create ? 1 : 0
+
+  statement {
+    sid = "AllowAccountKeyAdministration"
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:${local.partition}:iam::${local.account_id}:root"]
+    }
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid = "AllowCloudWatchLogsEncryption"
+    principals {
+      type        = "Service"
+      identifiers = ["logs.${data.aws_region.current[0].name}.amazonaws.com"]
+    }
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey*",
+      "kms:ReEncrypt*",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "ArnLike"
+      variable = "kms:EncryptionContext:aws:logs:arn"
+      values   = ["arn:${local.partition}:logs:${data.aws_region.current[0].name}:${local.account_id}:log-group:${local.audit_classifier_log}"]
+    }
+  }
+}
+
+resource "aws_kms_key" "runtime_security" {
+  count = local.create ? 1 : 0
+
+  description             = "Encrypt runtime security alerting Lambda environment, logs, and DLQ."
+  deletion_window_in_days = 30
+  enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.runtime_security_kms[0].json
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-runtime-security-alerting"
+  })
+}
+
+resource "aws_kms_alias" "runtime_security" {
+  count = local.create ? 1 : 0
+
+  name          = local.kms_alias_name
+  target_key_id = aws_kms_key.runtime_security[0].key_id
 }
 
 resource "aws_sns_topic" "runtime_security" {
@@ -92,6 +150,46 @@ resource "aws_sns_topic_subscription" "email_json" {
   endpoint  = var.alert_email
 }
 
+resource "aws_sqs_queue" "audit_classifier_dlq" {
+  count = local.create ? 1 : 0
+
+  name                              = local.audit_classifier_dlq
+  kms_master_key_id                 = aws_kms_key.runtime_security[0].arn
+  kms_data_key_reuse_period_seconds = 300
+  message_retention_seconds         = 1209600
+
+  tags = merge(var.tags, {
+    Name = local.audit_classifier_dlq
+  })
+}
+
+resource "aws_security_group" "audit_classifier" {
+  count = local.create ? 1 : 0
+
+  name        = local.audit_classifier_sg_name
+  description = "Runtime audit classifier Lambda egress"
+  vpc_id      = var.vpc_id
+
+  tags = merge(var.tags, {
+    Name = local.audit_classifier_sg_name
+  })
+}
+
+resource "aws_vpc_security_group_egress_rule" "audit_classifier_https" {
+  count = local.create ? 1 : 0
+
+  security_group_id = aws_security_group.audit_classifier[0].id
+  description       = "Allow HTTPS egress for AWS APIs through private subnet NAT or endpoints."
+  ip_protocol       = "tcp"
+  from_port         = 443
+  to_port           = 443
+  cidr_ipv4         = "0.0.0.0/0"
+
+  tags = merge(var.tags, {
+    Name = "${local.audit_classifier_sg_name}-https-egress"
+  })
+}
+
 data "aws_iam_policy_document" "audit_classifier_assume" {
   count = local.create ? 1 : 0
 
@@ -133,6 +231,32 @@ data "aws_iam_policy_document" "audit_classifier" {
   }
 
   statement {
+    sid = "SendFailedEventsToDlq"
+    actions = [
+      "sqs:SendMessage",
+    ]
+    resources = [aws_sqs_queue.audit_classifier_dlq[0].arn]
+  }
+
+  statement {
+    sid = "UseRuntimeSecurityKms"
+    actions = [
+      "kms:Decrypt",
+      "kms:GenerateDataKey",
+    ]
+    resources = [aws_kms_key.runtime_security[0].arn]
+  }
+
+  statement {
+    sid = "WriteXrayTrace"
+    actions = [
+      "xray:PutTelemetryRecords",
+      "xray:PutTraceSegments",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
     sid       = "EmitClassifierMetrics"
     actions   = ["cloudwatch:PutMetricData"]
     resources = ["*"]
@@ -152,18 +276,26 @@ resource "aws_iam_role_policy" "audit_classifier" {
   policy = data.aws_iam_policy_document.audit_classifier[0].json
 }
 
+resource "aws_iam_role_policy_attachment" "audit_classifier_vpc_access" {
+  count = local.create ? 1 : 0
+
+  role       = aws_iam_role.audit_classifier[0].name
+  policy_arn = "arn:${local.partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
+
 resource "aws_cloudwatch_log_group" "audit_classifier" {
   count = local.create ? 1 : 0
 
   name              = local.audit_classifier_log
   retention_in_days = 30
-  kms_key_id        = null
+  kms_key_id        = aws_kms_key.runtime_security[0].arn
   tags              = var.tags
 }
 
 resource "aws_lambda_function" "audit_classifier" {
   count = local.create ? 1 : 0
 
+  #checkov:skip=CKV_AWS_272:Code signing requires an approved signing profile and CI artifact signing step before promotion.
   function_name    = local.audit_classifier_name
   description      = "Classify sanitized Kubernetes runtime-hardening admission denies from EKS audit logs."
   role             = aws_iam_role.audit_classifier[0].arn
@@ -173,6 +305,13 @@ resource "aws_lambda_function" "audit_classifier" {
   source_code_hash = data.archive_file.audit_classifier[0].output_base64sha256
   timeout          = var.lambda_timeout_seconds
   memory_size      = var.lambda_memory_mb
+  kms_key_arn      = aws_kms_key.runtime_security[0].arn
+
+  reserved_concurrent_executions = var.lambda_reserved_concurrent_executions
+
+  dead_letter_config {
+    target_arn = aws_sqs_queue.audit_classifier_dlq[0].arn
+  }
 
   environment {
     variables = {
@@ -183,8 +322,21 @@ resource "aws_lambda_function" "audit_classifier" {
     }
   }
 
-  depends_on = [aws_cloudwatch_log_group.audit_classifier]
-  tags       = var.tags
+  tracing_config {
+    mode = "Active"
+  }
+
+  vpc_config {
+    subnet_ids         = var.private_subnet_ids
+    security_group_ids = [aws_security_group.audit_classifier[0].id]
+  }
+
+  depends_on = [
+    aws_cloudwatch_log_group.audit_classifier,
+    aws_iam_role_policy.audit_classifier,
+    aws_iam_role_policy_attachment.audit_classifier_vpc_access,
+  ]
+  tags = var.tags
 }
 
 resource "aws_lambda_permission" "audit_logs" {

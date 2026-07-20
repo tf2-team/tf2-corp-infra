@@ -18,7 +18,9 @@ approved baseline and cost decision.
 | SNS | Create `runtime-security-alerts` topic with AWS-managed SNS encryption |
 | Email | Add optional JSON email subscription for runtime security notifications |
 | Audit classifier | Add Lambda that classifies EKS audit-log admission denials tied to runtime hardening |
+| Lambda hardening | Add VPC placement, DLQ, reserved concurrency, X-Ray tracing, and KMS-encrypted environment variables |
 | Audit pipeline | Add CloudWatch Logs subscription filter from the EKS audit log group to the classifier |
+| Encryption | Add customer-managed KMS key for classifier logs, DLQ, and Lambda environment |
 | Metrics | Emit `TechX/RuntimeSecurity` metrics for processed batches and runtime-hardening denies |
 | Alarms | Alert on Lambda classifier errors; dead-man alarm is disabled by default to avoid false positives |
 | GuardDuty | EventBridge integration is present but disabled by default |
@@ -34,6 +36,11 @@ raw Pod specs.
 The default audit filter looks for `runtime-hardening` in EKS audit logs. This
 keeps Lambda invocations low and aligns with the ValidatingAdmissionPolicy names
 used for Mandate 05.
+
+Lambda code signing is documented as a follow-up exception because enabling it
+correctly requires an approved AWS Signer profile and a CI step that signs the
+zip artifact before Terraform publishes it. A Terraform-only toggle without
+artifact signing would block rollout rather than improve runtime detection.
 
 ## Validation
 

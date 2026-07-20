@@ -1193,6 +1193,8 @@ module "runtime_security_alerting" {
   cluster_name         = module.eks.cluster_name
   audit_log_group_name = var.runtime_security_audit_log_group_name != "" ? var.runtime_security_audit_log_group_name : "/aws/eks/${module.eks.cluster_name}/cluster"
   alert_email          = var.runtime_security_alert_email
+  vpc_id               = module.vpc.vpc_id
+  private_subnet_ids   = module.vpc.private_subnet_ids_list
 
   enable_guardduty_eventbridge    = var.runtime_security_enable_guardduty_eventbridge
   enable_node_role_anomaly_events = var.runtime_security_enable_node_role_anomaly_events
