@@ -58,8 +58,22 @@ variable "private_dns_zone" {
   description = "Route53 private hosted zone used for stable application endpoints"
 }
 
+variable "valkey_snapshot_retention_limit" {
+  type        = number
+  default     = 7
+  description = "Days of automated Valkey snapshots to retain (MANDATE-20 retention; RPO remains daily cadence)"
+}
+
+variable "valkey_snapshot_window" {
+  type        = string
+  default     = "18:00-19:00"
+  description = "Daily ElastiCache snapshot window (UTC)"
+}
+
 variable "tags" {
   type        = map(string)
   default     = {}
   description = "Tags applied to resources"
 }
+
+# Change trail: @hungxqt - 2026-07-20 - Parameterize Valkey snapshot retention for Mandate 20.

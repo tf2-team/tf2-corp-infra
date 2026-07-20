@@ -1091,18 +1091,29 @@ module "ai_model_storage" {
 module "commerce_ha" {
   source = "../../modules/commerce-ha"
 
-  name                         = var.project_name
-  vpc_id                       = module.vpc.vpc_id
-  private_subnet_ids           = module.vpc.private_subnet_ids_list
-  eks_client_security_group_id = module.eks.cluster_security_group_id
-  oidc_provider_arn            = module.eks.oidc_provider_arn
-  oidc_issuer_url              = module.eks.oidc_issuer
-  checkout_namespace           = "techx-corp-prod"
-  checkout_service_account     = "checkout"
-  valkey_node_type             = var.commerce_valkey_node_type
-  valkey_engine_version        = var.commerce_valkey_engine_version
-  private_dns_zone             = var.commerce_private_dns_zone
-  tags                         = var.tags
+  name                            = var.project_name
+  vpc_id                          = module.vpc.vpc_id
+  private_subnet_ids              = module.vpc.private_subnet_ids_list
+  eks_client_security_group_id    = module.eks.cluster_security_group_id
+  oidc_provider_arn               = module.eks.oidc_provider_arn
+  oidc_issuer_url                 = module.eks.oidc_issuer
+  checkout_namespace              = "techx-corp-prod"
+  checkout_service_account        = "checkout"
+  valkey_node_type                = var.commerce_valkey_node_type
+  valkey_engine_version           = var.commerce_valkey_engine_version
+  private_dns_zone                = var.commerce_private_dns_zone
+  valkey_snapshot_retention_limit = var.commerce_valkey_snapshot_retention_limit
+  tags                            = var.tags
+}
+
+# MANDATE-20: managed policy that denies deleting backups / disabling DynamoDB PITR.
+# Policy is always created; attach to operator role names via var.backup_protection_attach_role_names.
+module "backup_protection" {
+  source = "../../modules/backup-protection"
+
+  name              = var.project_name
+  attach_role_names = var.backup_protection_attach_role_names
+  tags              = var.tags
 }
 
 # DIRECTIVE #8: managed PostgreSQL replaces the in-cluster StatefulSet. RDS
@@ -1417,4 +1428,4 @@ module "audit_pipeline" {
 }
 #Audit pipeline for log filtering cloudtrail and eks audit
 
-# Change trail: @hungxqt - 2026-07-19 - Hybrid CA on system MNG; remove dual-autoscaler mutual exclusion.
+# Change trail: @hungxqt - 2026-07-20 - Wire MANDATE-20 backup_protection module and Valkey snapshot retention.
