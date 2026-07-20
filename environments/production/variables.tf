@@ -1128,6 +1128,45 @@ variable "cost_anomaly_routing_aggregation_duration" {
 }
 
 # ──────────────────────────────────────────────
+# Mandate 05 runtime security alerting
+# ──────────────────────────────────────────────
+
+variable "runtime_security_alerting_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, create SNS + Lambda classifier for Mandate 05 runtime-hardening admission-deny alerts."
+}
+
+variable "runtime_security_audit_log_group_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional EKS audit log group override. Empty derives /aws/eks/<cluster>/cluster."
+}
+
+variable "runtime_security_alert_email" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional email-json endpoint for runtime security SNS alerts; confirm subscription after apply."
+}
+
+variable "runtime_security_enable_guardduty_eventbridge" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Route existing GuardDuty High/Critical findings to runtime security SNS. Does not enable GuardDuty Runtime Monitoring."
+}
+
+variable "runtime_security_enable_node_role_anomaly_events" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Route selected worker-node role CloudTrail events after baseline approval."
+}
+
+# ──────────────────────────────────────────────
 # Overlay Cost Optimization Hub backlog — production only
 # ──────────────────────────────────────────────
 

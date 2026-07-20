@@ -1180,6 +1180,34 @@ module "cost_anomaly_routing" {
 }
 
 # ──────────────────────────────────────────────
+# Mandate 05 runtime security alerting — admission deny classifier
+# No GuardDuty runtime agent is enabled here; GuardDuty/node-role routing stay
+# feature-flagged until cost and baseline are approved.
+# ──────────────────────────────────────────────
+
+module "runtime_security_alerting" {
+  source = "../../modules/runtime-security-alerting"
+
+  enabled              = var.runtime_security_alerting_enabled
+  name_prefix          = var.project_name
+  cluster_name         = module.eks.cluster_name
+  audit_log_group_name = var.runtime_security_audit_log_group_name != "" ? var.runtime_security_audit_log_group_name : "/aws/eks/${module.eks.cluster_name}/cluster"
+  alert_email          = var.runtime_security_alert_email
+
+  enable_guardduty_eventbridge    = var.runtime_security_enable_guardduty_eventbridge
+  enable_node_role_anomaly_events = var.runtime_security_enable_node_role_anomaly_events
+  node_role_arns = toset([
+    for arn in [
+      module.eks.node_role_arn,
+      module.karpenter.node_role_arn,
+    ] : arn
+    if arn != null && arn != ""
+  ])
+
+  tags = var.tags
+}
+
+# ──────────────────────────────────────────────
 # Overlay: Cost Optimization Hub + Data Export backlog
 # ──────────────────────────────────────────────
 
