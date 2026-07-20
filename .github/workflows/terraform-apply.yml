@@ -82,20 +82,6 @@ jobs:
           terraform -chdir=${{ inputs.terraform_dir }} state rm \
             aws_sns_topic_policy.immutable_audit_tamper_alerts || true
 
-      - name: Build Lambda ZIP files
-        shell: python3 {0}
-        run: |
-          import zipfile
-          pairs = [
-            ('modules/audit-pipeline/lambda/alert_lambda.zip', 'modules/audit-pipeline/lambda/alert_lambda/handler.py', 'handler.py'),
-            ('modules/audit-pipeline/lambda/parse_lambda.zip', 'modules/audit-pipeline/lambda/parse_lambda/handler.py', 'handler.py'),
-            ('modules/runtime-security-alerting/lambda/audit_classifier.zip', 'modules/runtime-security-alerting/lambda/audit_classifier.py', 'audit_classifier.py'),
-          ]
-          for out, src, arc in pairs:
-            with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
-              z.write(src, arc)
-            print('Built:', out)
-
       - name: Terraform plan
         shell: bash
         run: |
@@ -168,20 +154,6 @@ jobs:
           terraform -chdir=${{ inputs.terraform_dir }} init \
             -backend-config="bucket=${TF_BACKEND_BUCKET}" \
             -backend-config="region=${TF_BACKEND_REGION}"
-
-      - name: Build Lambda ZIP files
-        shell: python3 {0}
-        run: |
-          import zipfile
-          pairs = [
-            ('modules/audit-pipeline/lambda/alert_lambda.zip', 'modules/audit-pipeline/lambda/alert_lambda/handler.py', 'handler.py'),
-            ('modules/audit-pipeline/lambda/parse_lambda.zip', 'modules/audit-pipeline/lambda/parse_lambda/handler.py', 'handler.py'),
-            ('modules/runtime-security-alerting/lambda/audit_classifier.zip', 'modules/runtime-security-alerting/lambda/audit_classifier.py', 'audit_classifier.py'),
-          ]
-          for out, src, arc in pairs:
-            with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
-              z.write(src, arc)
-            print('Built:', out)
 
       - name: Download approved plan
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
