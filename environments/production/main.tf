@@ -777,6 +777,9 @@ module "eks" {
   kubernetes_version = var.kubernetes_version
   subnet_ids         = module.vpc.private_subnet_ids_list
 
+  enabled_cluster_log_types  = var.enabled_cluster_log_types
+  cluster_log_retention_days = var.cluster_log_retention_days
+
   node_groups = local.node_groups
   addons      = var.addons
 

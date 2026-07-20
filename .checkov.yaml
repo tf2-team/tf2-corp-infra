@@ -21,7 +21,7 @@ skip-check:
   - CKV_AWS_38
   # EKS: Secrets encryption - acceptable to skip during initial infrastructure phase
   - CKV_AWS_58
-  # EKS: Control plane logging - intentionally not all log types to reduce CloudWatch cost
+  # EKS: Control plane logging enabled for api/audit/authenticator; full five types skipped for ingest cost
   - CKV_AWS_37
 
   # VPC: Public subnets intentionally assign public IPs (required for NAT Gateway and Load Balancers)
