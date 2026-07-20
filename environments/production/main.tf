@@ -605,16 +605,16 @@ locals {
     "${local.immutable_audit_trail_name}-trail-tamper",
     "${local.immutable_audit_trail_name}-bucket-tamper",
     "${local.immutable_audit_trail_name}-kms-tamper",
+    "${local.immutable_audit_trail_name}-eventbridge-tamper",
     "${local.immutable_audit_trail_name}-eb-rule-tamper",
     "${local.immutable_audit_trail_name}-eb-target-tamper",
-    "${local.immutable_audit_trail_name}-eb-deny-tamper",
-    "${local.immutable_audit_trail_name}-sns-topic-tamper",
+    "${local.immutable_audit_trail_name}-sns-tamper",
     "${local.immutable_audit_trail_name}-sns-sub-tamper",
     "${local.immutable_audit_trail_name}-lambda-tamper",
     "${local.immutable_audit_trail_name}-sqs-tamper",
     "${local.immutable_audit_trail_name}-secrets-tamper",
   ]
-  immutable_audit_tamper_rule_arn_wildcard = "arn:${data.aws_partition.current.partition}:events:${var.aws_region}:${data.aws_caller_identity.current.account_id}:rule/${local.immutable_audit_trail_name}-*"
+  immutable_audit_tamper_rule_arn_prefix = "arn:${data.aws_partition.current.partition}:events:${var.aws_region}:${data.aws_caller_identity.current.account_id}:rule/${local.immutable_audit_trail_name}-"
   immutable_audit_lambda_function_names = concat(
     local.immutable_audit_discord_enabled ? ["${local.immutable_audit_trail_name}-discord-forwarder"] : [],
     local.immutable_audit_health_enabled ? ["${local.immutable_audit_trail_name}-health-check"] : []
@@ -705,9 +705,9 @@ locals {
         }
       }
     }
-    eventbridge_rule = {
-      name        = "${local.immutable_audit_trail_name}-eb-rule-tamper"
-      description = "Alert when audit EventBridge rules are changed, disabled, or deleted."
+    eventbridge = {
+      name        = "${local.immutable_audit_trail_name}-eventbridge-tamper"
+      description = "Alert when SCP denies attempts to disable or delete audit EventBridge rules."
       pattern = {
         source      = ["aws.events"]
         detail-type = ["AWS API Call via CloudTrail"]
@@ -716,11 +716,10 @@ locals {
           eventName = [
             "DeleteRule",
             "DisableRule",
-            "PutRule",
           ]
-          requestParameters = {
-            name = local.immutable_audit_tamper_rule_names
-          }
+          errorMessage = [{
+            wildcard = "*${local.immutable_audit_tamper_rule_arn_prefix}*"
+          }]
         }
       }
     }
@@ -742,9 +741,9 @@ locals {
         }
       }
     }
-    eventbridge_denied = {
-      name        = "${local.immutable_audit_trail_name}-eb-deny-tamper"
-      description = "Alert when SCP denies attempts to disable or delete audit EventBridge rules."
+    eventbridge_rule = {
+      name        = "${local.immutable_audit_trail_name}-eb-rule-tamper"
+      description = "Alert when audit EventBridge rules are changed, disabled, or deleted."
       pattern = {
         source      = ["aws.events"]
         detail-type = ["AWS API Call via CloudTrail"]
@@ -753,15 +752,16 @@ locals {
           eventName = [
             "DeleteRule",
             "DisableRule",
+            "PutRule",
           ]
-          errorMessage = [{
-            wildcard = "*${local.immutable_audit_tamper_rule_arn_wildcard}*"
-          }]
+          requestParameters = {
+            name = local.immutable_audit_tamper_rule_names
+          }
         }
       }
     }
-    sns_topic = {
-      name        = "${local.immutable_audit_trail_name}-sns-topic-tamper"
+    sns = {
+      name        = "${local.immutable_audit_trail_name}-sns-tamper"
       description = "Alert when SNS topics used by audit alerts are changed or removed."
       pattern = {
         source      = ["aws.sns"]
