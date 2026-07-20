@@ -35,6 +35,9 @@ __pycache__/
 .venv/
 venv/
 
+# Terraform-built Lambda packages
+*.zip
+
 # Node (nếu có script helper)
 node_modules/
 

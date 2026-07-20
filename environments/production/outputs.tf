@@ -761,6 +761,36 @@ output "cost_anomaly_routing_operator_note" {
   description = "Post-apply steps for Cost Anomaly routing"
 }
 
+output "runtime_security_sns_topic_arn" {
+  value       = module.runtime_security_alerting.sns_topic_arn
+  description = "SNS topic ARN for Mandate 05 runtime security alerts"
+}
+
+output "runtime_security_audit_classifier_function_name" {
+  value       = module.runtime_security_alerting.audit_classifier_function_name
+  description = "Lambda function that classifies sanitized EKS audit admission-deny events"
+}
+
+output "runtime_security_audit_log_subscription_filter_name" {
+  value       = module.runtime_security_alerting.audit_log_subscription_filter_name
+  description = "CloudWatch Logs subscription filter for runtime-hardening admission denies"
+}
+
+output "runtime_security_classifier_error_alarm_name" {
+  value       = module.runtime_security_alerting.classifier_error_alarm_name
+  description = "CloudWatch alarm for runtime audit classifier Lambda errors"
+}
+
+output "runtime_security_classifier_deadman_alarm_name" {
+  value       = module.runtime_security_alerting.classifier_deadman_alarm_name
+  description = "CloudWatch dead-man alarm for runtime audit classifier log ingestion"
+}
+
+output "runtime_security_operator_note" {
+  value       = module.runtime_security_alerting.operator_note
+  description = "Post-apply steps for runtime security alerting"
+}
+
 output "cost_optimization_backlog_bucket_name" {
   value       = module.cost_optimization_backlog.bucket_name
   description = "S3 bucket for Cost Optimization Hub recommendation exports"
