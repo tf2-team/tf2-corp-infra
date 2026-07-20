@@ -451,6 +451,10 @@ resource "aws_lambda_function" "immutable_audit_discord_forwarder" {
   kms_key_arn      = aws_kms_key.immutable_audit_alert_runtime[0].arn
   source_code_hash = data.archive_file.immutable_audit_discord_forwarder[0].output_base64sha256
   timeout          = 10
+  # Keep these audit Lambdas on account-level unreserved concurrency. The
+  # workload account currently cannot reserve more concurrency without dropping
+  # below Lambda's required unreserved concurrency floor.
+  reserved_concurrent_executions = -1
 
   dead_letter_config {
     target_arn = aws_sqs_queue.immutable_audit_discord_lambda_dlq[0].arn
@@ -653,6 +657,10 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
   kms_key_arn      = aws_kms_key.immutable_audit_alert_runtime[0].arn
   source_code_hash = data.archive_file.immutable_audit_health_check[0].output_base64sha256
   timeout          = 30
+  # Keep these audit Lambdas on account-level unreserved concurrency. The
+  # workload account currently cannot reserve more concurrency without dropping
+  # below Lambda's required unreserved concurrency floor.
+  reserved_concurrent_executions = -1
 
   dead_letter_config {
     target_arn = aws_sqs_queue.immutable_audit_health_lambda_dlq[0].arn
