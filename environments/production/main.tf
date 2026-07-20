@@ -611,6 +611,7 @@ locals {
     "${local.immutable_audit_trail_name}-sqs-tamper",
     "${local.immutable_audit_trail_name}-secrets-tamper",
   ]
+  immutable_audit_tamper_rule_arn_wildcard = "arn:${data.aws_partition.current.partition}:events:${var.aws_region}:${data.aws_caller_identity.current.account_id}:rule/${local.immutable_audit_trail_name}-*"
   immutable_audit_lambda_function_names = concat(
     local.immutable_audit_discord_enabled ? ["${local.immutable_audit_trail_name}-discord-forwarder"] : [],
     local.immutable_audit_health_enabled ? ["${local.immutable_audit_trail_name}-health-check"] : []
@@ -726,6 +727,11 @@ locals {
               requestParameters = {
                 rule = local.immutable_audit_tamper_rule_names
               }
+            },
+            {
+              errorMessage = [{
+                wildcard = "*${local.immutable_audit_tamper_rule_arn_wildcard}*"
+              }]
             },
           ]
         }
