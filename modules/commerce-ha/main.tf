@@ -82,8 +82,8 @@ resource "aws_elasticache_replication_group" "cart" {
   auth_token_update_strategy = "SET"
   apply_immediately          = true
 
-  snapshot_retention_limit = 1
-  snapshot_window          = "18:00-19:00"
+  snapshot_retention_limit = var.valkey_snapshot_retention_limit
+  snapshot_window          = var.valkey_snapshot_window
   maintenance_window       = "sun:19:00-sun:20:00"
 
   tags = var.tags
@@ -210,3 +210,5 @@ resource "aws_iam_role_policy" "checkout_outbox" {
   role   = aws_iam_role.checkout_outbox.id
   policy = data.aws_iam_policy_document.checkout_outbox.json
 }
+
+# Change trail: @hungxqt - 2026-07-20 - Parameterize Valkey snapshot retention for Mandate 20.
