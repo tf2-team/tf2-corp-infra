@@ -22,7 +22,7 @@ import json
 import os
 import boto3
 
-def lambda_handler(event, context):
+def handler(event, context):
     # In toàn bộ log mà 11.2 ném sang ra CloudWatch để làm bằng chứng
     print("=== DỮ LIỆU LOG NHẬN ĐƯỢC TỪ TASK 11.2 ===")
     print(json.dumps(event))
