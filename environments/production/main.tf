@@ -1198,4 +1198,21 @@ module "cost_optimization_backlog" {
   include_all_recommendations = var.cost_optimization_backlog_include_all_recommendations
   tags                        = var.tags
 }
+
+module "audit_pipeline" {
+  source = "../../modules/audit-pipeline"
+
+  project_name     = "techx-prod-tf2"
+  aws_region       = "us-east-1"
+  eks_cluster_name = var.cluster_name
+
+  cloudtrail_name            = "techx-prod-tf2-audit-trail"
+  cloudtrail_log_group_name  = "techx-prod-tf2-cloudtrail"
+
+  allowed_actors_csv = "system:masters,eks:addon-manager,system:serviceaccount:external-secrets:external-secrets,system:serviceaccount:external-secrets:external-secrets-cert-controller,system:serviceaccount:argocd:argocd-application-controller,system:serviceaccount:argocd:argocd-repo-server,system:serviceaccount:kube-system:aws-node,system:serviceaccount:kube-system:ebs-csi-controller-sa,system:serviceaccount:kube-system:aws-load-balancer-controller,system:serviceaccount:kube-system:karpenter,system:serviceaccount:kube-system:cluster-autoscaler,system:serviceaccount:kube-system:service-account-controller,system:serviceaccount:kube-system:generic-garbage-collector,system:serviceaccount:kube-system:namespace-controller"
+
+  tags = var.tags
+}
+#Audit pipeline for log filtering cloudtrail and eks audit
+
 # Change trail: @hungxqt - 2026-07-19 - Hybrid CA on system MNG; remove dual-autoscaler mutual exclusion.

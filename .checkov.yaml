@@ -66,4 +66,14 @@ skip-check:
   # PostgreSQL logs and 7-day Performance Insights remain enabled for operational visibility.
   - CKV_AWS_118
 
+  # audit-pipeline v2: Lambda code-signing requires a separate signing
+  # profile + trusted publisher setup, deferred — not applicable to
+  # internal filter/alert logic
+  - CKV_AWS_272
+  # audit-pipeline v2: Lambda does not need VPC placement — only calls
+  # SQS (public AWS service endpoint), no VPC-only resource access;
+  # VPC placement would require NAT/VPC endpoints, added cost with no
+  # security benefit for this specific function
+  - CKV_AWS_117
+
 # Change trail: @hungxqt - 2026-07-19 - Note ECR IMMUTABLE default while keeping CKV_AWS_51 skip rationale.
