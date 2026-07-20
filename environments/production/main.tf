@@ -601,6 +601,36 @@ resource "aws_sns_topic_subscription" "immutable_audit_tamper_email" {
 
 locals {
   immutable_audit_email_tamper_rule_keys = toset(["trail", "bucket", "kms"])
+  immutable_audit_tamper_rule_names = [
+    "${local.immutable_audit_trail_name}-trail-tamper",
+    "${local.immutable_audit_trail_name}-bucket-tamper",
+    "${local.immutable_audit_trail_name}-kms-tamper",
+    "${local.immutable_audit_trail_name}-eventbridge-tamper",
+    "${local.immutable_audit_trail_name}-sns-tamper",
+    "${local.immutable_audit_trail_name}-lambda-tamper",
+    "${local.immutable_audit_trail_name}-sqs-tamper",
+    "${local.immutable_audit_trail_name}-secrets-tamper",
+  ]
+  immutable_audit_lambda_function_names = concat(
+    local.immutable_audit_discord_enabled ? ["${local.immutable_audit_trail_name}-discord-forwarder"] : [],
+    local.immutable_audit_health_enabled ? ["${local.immutable_audit_trail_name}-health-check"] : []
+  )
+  immutable_audit_sqs_queue_urls = concat(
+    local.immutable_audit_discord_enabled ? [
+      aws_sqs_queue.immutable_audit_discord[0].url,
+      aws_sqs_queue.immutable_audit_discord_dlq[0].url,
+      aws_sqs_queue.immutable_audit_discord_lambda_dlq[0].url,
+    ] : [],
+    local.immutable_audit_health_enabled ? [aws_sqs_queue.immutable_audit_health_lambda_dlq[0].url] : []
+  )
+  immutable_audit_secret_ids = (
+    local.immutable_audit_discord_enabled
+    ? [
+      local.immutable_audit_discord_webhook_secret_arn,
+      "${local.immutable_audit_trail_name}-discord-webhook",
+    ]
+    : []
+  )
 
   immutable_audit_tamper_event_rules = {
     trail = {
@@ -686,6 +716,18 @@ locals {
             "PutTargets",
             "RemoveTargets",
           ]
+          "$or" = [
+            {
+              requestParameters = {
+                name = local.immutable_audit_tamper_rule_names
+              }
+            },
+            {
+              requestParameters = {
+                rule = local.immutable_audit_tamper_rule_names
+              }
+            },
+          ]
         }
       }
     }
@@ -702,6 +744,20 @@ locals {
             "SetTopicAttributes",
             "Subscribe",
             "Unsubscribe",
+          ]
+          "$or" = [
+            {
+              requestParameters = {
+                topicArn = [aws_sns_topic.immutable_audit_tamper_alerts.arn]
+              }
+            },
+            {
+              requestParameters = {
+                subscriptionArn = [{
+                  prefix = "${aws_sns_topic.immutable_audit_tamper_alerts.arn}:"
+                }]
+              }
+            },
           ]
         }
       }
@@ -722,6 +778,9 @@ locals {
             "UpdateFunctionCode",
             "UpdateFunctionConfiguration",
           ]
+          requestParameters = {
+            functionName = local.immutable_audit_lambda_function_names
+          }
         }
       }
     }
@@ -738,6 +797,9 @@ locals {
             "PurgeQueue",
             "SetQueueAttributes",
           ]
+          requestParameters = {
+            queueUrl = local.immutable_audit_sqs_queue_urls
+          }
         }
       }
     }
@@ -754,6 +816,9 @@ locals {
             "PutSecretValue",
             "UpdateSecret",
           ]
+          requestParameters = {
+            secretId = local.immutable_audit_secret_ids
+          }
         }
       }
     }
