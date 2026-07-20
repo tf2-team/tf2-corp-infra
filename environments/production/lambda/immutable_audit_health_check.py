@@ -110,13 +110,14 @@ def _check_kms(errors):
 
 
 def _check_eventbridge(errors):
-    expected_target_arns = set(_env_json("EXPECTED_TAMPER_TARGET_ARNS", []))
+    expected_targets_by_rule = _env_json("EXPECTED_TAMPER_TARGETS_BY_RULE", {})
     for rule_name in _env_json("TAMPER_RULE_NAMES", []):
         rule = events.describe_rule(Name=rule_name)
         if rule.get("State") != "ENABLED":
             errors.append(f"EventBridge rule is not ENABLED: {rule_name}")
         targets = events.list_targets_by_rule(Rule=rule_name).get("Targets", [])
         target_arns = {target.get("Arn") for target in targets}
+        expected_target_arns = set(expected_targets_by_rule.get(rule_name, []))
         missing = expected_target_arns - target_arns
         if missing:
             errors.append(f"EventBridge rule {rule_name} missing targets: {sorted(missing)}")
