@@ -15,6 +15,12 @@ immutable_audit_s3_data_event_object_arns = [
   "arn:aws:s3:::techx-prod-tf2-ai-models-493499579600/"
 ]
 
+# Mandate 12.1 multi-channel alerting and continuous audit control health checks.
+# Bootstrap the Discord webhook into the created Secrets Manager secret outside Terraform:
+# aws secretsmanager put-secret-value --secret-id techx-prod-tf2-mandate12-immutable-audit-discord-webhook --secret-string 'https://discord.com/api/webhooks/...'
+immutable_audit_discord_alert_enabled = true
+immutable_audit_health_check_enabled  = true
+
 # Image format: REGISTRY/techx-prod-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
 # Lifecycle matches development (keep last 5 images + 1 buildcache).
