@@ -265,7 +265,7 @@ These items move month-to-month more than the EKS control-plane fee.
 | **Cross-AZ traffic** | Pod-to-pod across AZs | Two node groups in two AZs by design |
 | **t3 Unlimited credits** | Extra if sustained CPU &gt; baseline | Load-gen + OpenSearch under stress |
 | **ECR growth** | Storage + optional scan | Lifecycle policies limit history |
-| **CloudWatch logs** | Ingest + retention | Control-plane logging not enabled by default in modules; still plan for app/controller logs if enabled later |
+| **CloudWatch logs** | Ingest + retention | EKS control-plane logs (`api`/`audit`/`authenticator`) → `/aws/eks/<cluster>/cluster` with env retention (dev 7d / prod 30d); app/controller logs are separate |
 
 ---
 
@@ -378,4 +378,4 @@ These figures exclude GitHub CI and any non-AWS tools.
 
 This is an **engineering planning document**. It is not a quote from AWS. Taxes, enterprise discounts, Free Tier remaining balance, Support plan fees, and unexpected data-transfer patterns can change the invoice. Prefer **Cost Explorer actuals** for financial reporting once the stacks have run under representative load.
 
-<!-- Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom. -->
+<!-- Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention. -->

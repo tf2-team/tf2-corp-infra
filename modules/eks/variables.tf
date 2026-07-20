@@ -9,6 +9,48 @@ variable "kubernetes_version" {
   description = "Phiên bản Kubernetes cho EKS cluster"
 }
 
+variable "enabled_cluster_log_types" {
+  type        = list(string)
+  default     = ["api", "audit", "authenticator"]
+  nullable    = false
+  description = <<-EOT
+    EKS control plane log types exported to CloudWatch Logs group
+    /aws/eks/<cluster_name>/cluster. Empty list disables control plane logging.
+
+    Valid values: api, audit, authenticator, controllerManager, scheduler.
+    Default keeps the security-relevant types (api/audit/authenticator) without
+    the higher-volume scheduler and controllerManager streams.
+  EOT
+
+  validation {
+    condition = alltrue([
+      for t in var.enabled_cluster_log_types :
+      contains(["api", "audit", "authenticator", "controllerManager", "scheduler"], t)
+    ])
+    error_message = "enabled_cluster_log_types entries must be api, audit, authenticator, controllerManager, or scheduler."
+  }
+}
+
+variable "cluster_log_retention_days" {
+  type        = number
+  default     = 7
+  nullable    = false
+  description = <<-EOT
+    CloudWatch Logs retention (days) for the EKS control plane log group
+    /aws/eks/<cluster_name>/cluster. Must be a value AWS Logs accepts
+    (1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096,
+    1827, 2192, 2557, 2922, 3288, 3653) or 0 for never expire (not recommended).
+  EOT
+
+  validation {
+    condition = contains(
+      [0, 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653],
+      var.cluster_log_retention_days
+    )
+    error_message = "cluster_log_retention_days must be a valid CloudWatch Logs retention period (or 0 for never expire)."
+  }
+}
+
 variable "upgrade_policy_support_type" {
   type        = string
   default     = "STANDARD"
@@ -214,5 +256,4 @@ variable "access_entries" {
   description = "Bản đồ các EKS Access Entries bổ sung cần cấu hình"
 }
 
-# Change trail: @hungxqt - 2026-07-19 - Add cluster_autoscaler_node_group_name_prefixes for system-only CA tags.
-
+# Change trail: @hungxqt - 2026-07-20 - Add enabled_cluster_log_types and cluster_log_retention_days.

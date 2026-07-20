@@ -58,6 +58,24 @@ resource "aws_iam_role_policy_attachment" "node_ebs_policy" {
 }
 
 # ──────────────────────────────────────────────
+# EKS control plane → CloudWatch Logs
+# Create the log group first so retention is set (AWS auto-creates Never Expire).
+# ──────────────────────────────────────────────
+
+resource "aws_cloudwatch_log_group" "cluster" {
+  #checkov:skip=CKV_AWS_158:Cost optimization - AWS-managed encryption for EKS control plane logs
+  #checkov:skip=CKV_AWS_338:Retention is tunable via cluster_log_retention_days (env cost posture)
+  count = length(var.enabled_cluster_log_types) > 0 ? 1 : 0
+
+  name              = "/aws/eks/${var.cluster_name}/cluster"
+  retention_in_days = var.cluster_log_retention_days
+
+  tags = {
+    Name = "${var.cluster_name}-control-plane-logs"
+  }
+}
+
+# ──────────────────────────────────────────────
 # EKS Cluster (Control Plane)
 # ──────────────────────────────────────────────
 
@@ -80,7 +98,10 @@ resource "aws_eks_cluster" "this" {
     bootstrap_cluster_creator_admin_permissions = true
   }
 
-  enabled_cluster_log_types = ["api", "audit", "authenticator"]
+  # Control plane logs → /aws/eks/<cluster>/cluster (see aws_cloudwatch_log_group.cluster).
+  # Default: api + audit + authenticator (security-relevant). Add scheduler /
+  # controllerManager via enabled_cluster_log_types when needed (higher ingest cost).
+  enabled_cluster_log_types = var.enabled_cluster_log_types
 
   vpc_config {
     subnet_ids              = var.subnet_ids
@@ -89,7 +110,10 @@ resource "aws_eks_cluster" "this" {
     public_access_cidrs     = var.public_access_cidrs
   }
 
-  depends_on = [aws_iam_role_policy_attachment.cluster_policy]
+  depends_on = [
+    aws_iam_role_policy_attachment.cluster_policy,
+    aws_cloudwatch_log_group.cluster,
+  ]
 }
 
 # Karpenter security-group discovery (EC2NodeClass securityGroupSelectorTerms).
@@ -387,5 +411,4 @@ resource "aws_eks_access_policy_association" "additional" {
   depends_on = [aws_eks_access_entry.additional]
 }
 
-# Change trail: @hungxqt - 2026-07-19 - Tag only system-* MNG ASGs for CA; ignore desired_size drift.
-
+# Change trail: @hungxqt - 2026-07-20 - Manage EKS control plane CloudWatch log group with retention.

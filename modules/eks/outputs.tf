@@ -3,6 +3,16 @@ output "cluster_name" {
   description = "Tên EKS cluster"
 }
 
+output "cluster_log_group_name" {
+  value       = try(aws_cloudwatch_log_group.cluster[0].name, null)
+  description = "CloudWatch Logs group for EKS control plane logs (null when logging disabled)"
+}
+
+output "enabled_cluster_log_types" {
+  value       = aws_eks_cluster.this.enabled_cluster_log_types
+  description = "Control plane log types enabled on the EKS cluster"
+}
+
 output "cluster_arn" {
   value       = aws_eks_cluster.this.arn
   description = "ARN của EKS cluster"
@@ -70,3 +80,5 @@ output "node_launch_template_ids" {
   value       = { for k, v in aws_launch_template.node : k => v.id }
   description = "Launch template IDs created for node groups that set max_pods"
 }
+
+# Change trail: @hungxqt - 2026-07-20 - Export EKS control plane log group name and enabled log types.

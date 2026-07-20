@@ -78,6 +78,11 @@ nat_gateways = {
 cluster_name       = "techx-dev"
 kubernetes_version = "1.36"
 
+# EKS control plane → CloudWatch Logs (/aws/eks/techx-dev/cluster)
+# api/audit/authenticator only (security-relevant; skip higher-volume scheduler/controllerManager).
+enabled_cluster_log_types  = ["api", "audit", "authenticator"]
+cluster_log_retention_days = 7
+
 node_groups = {
   "system-1a" = {
     instance_types = ["t4g.medium"]
@@ -238,4 +243,4 @@ client_vpn_client_cidr_block = "10.101.0.0/22"
 # Trigger CICD
 
 # -----------------------------------------------
-# Change trail: @hungxqt - 2026-07-19 - Enable hybrid Cluster Autoscaler on system MNG; raise max_size headroom.
+# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.
