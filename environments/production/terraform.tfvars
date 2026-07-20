@@ -15,6 +15,12 @@ immutable_audit_s3_data_event_object_arns = [
   "arn:aws:s3:::techx-prod-tf2-ai-models-493499579600/"
 ]
 
+# Mandate 12.1 multi-channel alerting and continuous audit control health checks.
+# Bootstrap the Discord webhook into the created Secrets Manager secret outside Terraform:
+# aws secretsmanager put-secret-value --secret-id techx-prod-tf2-mandate12-immutable-audit-discord-webhook --secret-string 'https://discord.com/api/webhooks/...'
+immutable_audit_discord_alert_enabled = true
+immutable_audit_health_check_enabled  = true
+
 # Image format: REGISTRY/techx-prod-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
 # Lifecycle matches development (keep last 5 images + 1 buildcache).
@@ -364,6 +370,15 @@ cost_anomaly_routing_regions              = ["us-east-1"]
 cost_anomaly_routing_hub_region           = "us-east-1"
 cost_anomaly_routing_impact_absolute_usd  = 25
 cost_anomaly_routing_aggregation_duration = "SHORT"
+
+# Mandate 05 runtime security alerting.
+# Phase 1 enables SNS + EKS audit admission-deny classifier only.
+# GuardDuty Runtime Monitoring and node-role anomaly routing require separate
+# baseline/cost approval before flipping the flags below.
+runtime_security_alerting_enabled                = true
+runtime_security_alert_email                     = "vovudn95@gmail.com"
+runtime_security_enable_guardduty_eventbridge    = false
+runtime_security_enable_node_role_anomaly_events = false
 
 # Overlay: Cost Optimization Hub recommendations export for sprint backlog.
 cost_optimization_backlog_enabled                     = true

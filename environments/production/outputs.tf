@@ -68,6 +68,31 @@ output "immutable_audit_s3_data_event_object_arns" {
   description = "S3 object ARN scopes logged as CloudTrail data events for Mandate 12.2"
 }
 
+output "immutable_audit_discord_webhook_secret_arn" {
+  value       = local.immutable_audit_discord_enabled ? local.immutable_audit_discord_webhook_secret_arn : null
+  description = "Secrets Manager secret ARN containing the Discord webhook URL for Mandate 12.1 audit alerts"
+}
+
+output "immutable_audit_discord_queue_url" {
+  value       = local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord[0].url : null
+  description = "SQS queue buffering Mandate 12.1 audit tamper alerts before Discord delivery"
+}
+
+output "immutable_audit_discord_dlq_url" {
+  value       = local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord_dlq[0].url : null
+  description = "DLQ for undelivered Mandate 12.1 Discord audit alerts"
+}
+
+output "immutable_audit_health_check_lambda_name" {
+  value       = local.immutable_audit_health_enabled ? aws_lambda_function.immutable_audit_health_check[0].function_name : null
+  description = "Scheduled Lambda that verifies Mandate 12.1 audit control health"
+}
+
+output "immutable_audit_control_health_alarm_name" {
+  value       = local.immutable_audit_health_enabled ? aws_cloudwatch_metric_alarm.immutable_audit_control_health[0].alarm_name : null
+  description = "CloudWatch alarm for Mandate 12.1 audit control health drift"
+}
+
 # ──────────────────────────────────────────────
 # ECR Outputs
 # ──────────────────────────────────────────────
@@ -734,6 +759,36 @@ output "cost_anomaly_routing_event_rule_arn" {
 output "cost_anomaly_routing_operator_note" {
   value       = module.cost_anomaly_routing.operator_note
   description = "Post-apply steps for Cost Anomaly routing"
+}
+
+output "runtime_security_sns_topic_arn" {
+  value       = module.runtime_security_alerting.sns_topic_arn
+  description = "SNS topic ARN for Mandate 05 runtime security alerts"
+}
+
+output "runtime_security_audit_classifier_function_name" {
+  value       = module.runtime_security_alerting.audit_classifier_function_name
+  description = "Lambda function that classifies sanitized EKS audit admission-deny events"
+}
+
+output "runtime_security_audit_log_subscription_filter_name" {
+  value       = module.runtime_security_alerting.audit_log_subscription_filter_name
+  description = "CloudWatch Logs subscription filter for runtime-hardening admission denies"
+}
+
+output "runtime_security_classifier_error_alarm_name" {
+  value       = module.runtime_security_alerting.classifier_error_alarm_name
+  description = "CloudWatch alarm for runtime audit classifier Lambda errors"
+}
+
+output "runtime_security_classifier_deadman_alarm_name" {
+  value       = module.runtime_security_alerting.classifier_deadman_alarm_name
+  description = "CloudWatch dead-man alarm for runtime audit classifier log ingestion"
+}
+
+output "runtime_security_operator_note" {
+  value       = module.runtime_security_alerting.operator_note
+  description = "Post-apply steps for runtime security alerting"
 }
 
 output "cost_optimization_backlog_bucket_name" {
