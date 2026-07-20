@@ -179,7 +179,7 @@ resource "aws_lambda_function" "parse_lambda" {
   source_code_hash = data.archive_file.parse_lambda.output_base64sha256
 
   reserved_concurrent_executions = 5
-  kms_key_arn                     = aws_kms_key.audit_pipeline.arn
+  kms_key_arn                    = aws_kms_key.audit_pipeline.arn
 
   dead_letter_config {
     target_arn = aws_sqs_queue.parse_lambda_dlq.arn
@@ -191,7 +191,7 @@ resource "aws_lambda_function" "parse_lambda" {
   environment {
     variables = {
       SQS_QUEUE_URL               = aws_sqs_queue.audit_alert_queue.url
-      ALLOWED_ACTORS               = var.allowed_actors_csv
+      ALLOWED_ACTORS              = var.allowed_actors_csv
       PRODUCTION_NAMESPACE_PREFIX = var.production_namespace_prefix
     }
   }
@@ -282,7 +282,7 @@ resource "aws_lambda_function" "alert_lambda" {
   source_code_hash = data.archive_file.alert_lambda.output_base64sha256
 
   reserved_concurrent_executions = 5
-  kms_key_arn                     = aws_kms_key.audit_pipeline.arn
+  kms_key_arn                    = aws_kms_key.audit_pipeline.arn
 
   dead_letter_config {
     target_arn = aws_sqs_queue.alert_lambda_dlq.arn

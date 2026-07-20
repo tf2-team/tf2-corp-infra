@@ -1206,8 +1206,8 @@ module "audit_pipeline" {
   aws_region       = "us-east-1"
   eks_cluster_name = var.cluster_name
 
-  cloudtrail_name            = "techx-prod-tf2-audit-trail"
-  cloudtrail_log_group_name  = "techx-prod-tf2-cloudtrail"
+  cloudtrail_name           = "techx-prod-tf2-audit-trail"
+  cloudtrail_log_group_name = "techx-prod-tf2-cloudtrail"
 
   allowed_actors_csv = "system:masters,eks:addon-manager,system:serviceaccount:external-secrets:external-secrets,system:serviceaccount:external-secrets:external-secrets-cert-controller,system:serviceaccount:argocd:argocd-application-controller,system:serviceaccount:argocd:argocd-repo-server,system:serviceaccount:kube-system:aws-node,system:serviceaccount:kube-system:ebs-csi-controller-sa,system:serviceaccount:kube-system:aws-load-balancer-controller,system:serviceaccount:kube-system:karpenter,system:serviceaccount:kube-system:cluster-autoscaler,system:serviceaccount:kube-system:service-account-controller,system:serviceaccount:kube-system:generic-garbage-collector,system:serviceaccount:kube-system:namespace-controller"
 
