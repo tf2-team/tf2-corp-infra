@@ -76,9 +76,9 @@ variable "lambda_memory_mb" {
 
 variable "lambda_reserved_concurrent_executions" {
   type        = number
-  default     = 5
-  nullable    = false
-  description = "Reserved concurrency for the audit classifier Lambda."
+  default     = null
+  nullable    = true
+  description = "Optional reserved concurrency for the audit classifier Lambda. Null omits the setting when account concurrency headroom is constrained."
 }
 
 variable "vpc_id" {
