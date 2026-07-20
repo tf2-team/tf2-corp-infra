@@ -9,6 +9,7 @@ import boto3
 
 secretsmanager = boto3.client("secretsmanager")
 _webhook_url = None
+USER_AGENT = "TechX-Mandate12-Audit-Discord-Forwarder/1.0"
 
 
 def _get_webhook_url():
@@ -71,7 +72,10 @@ def _post_discord(payload):
     request = urllib.request.Request(
         _get_webhook_url(),
         data=body,
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": USER_AGENT,
+        },
         method="POST",
     )
 
@@ -79,13 +83,25 @@ def _post_discord(payload):
         with urllib.request.urlopen(request, timeout=4) as response:
             response.read()
     except urllib.error.HTTPError as exc:
+        error_body = ""
+        try:
+            error_body = exc.read().decode("utf-8")[:500]
+        except Exception:
+            pass
         if exc.code == 429:
             retry_after = 1
             try:
-                retry_after = json.loads(exc.read().decode("utf-8")).get("retry_after", 1)
+                retry_after = json.loads(error_body).get("retry_after", 1)
             except Exception:
                 pass
             time.sleep(min(float(retry_after), 5))
+        print(json.dumps({
+            "level": "error",
+            "message": "discord_http_error",
+            "status": exc.code,
+            "reason": exc.reason,
+            "body": error_body,
+        }))
         raise
 
 
