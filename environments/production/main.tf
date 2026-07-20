@@ -1393,6 +1393,45 @@ module "runtime_security_alerting" {
 # Overlay: Cost Optimization Hub + Data Export backlog
 # ──────────────────────────────────────────────
 
+# ------------------------------------------------------------------------------
+# Mandate 11.2 audit detection pipeline
+# Coarse filters only: CloudTrail/EventBridge and EKS audit logs are forwarded as
+# raw events to the Task 11.3 parser Lambda. Keep disabled until the 11.3 parser
+# package and end-to-end test window are ready.
+# ------------------------------------------------------------------------------
+
+module "audit_detection_pipeline" {
+  source = "../../modules/audit-detection-pipeline"
+
+  enabled                               = var.audit_detection_pipeline_enabled
+  name_prefix                           = var.project_name
+  cluster_name                          = module.eks.cluster_name
+  audit_log_group_name                  = var.audit_detection_audit_log_group_name != "" ? var.audit_detection_audit_log_group_name : "/aws/eks/${module.eks.cluster_name}/cluster"
+  lambda_function_name                  = var.audit_detection_lambda_function_name
+  lambda_role_name                      = var.audit_detection_lambda_role_name
+  lambda_policy_name                    = var.audit_detection_lambda_policy_name
+  dlq_name                              = var.audit_detection_dlq_name
+  lambda_kms_key_arn                    = var.audit_detection_lambda_kms_key_arn
+  lambda_tracing_mode                   = var.audit_detection_lambda_tracing_mode
+  cloudtrail_event_rule_name            = var.audit_detection_cloudtrail_event_rule_name
+  cloudtrail_event_target_id            = var.audit_detection_cloudtrail_event_target_id
+  eks_audit_subscription_filter_name    = var.audit_detection_eks_audit_subscription_filter_name
+  eks_audit_filter_pattern              = var.audit_detection_eks_audit_filter_pattern
+  lambda_reserved_concurrent_executions = var.audit_detection_lambda_reserved_concurrent_executions
+  alarm_action_arns                     = var.audit_detection_alarm_action_arns
+  enable_discord_router                 = var.audit_detection_enable_discord_router
+  alert_ready_queue_name                = var.audit_detection_alert_ready_queue_name
+  alert_ready_dlq_name                  = var.audit_detection_alert_ready_dlq_name
+  router_lambda_function_name           = var.audit_detection_router_lambda_function_name
+  router_lambda_role_name               = var.audit_detection_router_lambda_role_name
+  router_lambda_policy_name             = var.audit_detection_router_lambda_policy_name
+  discord_webhook_secret_name           = var.audit_detection_discord_webhook_secret_name
+  discord_webhook_secret_arn            = var.audit_detection_discord_webhook_secret_arn
+  ttd_threshold_seconds                 = var.audit_detection_ttd_threshold_seconds
+  ttd_dashboard_name                    = var.audit_detection_ttd_dashboard_name
+  tags                                  = var.tags
+}
+
 module "cost_optimization_backlog" {
   source = "../../modules/cost-optimization-backlog"
 
@@ -1412,20 +1451,5 @@ module "cost_optimization_backlog" {
   tags                        = var.tags
 }
 
-module "audit_pipeline" {
-  source = "../../modules/audit-pipeline"
-
-  project_name     = "techx-prod-tf2"
-  aws_region       = "us-east-1"
-  eks_cluster_name = var.cluster_name
-
-  cloudtrail_name           = "techx-prod-tf2-audit-trail"
-  cloudtrail_log_group_name = "techx-prod-tf2-cloudtrail"
-
-  allowed_actors_csv = "system:masters,eks:addon-manager,system:serviceaccount:external-secrets:external-secrets,system:serviceaccount:external-secrets:external-secrets-cert-controller,system:serviceaccount:argocd:argocd-application-controller,system:serviceaccount:argocd:argocd-repo-server,system:serviceaccount:kube-system:aws-node,system:serviceaccount:kube-system:ebs-csi-controller-sa,system:serviceaccount:kube-system:aws-load-balancer-controller,system:serviceaccount:kube-system:karpenter,system:serviceaccount:kube-system:cluster-autoscaler,system:serviceaccount:kube-system:service-account-controller,system:serviceaccount:kube-system:generic-garbage-collector,system:serviceaccount:kube-system:namespace-controller"
-
-  tags = var.tags
-}
-#Audit pipeline for log filtering cloudtrail and eks audit
-
+# Change trail: @hungxqt - 2026-07-19 - Hybrid CA on system MNG; remove dual-autoscaler mutual exclusion.
 # Change trail: @hungxqt - 2026-07-20 - Wire MANDATE-20 backup_protection module and Valkey snapshot retention.
