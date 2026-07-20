@@ -361,6 +361,7 @@ resource "aws_lambda_function" "audit_classifier" {
   count = local.create ? 1 : 0
 
   #checkov:skip=CKV_AWS_272:Code signing requires an approved signing profile and CI artifact signing step before promotion.
+  #checkov:skip=CKV_AWS_115:Reserved concurrency is omitted because the production account does not currently have enough unreserved concurrency headroom.
   function_name    = local.audit_classifier_name
   description      = "Classify sanitized Kubernetes runtime-hardening admission denies from EKS audit logs."
   role             = aws_iam_role.audit_classifier[0].arn
