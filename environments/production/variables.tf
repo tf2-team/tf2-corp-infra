@@ -175,6 +175,20 @@ variable "cluster_name" {
   description = "Tên EKS cluster"
 }
 
+variable "enabled_cluster_log_types" {
+  type        = list(string)
+  default     = ["api", "audit", "authenticator"]
+  nullable    = false
+  description = "EKS control plane log types exported to CloudWatch (api/audit/authenticator by default)"
+}
+
+variable "cluster_log_retention_days" {
+  type        = number
+  default     = 30
+  nullable    = false
+  description = "CloudWatch Logs retention days for /aws/eks/<cluster>/cluster (prod: 30)"
+}
+
 variable "commerce_valkey_node_type" {
   type        = string
   default     = "cache.t4g.micro"
@@ -1275,4 +1289,4 @@ variable "mem0_postgresql_kms_key_id" {
   description = "Optional customer-managed KMS key for Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-19 - Cluster Autoscaler variables document hybrid system-MNG + Karpenter.
+# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.

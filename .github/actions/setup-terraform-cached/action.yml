@@ -22,7 +22,7 @@ runs:
         echo "TF_PLUGIN_CACHE_DIR=${cache_dir}" >> "${GITHUB_ENV}"
 
     - name: Cache Terraform providers
-      uses: actions/cache@v4
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ github.workspace }}/.terraform.d/plugin-cache
         key: tf-plugin-${{ runner.os }}-${{ hashFiles('**/.terraform.lock.hcl') }}
@@ -30,7 +30,8 @@ runs:
           tf-plugin-${{ runner.os }}-
 
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
       with:
         terraform_version: ${{ inputs.terraform_version }}
         terraform_wrapper: ${{ inputs.terraform_wrapper }}
+# Change trail: @hungxqt - 2026-07-20 - Bump cache and setup-terraform to Node 24 runtimes.

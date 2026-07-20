@@ -777,6 +777,9 @@ module "eks" {
   kubernetes_version = var.kubernetes_version
   subnet_ids         = module.vpc.private_subnet_ids_list
 
+  enabled_cluster_log_types  = var.enabled_cluster_log_types
+  cluster_log_retention_days = var.cluster_log_retention_days
+
   node_groups = local.node_groups
   addons      = var.addons
 
@@ -1198,4 +1201,4 @@ module "cost_optimization_backlog" {
   include_all_recommendations = var.cost_optimization_backlog_include_all_recommendations
   tags                        = var.tags
 }
-# Change trail: @hungxqt - 2026-07-19 - Hybrid CA on system MNG; remove dual-autoscaler mutual exclusion.
+# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.
