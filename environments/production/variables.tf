@@ -70,6 +70,36 @@ variable "immutable_audit_s3_data_event_object_arns" {
   }
 }
 
+variable "immutable_audit_discord_alert_enabled" {
+  type        = bool
+  description = "Enable Mandate 12.1 Discord alert forwarding through EventBridge, SQS, and Lambda."
+  default     = false
+}
+
+variable "immutable_audit_discord_webhook_secret_arn" {
+  type        = string
+  description = "Optional existing Secrets Manager secret ARN containing the Discord webhook URL. Leave empty to create a metadata-only secret shell and bootstrap the value outside Terraform."
+  default     = ""
+}
+
+variable "immutable_audit_health_check_enabled" {
+  type        = bool
+  description = "Enable scheduled Mandate 12.1 audit control health checks."
+  default     = false
+}
+
+variable "immutable_audit_health_check_schedule_expression" {
+  type        = string
+  description = "EventBridge schedule expression for audit control health checks."
+  default     = "rate(15 minutes)"
+}
+
+variable "immutable_audit_health_check_max_delivery_age_minutes" {
+  type        = number
+  description = "Maximum allowed CloudTrail delivery age before the audit health check fails."
+  default     = 60
+}
+
 variable "ecr_project_name" {
   type        = string
   description = "ECR project path segment (e.g. techx-corp). Full image: registry/ecr_project_name/service:tag"
