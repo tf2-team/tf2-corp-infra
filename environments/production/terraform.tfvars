@@ -371,6 +371,15 @@ cost_anomaly_routing_hub_region           = "us-east-1"
 cost_anomaly_routing_impact_absolute_usd  = 25
 cost_anomaly_routing_aggregation_duration = "SHORT"
 
+# Mandate 05 runtime security alerting.
+# Phase 1 enables SNS + EKS audit admission-deny classifier only.
+# GuardDuty Runtime Monitoring and node-role anomaly routing require separate
+# baseline/cost approval before flipping the flags below.
+runtime_security_alerting_enabled                = true
+runtime_security_alert_email                     = "vovudn95@gmail.com"
+runtime_security_enable_guardduty_eventbridge    = false
+runtime_security_enable_node_role_anomaly_events = false
+
 # Overlay: Cost Optimization Hub recommendations export for sprint backlog.
 cost_optimization_backlog_enabled                     = true
 cost_optimization_backlog_bucket_name                 = "techx-prod-tf2-cost-optimization-exports-493499579600-us-east-1"

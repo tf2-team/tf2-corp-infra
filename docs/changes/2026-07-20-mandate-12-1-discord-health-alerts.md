@@ -17,6 +17,12 @@ Add production-only Mandate 12.1 alert reliability resources:
 - A scheduled Lambda verifies audit control health every 15 minutes and publishes `TechX/Audit AuditControlHealth`.
 - Additional EventBridge rules alert on attempts to change EventBridge, SNS, Lambda, SQS, or Secrets Manager resources that can break the alert pipeline.
 
+The original CloudTrail/S3/KMS tamper rules still fan out to the encrypted SNS email-json topic. The additional alert-pipeline tamper rules fan out to Discord through SQS to avoid requiring `sns:SetTopicAttributes` after the Organization SCP starts protecting the SNS topic.
+
+The SNS topic policy is intentionally ignored for future Terraform drift after the SCP hardening step because the existing email alert path is already live and the SCP blocks `sns:SetTopicAttributes` for the protected topic.
+
+The alert Lambdas do not reserve concurrency. This avoids failing production apply in accounts where the Lambda regional quota would push unreserved concurrency below AWS's minimum.
+
 The Discord webhook value is not stored in Terraform variables or committed files. Terraform creates a metadata-only Secrets Manager secret shell when no existing secret ARN is supplied.
 
 ## Bootstrap
@@ -53,6 +59,8 @@ Use local validation without touching the production S3 backend:
 TF_DATA_DIR=/tmp/techx-prod-md12-tfdata terraform -chdir=environments/production init -backend=false
 TF_DATA_DIR=/tmp/techx-prod-md12-tfdata terraform -chdir=environments/production validate
 ```
+
+The reusable production apply workflow uploads Lambda zip files from `lambda/build/*.zip` with the approved Terraform plan. Terraform apply needs those zip files because the saved plan references the package path generated during the plan job.
 
 After apply and webhook bootstrap, perform a safe no-op CloudTrail tamper attempt:
 

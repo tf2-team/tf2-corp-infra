@@ -600,6 +600,8 @@ resource "aws_sns_topic_subscription" "immutable_audit_tamper_email" {
 }
 
 locals {
+  immutable_audit_email_tamper_rule_keys = toset(["trail", "bucket", "kms"])
+
   immutable_audit_tamper_event_rules = {
     trail = {
       name        = "${local.immutable_audit_trail_name}-trail-tamper"
@@ -774,39 +776,14 @@ resource "aws_cloudwatch_event_rule" "immutable_audit_tamper" {
 }
 
 resource "aws_cloudwatch_event_target" "immutable_audit_tamper" {
-  for_each = aws_cloudwatch_event_rule.immutable_audit_tamper
+  for_each = {
+    for key, rule in aws_cloudwatch_event_rule.immutable_audit_tamper : key => rule
+    if contains(local.immutable_audit_email_tamper_rule_keys, key)
+  }
 
   rule      = each.value.name
   target_id = "email-audit-alert"
   arn       = aws_sns_topic.immutable_audit_tamper_alerts.arn
-
-  depends_on = [aws_sns_topic_policy.immutable_audit_tamper_alerts]
-}
-
-data "aws_iam_policy_document" "immutable_audit_tamper_alerts" {
-  statement {
-    sid    = "AllowEventBridgePublishTamperAlerts"
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["events.amazonaws.com"]
-    }
-
-    actions   = ["sns:Publish"]
-    resources = [aws_sns_topic.immutable_audit_tamper_alerts.arn]
-
-    condition {
-      test     = "ArnLike"
-      variable = "aws:SourceArn"
-      values   = [for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.arn]
-    }
-  }
-}
-
-resource "aws_sns_topic_policy" "immutable_audit_tamper_alerts" {
-  arn    = aws_sns_topic.immutable_audit_tamper_alerts.arn
-  policy = data.aws_iam_policy_document.immutable_audit_tamper_alerts.json
 }
 
 module "ecr" {
@@ -1267,6 +1244,36 @@ module "cost_anomaly_routing" {
   impact_absolute_usd     = var.cost_anomaly_routing_impact_absolute_usd
   aggregation_duration    = var.cost_anomaly_routing_aggregation_duration
   tags                    = var.tags
+}
+
+# ──────────────────────────────────────────────
+# Mandate 05 runtime security alerting — admission deny classifier
+# No GuardDuty runtime agent is enabled here; GuardDuty/node-role routing stay
+# feature-flagged until cost and baseline are approved.
+# ──────────────────────────────────────────────
+
+module "runtime_security_alerting" {
+  source = "../../modules/runtime-security-alerting"
+
+  enabled              = var.runtime_security_alerting_enabled
+  name_prefix          = var.project_name
+  cluster_name         = module.eks.cluster_name
+  audit_log_group_name = var.runtime_security_audit_log_group_name != "" ? var.runtime_security_audit_log_group_name : "/aws/eks/${module.eks.cluster_name}/cluster"
+  alert_email          = var.runtime_security_alert_email
+  vpc_id               = module.vpc.vpc_id
+  private_subnet_ids   = module.vpc.private_subnet_ids_list
+
+  enable_guardduty_eventbridge    = var.runtime_security_enable_guardduty_eventbridge
+  enable_node_role_anomaly_events = var.runtime_security_enable_node_role_anomaly_events
+  node_role_arns = toset([
+    for arn in [
+      module.eks.node_role_arn,
+      module.karpenter.node_role_arn,
+    ] : arn
+    if arn != null && arn != ""
+  ])
+
+  tags = var.tags
 }
 
 # ──────────────────────────────────────────────
