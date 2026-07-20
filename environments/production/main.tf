@@ -815,6 +815,13 @@ data "aws_iam_policy_document" "immutable_audit_tamper_alerts" {
 resource "aws_sns_topic_policy" "immutable_audit_tamper_alerts" {
   arn    = aws_sns_topic.immutable_audit_tamper_alerts.arn
   policy = data.aws_iam_policy_document.immutable_audit_tamper_alerts.json
+
+  lifecycle {
+    # The Organization SCP intentionally protects this audit alert topic from
+    # sns:SetTopicAttributes. The existing policy already allows the original
+    # CloudTrail/S3/KMS tamper rules; new pipeline-tamper rules route to SQS.
+    ignore_changes = [policy]
+  }
 }
 
 module "ecr" {

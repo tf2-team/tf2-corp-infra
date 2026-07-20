@@ -442,16 +442,15 @@ resource "aws_lambda_function" "immutable_audit_discord_forwarder" {
   #checkov:skip=CKV_AWS_272:Code signing is deferred because this repo does not yet manage a signing profile; source hash and Terraform review remain the deployment control for this capstone.
   count = local.immutable_audit_discord_enabled ? 1 : 0
 
-  function_name                  = "${local.immutable_audit_trail_name}-discord-forwarder"
-  description                    = "Forwards Mandate 12 audit tamper events from SQS to Discord."
-  role                           = aws_iam_role.immutable_audit_discord_forwarder[0].arn
-  handler                        = "immutable_audit_discord_forwarder.handler"
-  runtime                        = "python3.12"
-  filename                       = data.archive_file.immutable_audit_discord_forwarder[0].output_path
-  kms_key_arn                    = aws_kms_key.immutable_audit_alert_runtime[0].arn
-  source_code_hash               = data.archive_file.immutable_audit_discord_forwarder[0].output_base64sha256
-  timeout                        = 10
-  reserved_concurrent_executions = 2
+  function_name    = "${local.immutable_audit_trail_name}-discord-forwarder"
+  description      = "Forwards Mandate 12 audit tamper events from SQS to Discord."
+  role             = aws_iam_role.immutable_audit_discord_forwarder[0].arn
+  handler          = "immutable_audit_discord_forwarder.handler"
+  runtime          = "python3.12"
+  filename         = data.archive_file.immutable_audit_discord_forwarder[0].output_path
+  kms_key_arn      = aws_kms_key.immutable_audit_alert_runtime[0].arn
+  source_code_hash = data.archive_file.immutable_audit_discord_forwarder[0].output_base64sha256
+  timeout          = 10
 
   dead_letter_config {
     target_arn = aws_sqs_queue.immutable_audit_discord_lambda_dlq[0].arn
@@ -645,16 +644,15 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
   #checkov:skip=CKV_AWS_272:Code signing is deferred because this repo does not yet manage a signing profile; source hash and Terraform review remain the deployment control for this capstone.
   count = local.immutable_audit_health_enabled ? 1 : 0
 
-  function_name                  = "${local.immutable_audit_trail_name}-health-check"
-  description                    = "Checks Mandate 12 audit controls and publishes a health metric."
-  role                           = aws_iam_role.immutable_audit_health_check[0].arn
-  handler                        = "immutable_audit_health_check.handler"
-  runtime                        = "python3.12"
-  filename                       = data.archive_file.immutable_audit_health_check[0].output_path
-  kms_key_arn                    = aws_kms_key.immutable_audit_alert_runtime[0].arn
-  source_code_hash               = data.archive_file.immutable_audit_health_check[0].output_base64sha256
-  timeout                        = 30
-  reserved_concurrent_executions = 1
+  function_name    = "${local.immutable_audit_trail_name}-health-check"
+  description      = "Checks Mandate 12 audit controls and publishes a health metric."
+  role             = aws_iam_role.immutable_audit_health_check[0].arn
+  handler          = "immutable_audit_health_check.handler"
+  runtime          = "python3.12"
+  filename         = data.archive_file.immutable_audit_health_check[0].output_path
+  kms_key_arn      = aws_kms_key.immutable_audit_alert_runtime[0].arn
+  source_code_hash = data.archive_file.immutable_audit_health_check[0].output_base64sha256
+  timeout          = 30
 
   dead_letter_config {
     target_arn = aws_sqs_queue.immutable_audit_health_lambda_dlq[0].arn
