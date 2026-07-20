@@ -605,12 +605,16 @@ locals {
     "${local.immutable_audit_trail_name}-trail-tamper",
     "${local.immutable_audit_trail_name}-bucket-tamper",
     "${local.immutable_audit_trail_name}-kms-tamper",
-    "${local.immutable_audit_trail_name}-eventbridge-tamper",
-    "${local.immutable_audit_trail_name}-sns-tamper",
+    "${local.immutable_audit_trail_name}-eb-rule-tamper",
+    "${local.immutable_audit_trail_name}-eb-target-tamper",
+    "${local.immutable_audit_trail_name}-eb-deny-tamper",
+    "${local.immutable_audit_trail_name}-sns-topic-tamper",
+    "${local.immutable_audit_trail_name}-sns-sub-tamper",
     "${local.immutable_audit_trail_name}-lambda-tamper",
     "${local.immutable_audit_trail_name}-sqs-tamper",
     "${local.immutable_audit_trail_name}-secrets-tamper",
   ]
+  immutable_audit_tamper_rule_arn_prefix = "arn:${data.aws_partition.current.partition}:events:${var.aws_region}:${data.aws_caller_identity.current.account_id}:rule/${local.immutable_audit_trail_name}-"
   immutable_audit_lambda_function_names = concat(
     local.immutable_audit_discord_enabled ? ["${local.immutable_audit_trail_name}-discord-forwarder"] : [],
     local.immutable_audit_health_enabled ? ["${local.immutable_audit_trail_name}-health-check"] : []
@@ -701,9 +705,45 @@ locals {
         }
       }
     }
-    eventbridge = {
-      name        = "${local.immutable_audit_trail_name}-eventbridge-tamper"
-      description = "Alert when EventBridge rules or targets are changed, disabled, or deleted."
+    eventbridge_denied = {
+      name        = "${local.immutable_audit_trail_name}-eb-deny-tamper"
+      description = "Alert when SCP denies attempts to disable or delete audit EventBridge rules."
+      pattern = {
+        source      = ["aws.events"]
+        detail-type = ["AWS API Call via CloudTrail"]
+        detail = {
+          eventSource = ["events.amazonaws.com"]
+          eventName = [
+            "DeleteRule",
+            "DisableRule",
+          ]
+          errorMessage = [{
+            wildcard = "*${local.immutable_audit_tamper_rule_arn_prefix}*"
+          }]
+        }
+      }
+    }
+    eventbridge_target = {
+      name        = "${local.immutable_audit_trail_name}-eb-target-tamper"
+      description = "Alert when audit EventBridge rule targets are changed or removed."
+      pattern = {
+        source      = ["aws.events"]
+        detail-type = ["AWS API Call via CloudTrail"]
+        detail = {
+          eventSource = ["events.amazonaws.com"]
+          eventName = [
+            "PutTargets",
+            "RemoveTargets",
+          ]
+          requestParameters = {
+            rule = local.immutable_audit_tamper_rule_names
+          }
+        }
+      }
+    }
+    eventbridge_rule = {
+      name        = "${local.immutable_audit_trail_name}-eb-rule-tamper"
+      description = "Alert when audit EventBridge rules are changed, disabled, or deleted."
       pattern = {
         source      = ["aws.events"]
         detail-type = ["AWS API Call via CloudTrail"]
@@ -713,27 +753,16 @@ locals {
             "DeleteRule",
             "DisableRule",
             "PutRule",
-            "PutTargets",
-            "RemoveTargets",
           ]
-          "$or" = [
-            {
-              requestParameters = {
-                name = local.immutable_audit_tamper_rule_names
-              }
-            },
-            {
-              requestParameters = {
-                rule = local.immutable_audit_tamper_rule_names
-              }
-            },
-          ]
+          requestParameters = {
+            name = local.immutable_audit_tamper_rule_names
+          }
         }
       }
     }
-    sns = {
-      name        = "${local.immutable_audit_trail_name}-sns-tamper"
-      description = "Alert when SNS topics or subscriptions used by audit alerts are changed or removed."
+    sns_topic = {
+      name        = "${local.immutable_audit_trail_name}-sns-topic-tamper"
+      description = "Alert when SNS topics used by audit alerts are changed or removed."
       pattern = {
         source      = ["aws.sns"]
         detail-type = ["AWS API Call via CloudTrail"]
@@ -745,20 +774,28 @@ locals {
             "Subscribe",
             "Unsubscribe",
           ]
-          "$or" = [
-            {
-              requestParameters = {
-                topicArn = [aws_sns_topic.immutable_audit_tamper_alerts.arn]
-              }
-            },
-            {
-              requestParameters = {
-                subscriptionArn = [{
-                  prefix = "${aws_sns_topic.immutable_audit_tamper_alerts.arn}:"
-                }]
-              }
-            },
+          requestParameters = {
+            topicArn = [aws_sns_topic.immutable_audit_tamper_alerts.arn]
+          }
+        }
+      }
+    }
+    sns_subscription = {
+      name        = "${local.immutable_audit_trail_name}-sns-sub-tamper"
+      description = "Alert when SNS subscriptions used by audit alerts are changed or removed."
+      pattern = {
+        source      = ["aws.sns"]
+        detail-type = ["AWS API Call via CloudTrail"]
+        detail = {
+          eventSource = ["sns.amazonaws.com"]
+          eventName = [
+            "Unsubscribe",
           ]
+          requestParameters = {
+            subscriptionArn = [{
+              prefix = "${aws_sns_topic.immutable_audit_tamper_alerts.arn}:"
+            }]
+          }
         }
       }
     }
@@ -1223,7 +1260,6 @@ module "private_dns" {
   tags                = var.tags
 }
 
-
 # ──────────────────────────────────────────────
 # Cost budgets — onboarding ~$300/week × ~3 weeks → monthly $900
 # AWS Budgets has no WEEKLY time_unit (only DAILY/MONTHLY/…).
@@ -1385,4 +1421,21 @@ module "cost_optimization_backlog" {
   include_all_recommendations = var.cost_optimization_backlog_include_all_recommendations
   tags                        = var.tags
 }
-# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.
+
+module "audit_pipeline" {
+  source = "../../modules/audit-pipeline"
+
+  project_name     = "techx-prod-tf2"
+  aws_region       = "us-east-1"
+  eks_cluster_name = var.cluster_name
+
+  cloudtrail_name           = "techx-prod-tf2-audit-trail"
+  cloudtrail_log_group_name = "techx-prod-tf2-cloudtrail"
+
+  allowed_actors_csv = "system:masters,eks:addon-manager,system:serviceaccount:external-secrets:external-secrets,system:serviceaccount:external-secrets:external-secrets-cert-controller,system:serviceaccount:argocd:argocd-application-controller,system:serviceaccount:argocd:argocd-repo-server,system:serviceaccount:kube-system:aws-node,system:serviceaccount:kube-system:ebs-csi-controller-sa,system:serviceaccount:kube-system:aws-load-balancer-controller,system:serviceaccount:kube-system:karpenter,system:serviceaccount:kube-system:cluster-autoscaler,system:serviceaccount:kube-system:service-account-controller,system:serviceaccount:kube-system:generic-garbage-collector,system:serviceaccount:kube-system:namespace-controller"
+
+  tags = var.tags
+}
+#Audit pipeline for log filtering cloudtrail and eks audit
+
+# Change trail: @hungxqt - 2026-07-19 - Hybrid CA on system MNG; remove dual-autoscaler mutual exclusion.
