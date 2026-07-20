@@ -19,6 +19,10 @@ Add production-only Mandate 12.1 alert reliability resources:
 
 The original CloudTrail/S3/KMS tamper rules still fan out to the encrypted SNS email-json topic. The additional alert-pipeline tamper rules fan out to Discord through SQS to avoid requiring `sns:SetTopicAttributes` after the Organization SCP starts protecting the SNS topic.
 
+The SNS topic policy is intentionally ignored for future Terraform drift after the SCP hardening step because the existing email alert path is already live and the SCP blocks `sns:SetTopicAttributes` for the protected topic.
+
+The alert Lambdas do not reserve concurrency. This avoids failing production apply in accounts where the Lambda regional quota would push unreserved concurrency below AWS's minimum.
+
 The Discord webhook value is not stored in Terraform variables or committed files. Terraform creates a metadata-only Secrets Manager secret shell when no existing secret ARN is supplied.
 
 ## Bootstrap
