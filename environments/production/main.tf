@@ -1047,6 +1047,26 @@ module "external_secrets" {
   tags                        = var.tags
 }
 
+# ──────────────────────────────────────────────
+# MANDATE 10: Sigstore policy-controller IRSA
+# Deployment/ClusterImagePolicy manifests live in tf2-corp-chart
+# (gitops/supply-chain). This is the read-only verify identity only.
+# ──────────────────────────────────────────────
+
+module "policy_controller_irsa" {
+  source = "../../modules/policy-controller-irsa"
+
+  enabled            = var.policy_controller_enabled && var.cosign_kms_key_arn != ""
+  cluster_name       = module.eks.cluster_name
+  oidc_provider_arn  = module.eks.oidc_provider_arn
+  oidc_issuer_url    = module.eks.oidc_issuer
+  cosign_kms_key_arn = var.cosign_kms_key_arn
+  ecr_repository_arns = [
+    for arn in values(module.ecr.repository_arns) : arn
+  ]
+  tags = var.tags
+}
+
 module "ai_model_storage" {
   source = "../../modules/ai-model-storage"
 

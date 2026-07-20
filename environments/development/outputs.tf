@@ -260,6 +260,11 @@ output "external_secrets_role_arn" {
   description = "IRSA role ARN for ESO controller"
 }
 
+output "policy_controller_role_arn" {
+  value       = module.policy_controller_irsa.role_arn
+  description = "IRSA role ARN to annotate on the policy-controller ServiceAccount in tf2-corp-chart (gitops/supply-chain)"
+}
+
 output "ai_model_bucket_name" { value = module.ai_model_storage.bucket_name }
 output "ai_model_service_account_role_arn" { value = module.ai_model_storage.service_account_role_arn }
 output "ai_model_consumer_role_arns" { value = module.ai_model_storage.consumer_role_arns }

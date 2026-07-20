@@ -64,6 +64,20 @@ output "github_actions_allowed_subjects" {
 }
 
 # ──────────────────────────────────────────────
+# MANDATE 10: Cosign KMS signing key
+# ──────────────────────────────────────────────
+
+output "cosign_kms_key_arn" {
+  value       = aws_kms_key.cosign.arn
+  description = "KMS key ARN used by platform CI to sign image digests with Cosign (awskms:///alias/<name>)"
+}
+
+output "cosign_kms_key_alias" {
+  value       = aws_kms_alias.cosign.name
+  description = "Matches the COSIGN_KMS_KEY fallback already hardcoded in tf2-corp-platform build-and-push.yml (awskms:///alias/tf2-cosign-signing-key); no GitHub var override needed unless this alias changes"
+}
+
+# ──────────────────────────────────────────────
 # GitHub Actions Terraform plan/apply roles (infra repo)
 # Set these as repository secrets on the infra GitHub repo
 # ──────────────────────────────────────────────

@@ -459,6 +459,23 @@ variable "external_secrets_chart_version" {
 }
 
 # ──────────────────────────────────────────────
+# MANDATE 10: Sigstore policy-controller IRSA
+# ──────────────────────────────────────────────
+
+variable "policy_controller_enabled" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "Create IRSA role for Sigstore policy-controller (Cosign signature verification, read-only)"
+}
+
+variable "cosign_kms_key_arn" {
+  type        = string
+  default     = ""
+  description = "Cosign KMS key ARN (bootstrap output cosign_kms_key_arn). Empty disables policy-controller IRSA even if policy_controller_enabled=true."
+}
+
+# ──────────────────────────────────────────────
 # Karpenter (node autoscaling)
 # ──────────────────────────────────────────────
 

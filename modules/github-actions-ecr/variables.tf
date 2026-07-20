@@ -98,9 +98,16 @@ variable "s3_publish_list_prefixes" {
   }
 }
 
+variable "cosign_kms_key_arn" {
+  type        = string
+  default     = ""
+  description = "Optional KMS key ARN this role may use to sign image digests with Cosign (kms:Sign/GetPublicKey/DescribeKey). Empty disables the signing statement."
+}
+
 variable "tags" {
   type        = map(string)
   default     = {}
   description = "Additional tags for IAM resources"
 }
 # Change trail: @hungxqt - 2026-07-19 - Optional S3 model-artifact publish permissions for GHA ECR roles.
+# Change trail: MANDATE-10 - 2026-07-20 - Optional Cosign KMS signing permissions for GHA ECR push roles.

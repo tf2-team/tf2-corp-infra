@@ -218,10 +218,41 @@ module "github_actions_ecr" {
   s3_publish_object_arns   = each.value.s3_publish_object_arns
   s3_publish_list_prefixes = each.value.s3_publish_list_prefixes
 
+  cosign_kms_key_arn = aws_kms_key.cosign.arn
+
   tags = merge(var.tags, {
     Purpose = "github-actions-ecr-push"
     Scope   = each.key
   })
+}
+
+# ──────────────────────────────────────────────
+# MANDATE 10: KMS asymmetric key for Cosign image signing
+# Account-level singleton, shared by dev + prod platform CI roles.
+# Asymmetric KMS keys do not support automatic key rotation.
+# ──────────────────────────────────────────────
+
+resource "aws_kms_key" "cosign" {
+  description              = "TF2 Cosign image signing key (Mandate 10 secure delivery pipeline)"
+  customer_master_key_spec = "ECC_NIST_P256"
+  key_usage                = "SIGN_VERIFY"
+  enable_key_rotation      = false
+  deletion_window_in_days  = 30
+
+  tags = merge(var.tags, {
+    Name    = "tf2-cosign-signing-key"
+    Purpose = "cosign-image-signing"
+    Mandate = "MD10"
+  })
+}
+
+# Alias name is a fixed literal, NOT ${var.project_name}-prefixed: it must match
+# the COSIGN_KMS_KEY fallback already hardcoded in tf2-corp-platform's
+# build-and-push.yml (awskms:///alias/tf2-cosign-signing-key), which predates
+# this module and is not being renamed as part of this change.
+resource "aws_kms_alias" "cosign" {
+  name          = "alias/tf2-cosign-signing-key"
+  target_key_id = aws_kms_key.cosign.key_id
 }
 
 # ──────────────────────────────────────────────
