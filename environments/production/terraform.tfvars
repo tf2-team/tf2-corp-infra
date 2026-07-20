@@ -381,8 +381,8 @@ runtime_security_enable_guardduty_eventbridge    = false
 runtime_security_enable_node_role_anomaly_events = false
 
 # Mandate 11.2 audit detection pipeline.
-# Keep disabled until Task 11.3 parser CI/CD and end-to-end test window are ready.
-audit_detection_pipeline_enabled = false
+# Enabled for Mandate 11 end-to-end rollout through the approved infra CI/CD workflow.
+audit_detection_pipeline_enabled = true
 
 # Overlay: Cost Optimization Hub recommendations export for sprint backlog.
 cost_optimization_backlog_enabled                     = true
