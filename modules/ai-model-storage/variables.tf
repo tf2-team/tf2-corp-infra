@@ -36,7 +36,7 @@ variable "consumers" {
     allow_list_bucket             = optional(bool, false)
     bedrock_inference_profile_ids = optional(list(string), [])
   }))
-  description = "Model consumers with an isolated IRSA role and least-privilege S3/Bedrock access"
+  description = "Model consumers with an isolated IRSA role and least-privilege S3/Bedrock access. bedrock_inference_profile_ids grant InvokeModel on those profiles and, via condition, on the derived foundation-model ARNs only when called through those profiles."
 
   validation {
     condition     = length(var.consumers) > 0
@@ -89,4 +89,4 @@ variable "tags" {
   default = {}
 }
 
-# Change trail: @hungxqt - 2026-07-19 - Allow shared model_prefix for multi-service ProtectAI IRSA.
+# Change trail: @hungxqt - 2026-07-20 - Document Bedrock profile plus foundation-model IRSA contract.
