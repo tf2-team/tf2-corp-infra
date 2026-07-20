@@ -336,24 +336,4 @@ resource "aws_cloudwatch_event_target" "to_sqs" {
   rule      = aws_cloudwatch_event_rule.cloudtrail_high_risk.name
   target_id = "audit-alert-queue"
   arn       = aws_sqs_queue.audit_alert_queue.arn
-
-  input_transformer {
-    input_paths = {
-      eventName   = "$.detail.eventName"
-      eventSource = "$.detail.eventSource"
-      eventTime   = "$.detail.eventTime"
-      sourceIp    = "$.detail.sourceIPAddress"
-      actor       = "$.detail.userIdentity.arn"
-    }
-    input_template = <<-EOT
-      {
-        "source": "cloudtrail",
-        "eventName": <eventName>,
-        "eventSource": <eventSource>,
-        "eventTime": <eventTime>,
-        "sourceIp": <sourceIp>,
-        "actor": <actor>
-      }
-    EOT
-  }
 }

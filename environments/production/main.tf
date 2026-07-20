@@ -1090,7 +1090,7 @@ module "private_dns" {
   tags                = var.tags
 }
 
-
+aws_cloudwatch_event_target.to_sqs
 # ──────────────────────────────────────────────
 # Cost budgets — onboarding ~$300/week × ~3 weeks → monthly $900
 # AWS Budgets has no WEEKLY time_unit (only DAILY/MONTHLY/…).
