@@ -10,10 +10,6 @@
 
 data "aws_caller_identity" "current" {}
 
-data "aws_cloudtrail" "existing" {
-  name = var.cloudtrail_name
-}
-
 data "aws_cloudwatch_log_group" "cloudtrail" {
   name = var.cloudtrail_log_group_name
 }
@@ -334,7 +330,6 @@ resource "aws_cloudwatch_event_rule" "cloudtrail_high_risk" {
     }
   })
 
-  depends_on = [data.aws_cloudtrail.existing]
 }
 
 resource "aws_cloudwatch_event_target" "to_sqs" {
