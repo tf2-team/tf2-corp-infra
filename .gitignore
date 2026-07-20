@@ -47,3 +47,8 @@ node_modules/
 .antigravity/
 
 client-vpn-pki
+
+# Lambda ZIP artifacts - committed to avoid CI build step
+!modules/audit-pipeline/lambda/alert_lambda.zip
+!modules/audit-pipeline/lambda/parse_lambda.zip
+!modules/runtime-security-alerting/lambda/audit_classifier.zip

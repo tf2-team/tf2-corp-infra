@@ -82,23 +82,6 @@ jobs:
           terraform -chdir=${{ inputs.terraform_dir }} state rm \
             aws_sns_topic_policy.immutable_audit_tamper_alerts || true
 
-      - name: Build Lambda ZIP files
-        run: |
-          python3 -c "
-          import zipfile, os
-          zips = [
-            ('modules/audit-pipeline/lambda/alert_lambda.zip',             [('modules/audit-pipeline/lambda/alert_lambda/handler.py', 'handler.py')]),
-            ('modules/audit-pipeline/lambda/parse_lambda.zip',             [('modules/audit-pipeline/lambda/parse_lambda/handler.py', 'handler.py')]),
-            ('modules/runtime-security-alerting/lambda/audit_classifier.zip', [('modules/runtime-security-alerting/lambda/audit_classifier.py', 'audit_classifier.py')]),
-          ]
-          for out_path, sources in zips:
-            os.makedirs(os.path.dirname(out_path), exist_ok=True)
-            with zipfile.ZipFile(out_path, 'w', zipfile.ZIP_DEFLATED) as z:
-              for src, arcname in sources:
-                z.write(src, arcname)
-            print(f'Built: {out_path}')
-          "
-
       - name: Terraform plan
         shell: bash
         run: |
