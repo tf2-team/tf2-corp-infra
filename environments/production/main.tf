@@ -605,11 +605,11 @@ locals {
     "${local.immutable_audit_trail_name}-trail-tamper",
     "${local.immutable_audit_trail_name}-bucket-tamper",
     "${local.immutable_audit_trail_name}-kms-tamper",
-    "${local.immutable_audit_trail_name}-eventbridge-rule-tamper",
-    "${local.immutable_audit_trail_name}-eventbridge-target-tamper",
-    "${local.immutable_audit_trail_name}-eventbridge-denied-tamper",
+    "${local.immutable_audit_trail_name}-eb-rule-tamper",
+    "${local.immutable_audit_trail_name}-eb-target-tamper",
+    "${local.immutable_audit_trail_name}-eb-deny-tamper",
     "${local.immutable_audit_trail_name}-sns-topic-tamper",
-    "${local.immutable_audit_trail_name}-sns-subscription-tamper",
+    "${local.immutable_audit_trail_name}-sns-sub-tamper",
     "${local.immutable_audit_trail_name}-lambda-tamper",
     "${local.immutable_audit_trail_name}-sqs-tamper",
     "${local.immutable_audit_trail_name}-secrets-tamper",
@@ -706,7 +706,7 @@ locals {
       }
     }
     eventbridge_rule = {
-      name        = "${local.immutable_audit_trail_name}-eventbridge-rule-tamper"
+      name        = "${local.immutable_audit_trail_name}-eb-rule-tamper"
       description = "Alert when audit EventBridge rules are changed, disabled, or deleted."
       pattern = {
         source      = ["aws.events"]
@@ -725,7 +725,7 @@ locals {
       }
     }
     eventbridge_target = {
-      name        = "${local.immutable_audit_trail_name}-eventbridge-target-tamper"
+      name        = "${local.immutable_audit_trail_name}-eb-target-tamper"
       description = "Alert when audit EventBridge rule targets are changed or removed."
       pattern = {
         source      = ["aws.events"]
@@ -743,7 +743,7 @@ locals {
       }
     }
     eventbridge_denied = {
-      name        = "${local.immutable_audit_trail_name}-eventbridge-denied-tamper"
+      name        = "${local.immutable_audit_trail_name}-eb-deny-tamper"
       description = "Alert when SCP denies attempts to disable or delete audit EventBridge rules."
       pattern = {
         source      = ["aws.events"]
@@ -781,7 +781,7 @@ locals {
       }
     }
     sns_subscription = {
-      name        = "${local.immutable_audit_trail_name}-sns-subscription-tamper"
+      name        = "${local.immutable_audit_trail_name}-sns-sub-tamper"
       description = "Alert when SNS subscriptions used by audit alerts are changed or removed."
       pattern = {
         source      = ["aws.sns"]
