@@ -117,6 +117,19 @@ run "consumer_roles_are_isolated" {
     condition     = length(output.consumer_access_contracts["shopping-copilot"].bedrock_inference_profile_ids) == 1 && contains(output.consumer_access_contracts["shopping-copilot"].bedrock_inference_profile_ids, "global.amazon.nova-2-lite-v1:0")
     error_message = "Shopping Copilot must be limited to the approved Nova inference profile."
   }
+
+  assert {
+    condition = (
+      length(output.consumer_access_contracts["shopping-copilot"].bedrock_foundation_model_ids) == 1 &&
+      contains(output.consumer_access_contracts["shopping-copilot"].bedrock_foundation_model_ids, "amazon.nova-2-lite-v1:0")
+    )
+    error_message = "Shopping Copilot Bedrock IRSA must derive the Nova foundation model id from the global inference profile."
+  }
+
+  assert {
+    condition     = length(output.consumer_access_contracts["product-reviews"].bedrock_foundation_model_ids) == 0
+    error_message = "Consumers without Bedrock profiles must not receive foundation-model ids."
+  }
 }
 
-# Change trail: @hungxqt - 2026-07-19 - Assert shopping-copilot IRSA can share ProtectAI prefix.
+# Change trail: @hungxqt - 2026-07-20 - Assert Bedrock foundation-model ids derived from inference profiles.

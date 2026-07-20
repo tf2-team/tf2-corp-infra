@@ -57,6 +57,9 @@ module "eks" {
   kubernetes_version = var.kubernetes_version
   subnet_ids         = module.vpc.private_subnet_ids_list
 
+  enabled_cluster_log_types  = var.enabled_cluster_log_types
+  cluster_log_retention_days = var.cluster_log_retention_days
+
   node_groups = local.node_groups
   addons      = var.addons
 
@@ -342,4 +345,4 @@ resource "aws_iam_role_policy" "policy_controller" {
 }
 
 # Change trail: @hungxqt - 2026-07-19 - Add shopping-copilot ProtectAI model IRSA consumer.
-
+# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.

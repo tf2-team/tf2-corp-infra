@@ -22,6 +22,22 @@ moved {
 locals {
   bucket_name      = "${var.name}-ai-models-${data.aws_caller_identity.current.account_id}"
   oidc_issuer_path = replace(var.oidc_issuer_url, "https://", "")
+
+  # System inference profiles use a geo/global prefix (global., us., eu., apac.).
+  # Bedrock still authorizes InvokeModel against the underlying foundation model id.
+  bedrock_foundation_model_ids = {
+    for name, consumer in var.consumers : name => distinct([
+      for profile_id in consumer.bedrock_inference_profile_ids :
+      (
+        startswith(profile_id, "global.") ? trimprefix(profile_id, "global.") :
+        startswith(profile_id, "us.") ? trimprefix(profile_id, "us.") :
+        startswith(profile_id, "eu.") ? trimprefix(profile_id, "eu.") :
+        startswith(profile_id, "apac.") ? trimprefix(profile_id, "apac.") :
+        profile_id
+      )
+    ])
+  }
+
   consumer_access_contracts = {
     for name, consumer in var.consumers : name => {
       role_name                     = "${var.name}-${name}-model-read"
@@ -30,6 +46,7 @@ locals {
       object_arn                    = "${aws_s3_bucket.models.arn}/${consumer.model_prefix}*"
       allow_list_bucket             = consumer.allow_list_bucket
       bedrock_inference_profile_ids = consumer.bedrock_inference_profile_ids
+      bedrock_foundation_model_ids  = local.bedrock_foundation_model_ids[name]
     }
   }
 }
@@ -174,6 +191,32 @@ data "aws_iam_policy_document" "model_read" {
       ]
     }
   }
+
+  # Inference profiles require InvokeModel on both the profile and the routed
+  # foundation model ARNs. Condition keeps direct foundation-model invokes denied.
+  dynamic "statement" {
+    for_each = length(each.value.bedrock_inference_profile_ids) > 0 ? [true] : []
+
+    content {
+      sid     = "InvokeBedrockFoundationModelsViaProfiles"
+      effect  = "Allow"
+      actions = ["bedrock:InvokeModel"]
+      resources = distinct(flatten([
+        for model_id in local.bedrock_foundation_model_ids[each.key] : [
+          "arn:${data.aws_partition.current.partition}:bedrock:${var.aws_region}::foundation-model/${model_id}",
+          "arn:${data.aws_partition.current.partition}:bedrock:::foundation-model/${model_id}",
+        ]
+      ]))
+      condition {
+        test     = "StringEquals"
+        variable = "bedrock:InferenceProfileArn"
+        values = [
+          for profile_id in each.value.bedrock_inference_profile_ids :
+          "arn:${data.aws_partition.current.partition}:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/${profile_id}"
+        ]
+      }
+    }
+  }
 }
 
 resource "aws_iam_policy" "model_read" {
@@ -221,3 +264,5 @@ resource "aws_iam_role_policy_attachment" "model_read" {
   role       = aws_iam_role.model_read[each.key].name
   policy_arn = aws_iam_policy.model_read[each.key].arn
 }
+
+# Change trail: @hungxqt - 2026-07-20 - Allow Bedrock foundation-model InvokeModel via approved inference profiles.
