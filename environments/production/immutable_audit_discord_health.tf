@@ -326,16 +326,6 @@ data "aws_iam_policy_document" "immutable_audit_discord_forwarder" {
     resources = [aws_sqs_queue.immutable_audit_discord_lambda_dlq[0].arn]
   }
 
-  statement {
-    sid    = "WriteXRay"
-    effect = "Allow"
-
-    actions = [
-      "xray:PutTelemetryRecords",
-      "xray:PutTraceSegments",
-    ]
-    resources = ["*"]
-  }
 }
 
 resource "aws_iam_role_policy" "immutable_audit_discord_forwarder" {
@@ -360,6 +350,7 @@ resource "aws_cloudwatch_log_group" "immutable_audit_discord_forwarder" {
 }
 
 resource "aws_lambda_function" "immutable_audit_discord_forwarder" {
+  #checkov:skip=CKV_AWS_50:CloudWatch Logs, Lambda metrics, alarms, and DLQs are sufficient for this low-volume audit alert path; X-Ray is deferred to avoid extra telemetry cost and IAM surface.
   #checkov:skip=CKV_AWS_117:Discord webhook delivery requires public egress; keeping the Lambda outside VPC avoids NAT dependency for the audit alert path.
   #checkov:skip=CKV_AWS_272:Code signing is deferred because this repo does not yet manage a signing profile; source hash and Terraform review remain the deployment control for this capstone.
   count = local.immutable_audit_discord_enabled ? 1 : 0
@@ -383,10 +374,6 @@ resource "aws_lambda_function" "immutable_audit_discord_forwarder" {
     variables = {
       DISCORD_WEBHOOK_SECRET_ARN = local.immutable_audit_discord_webhook_secret_arn
     }
-  }
-
-  tracing_config {
-    mode = "Active"
   }
 
   tags = merge(var.tags, {
@@ -542,16 +529,6 @@ data "aws_iam_policy_document" "immutable_audit_health_check" {
     resources = [aws_sqs_queue.immutable_audit_health_lambda_dlq[0].arn]
   }
 
-  statement {
-    sid    = "WriteXRay"
-    effect = "Allow"
-
-    actions = [
-      "xray:PutTelemetryRecords",
-      "xray:PutTraceSegments",
-    ]
-    resources = ["*"]
-  }
 }
 
 resource "aws_iam_role_policy" "immutable_audit_health_check" {
@@ -576,6 +553,7 @@ resource "aws_cloudwatch_log_group" "immutable_audit_health_check" {
 }
 
 resource "aws_lambda_function" "immutable_audit_health_check" {
+  #checkov:skip=CKV_AWS_50:CloudWatch Logs, Lambda metrics, alarms, and DLQs are sufficient for this scheduled control check; X-Ray is deferred to avoid extra telemetry cost and IAM surface.
   #checkov:skip=CKV_AWS_117:Health checker only calls AWS public APIs; keeping it outside VPC avoids NAT dependency for the audit control plane.
   #checkov:skip=CKV_AWS_272:Code signing is deferred because this repo does not yet manage a signing profile; source hash and Terraform review remain the deployment control for this capstone.
   count = local.immutable_audit_health_enabled ? 1 : 0
@@ -611,10 +589,6 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
       TAMPER_TOPIC_ARN            = aws_sns_topic.immutable_audit_tamper_alerts.arn
       TRAIL_NAME                  = aws_cloudtrail.immutable_audit.name
     }
-  }
-
-  tracing_config {
-    mode = "Active"
   }
 
   tags = merge(var.tags, {
