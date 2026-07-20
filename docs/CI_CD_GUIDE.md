@@ -186,9 +186,13 @@ When updating an action:
 
 Do not rely on floating tags (`@v4`) in workflows.
 
+Node.js 20 is deprecated on GitHub-hosted runners. Prefer action majors that declare `runs.using: node24` (for example `actions/checkout@v5+`, `actions/cache@v5+`, artifact actions at current majors, `aws-actions/configure-aws-credentials@v6`, `hashicorp/setup-terraform@v4`). Re-check release notes when jumping majors so OIDC, plan artifacts, and PR comments keep working.
+
 ## Notes
 
 - Terraform state is locked with S3 native lock files through `use_lockfile = true`.
 - The workflows pass backend bucket and region through GitHub variables, so real `backend.hcl` files remain uncommitted.
 - Production applies are serialized with workflow concurrency to prevent parallel state writes.
 - Jobs that run `terraform init` use the composite action `.github/actions/setup-terraform-cached`, which caches provider plugins via `TF_PLUGIN_CACHE_DIR` (keyed on `**/.terraform.lock.hcl`). TFLint enables `cache: true` on `setup-tflint`.
+
+<!-- Change trail: @hungxqt - 2026-07-20 - Document Node 24 action preference under pin maintenance. -->
