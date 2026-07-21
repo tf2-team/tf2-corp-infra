@@ -152,6 +152,12 @@ variable "immutable_audit_k8s_raw_archive_buffering_interval_seconds" {
   default     = 300
 }
 
+variable "immutable_audit_k8s_raw_archive_subscription_ready_wait" {
+  type        = string
+  description = "Delay after Firehose creation before creating the CloudWatch Logs subscription filter. PutSubscriptionFilter sends an immediate test message and can fail while Firehose is still becoming active."
+  default     = "90s"
+}
+
 variable "ecr_project_name" {
   type        = string
   description = "ECR project path segment (e.g. techx-corp). Full image: registry/ecr_project_name/service:tag"

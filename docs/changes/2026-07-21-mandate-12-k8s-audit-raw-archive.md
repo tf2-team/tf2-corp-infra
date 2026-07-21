@@ -51,6 +51,8 @@ Filter name:
 immutable-k8s-audit-raw-archive
 ```
 
+- Adds a 90-second Terraform wait barrier before creating the subscription filter. `PutSubscriptionFilter` sends a test message immediately and may fail while a newly created Firehose stream is still becoming ACTIVE.
+
 ## Safety Notes
 
 - This does not attach or change SCPs.

@@ -29,6 +29,7 @@ immutable_audit_k8s_raw_archive_firehose_log_retention_days = 30
 immutable_audit_k8s_raw_archive_buffering_size_mb           = 5
 immutable_audit_k8s_raw_archive_buffering_interval_seconds  = 300
 immutable_audit_k8s_raw_archive_subscription_filter_name    = "immutable-k8s-audit-raw-archive"
+immutable_audit_k8s_raw_archive_subscription_ready_wait     = "90s"
 
 # Image format: REGISTRY/techx-prod-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
