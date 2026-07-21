@@ -184,6 +184,72 @@ resource "aws_cloudwatch_log_stream" "immutable_audit_k8s_raw_firehose_s3" {
   log_group_name = aws_cloudwatch_log_group.immutable_audit_k8s_raw_firehose.name
 }
 
+data "aws_iam_policy_document" "immutable_audit_k8s_firehose_kms" {
+  #checkov:skip=CKV_AWS_109:KMS key policies are scoped by the attached key; the root statement follows AWS KMS guidance so IAM can administer the key.
+  #checkov:skip=CKV_AWS_111:KMS key policies require Resource "*" because the policy is attached directly to one key; the Firehose statement is constrained by SourceArn and SourceAccount.
+  #checkov:skip=CKV_AWS_356:KMS key policies require Resource "*" because the key policy itself is the resource boundary.
+  statement {
+    sid    = "EnableRootPermissions"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowFirehoseStreamEncryption"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["firehose.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:GenerateDataKey",
+      "kms:GenerateDataKeyWithoutPlaintext",
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
+
+    condition {
+      test     = "ArnLike"
+      variable = "aws:SourceArn"
+      values   = ["arn:${data.aws_partition.current.partition}:firehose:${var.aws_region}:${data.aws_caller_identity.current.account_id}:deliverystream/${local.immutable_audit_k8s_raw_archive_firehose_name}"]
+    }
+  }
+}
+
+resource "aws_kms_key" "immutable_audit_k8s_firehose" {
+  description             = "KMS key for ${local.immutable_audit_k8s_raw_archive_firehose_name} server-side encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.immutable_audit_k8s_firehose_kms.json
+
+  tags = merge(var.tags, {
+    Name    = "${local.immutable_audit_k8s_raw_archive_firehose_name}-kms"
+    Mandate = "MD12"
+    Purpose = "k8s-audit-raw-archive-firehose-encryption"
+  })
+}
+
+resource "aws_kms_alias" "immutable_audit_k8s_firehose" {
+  name          = "alias/${local.immutable_audit_k8s_raw_archive_firehose_name}"
+  target_key_id = aws_kms_key.immutable_audit_k8s_firehose.key_id
+}
+
 data "aws_iam_policy_document" "immutable_audit_k8s_firehose_assume" {
   statement {
     effect = "Allow"
@@ -247,6 +313,19 @@ data "aws_iam_policy_document" "immutable_audit_k8s_firehose" {
     ]
     resources = ["arn:${data.aws_partition.current.partition}:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:${aws_cloudwatch_log_group.immutable_audit_k8s_raw_firehose.name}:log-stream:${aws_cloudwatch_log_stream.immutable_audit_k8s_raw_firehose_s3.name}"]
   }
+
+  statement {
+    sid    = "UseFirehoseStreamEncryptionKey"
+    effect = "Allow"
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:GenerateDataKey",
+      "kms:GenerateDataKeyWithoutPlaintext",
+    ]
+    resources = [aws_kms_key.immutable_audit_k8s_firehose.arn]
+  }
 }
 
 resource "aws_iam_role_policy" "immutable_audit_k8s_firehose" {
@@ -258,6 +337,12 @@ resource "aws_iam_role_policy" "immutable_audit_k8s_firehose" {
 resource "aws_kinesis_firehose_delivery_stream" "immutable_audit_k8s_raw" {
   name        = local.immutable_audit_k8s_raw_archive_firehose_name
   destination = "extended_s3"
+
+  server_side_encryption {
+    enabled  = true
+    key_type = "CUSTOMER_MANAGED_CMK"
+    key_arn  = aws_kms_key.immutable_audit_k8s_firehose.arn
+  }
 
   extended_s3_configuration {
     role_arn            = aws_iam_role.immutable_audit_k8s_firehose.arn

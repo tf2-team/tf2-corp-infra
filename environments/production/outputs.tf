@@ -108,6 +108,11 @@ output "immutable_audit_k8s_raw_archive_firehose_name" {
   description = "Kinesis Data Firehose stream delivering EKS audit CloudWatch Logs into the immutable raw archive"
 }
 
+output "immutable_audit_k8s_raw_archive_firehose_kms_key_arn" {
+  value       = aws_kms_key.immutable_audit_k8s_firehose.arn
+  description = "Customer-managed KMS key encrypting the raw EKS audit archive Firehose delivery stream"
+}
+
 output "immutable_audit_k8s_raw_archive_subscription_filter_name" {
   value       = aws_cloudwatch_log_subscription_filter.immutable_audit_k8s_raw_archive.name
   description = "CloudWatch Logs subscription filter forwarding EKS audit logs to the immutable raw archive"

@@ -20,6 +20,7 @@ This is the raw evidence foundation for the later K8s sealer and manifest valida
 - Uses 30-day default retention for raw EKS audit evidence.
 - Adds deny statements for insecure transport, raw log delete/version delete, and Object Lock bypass on `raw/*`.
 - Creates Kinesis Data Firehose stream `techx-prod-tf2-k8s-audit-raw-archive`.
+- Encrypts the Firehose delivery stream with a dedicated customer-managed KMS key.
 - Writes compressed raw audit batches to:
 
 ```text
@@ -55,7 +56,8 @@ immutable-k8s-audit-raw-archive
 - This does not attach or change SCPs.
 - This does not change CloudTrail event selectors.
 - This preserves the existing runtime-hardening subscription filter. Production currently has one subscription filter on the EKS cluster log group, and this change adds the second one.
-- SSE-S3 is used for the raw archive bucket to keep Firehose delivery simple and avoid KMS delivery coupling during the MVP. Object Lock is the primary retention/integrity control for this phase.
+- The Firehose delivery stream is encrypted with a CMK to satisfy IaC policy checks for stream-at-rest encryption.
+- SSE-S3 is used for the raw archive bucket to keep S3 delivery simple during the MVP. Object Lock is the primary retention/integrity control for this phase.
 
 ## Post-Apply Verification
 
@@ -111,4 +113,3 @@ kubectl delete namespace audit-archive-test
 ```
 
 Do not delete S3 evidence objects; Object Lock is expected to retain them.
-
