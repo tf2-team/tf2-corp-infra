@@ -93,6 +93,36 @@ output "immutable_audit_control_health_alarm_name" {
   description = "CloudWatch alarm for Mandate 12.1 audit control health drift"
 }
 
+output "immutable_audit_k8s_raw_archive_bucket_name" {
+  value       = aws_s3_bucket.immutable_audit_k8s_raw.bucket
+  description = "S3 Object Lock bucket receiving raw EKS audit logs for Mandate 12 Phase 2"
+}
+
+output "immutable_audit_k8s_raw_archive_bucket_arn" {
+  value       = aws_s3_bucket.immutable_audit_k8s_raw.arn
+  description = "ARN of the immutable raw EKS audit archive bucket"
+}
+
+output "immutable_audit_k8s_raw_archive_firehose_name" {
+  value       = aws_kinesis_firehose_delivery_stream.immutable_audit_k8s_raw.name
+  description = "Kinesis Data Firehose stream delivering EKS audit CloudWatch Logs into the immutable raw archive"
+}
+
+output "immutable_audit_k8s_raw_archive_subscription_filter_name" {
+  value       = aws_cloudwatch_log_subscription_filter.immutable_audit_k8s_raw_archive.name
+  description = "CloudWatch Logs subscription filter forwarding EKS audit logs to the immutable raw archive"
+}
+
+output "immutable_audit_k8s_raw_archive_retention" {
+  value = {
+    object_lock_mode     = var.immutable_audit_k8s_raw_archive_retention_mode
+    object_lock_days     = var.immutable_audit_k8s_raw_archive_retention_days
+    firehose_log_days    = var.immutable_audit_k8s_raw_archive_firehose_log_retention_days
+    lifecycle_noncurrent = max(var.immutable_audit_k8s_raw_archive_retention_days + 1, 31)
+  }
+  description = "Retention settings for immutable raw EKS audit archive evidence"
+}
+
 # ──────────────────────────────────────────────
 # ECR Outputs
 # ──────────────────────────────────────────────
