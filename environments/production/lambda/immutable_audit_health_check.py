@@ -259,9 +259,9 @@ def _check_audit_dlqs(errors):
     for queue_url in _env_json("AUDIT_DLQ_URLS", []):
         response = sqs.get_queue_attributes(
             QueueUrl=queue_url,
-            AttributeNames=["ApproximateNumberOfMessagesVisible"],
+            AttributeNames=["ApproximateNumberOfMessages"],
         )
-        visible = int(response.get("Attributes", {}).get("ApproximateNumberOfMessagesVisible", "0"))
+        visible = int(response.get("Attributes", {}).get("ApproximateNumberOfMessages", "0"))
         if visible > max_visible:
             errors.append(f"Audit DLQ has {visible} visible messages: {queue_url}")
 

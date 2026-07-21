@@ -56,6 +56,41 @@ def _read_json_object(bucket, key):
         return json.loads(body.read())
 
 
+def _select_manifest_chain(candidates, expected_initial_previous_hash=None):
+    by_previous_hash = {}
+    for candidate in candidates:
+        previous_hash = candidate["manifest"].get("previous_manifest_hash", "")
+        by_previous_hash.setdefault(previous_hash, []).append(candidate)
+
+    for items in by_previous_hash.values():
+        items.sort(key=lambda item: (item["window_start"], item["last_modified"], item["key"]))
+
+    start_hash = expected_initial_previous_hash if expected_initial_previous_hash is not None else ""
+    frontier = [(start_hash, [], None)]
+    best = []
+    visited = set()
+    while frontier:
+        expected_hash, chain, last_window_end = frontier.pop()
+        if len(chain) > len(best):
+            best = chain
+        state = (expected_hash, last_window_end)
+        if state in visited:
+            continue
+        visited.add(state)
+
+        for candidate in by_previous_hash.get(expected_hash, []):
+            if any(item["key"] == candidate["key"] for item in chain):
+                continue
+            if last_window_end is not None and candidate["window_start"] < last_window_end:
+                continue
+            manifest_hash = candidate["manifest"].get("manifest_hash")
+            if not manifest_hash:
+                continue
+            frontier.append((manifest_hash, [*chain, candidate], candidate["window_end"]))
+
+    return best
+
+
 def _manifest_digest(manifest):
     unsigned = dict(manifest)
     unsigned.pop("manifest_hash", None)
@@ -171,22 +206,34 @@ def _validate(event):
     for prefix in _candidate_day_prefixes(manifest_prefix, chain_id, window_start, window_end):
         manifests.extend(_list_manifest_objects(archive_bucket, prefix))
 
-    selected = []
+    candidates = []
     for item in manifests:
         manifest = _read_json_object(archive_bucket, item["key"])
         manifest_start = _parse_time(manifest["window_start"])
         manifest_end = _parse_time(manifest["window_end"])
         if manifest_start >= window_start and manifest_end <= window_end:
-            selected.append((item["key"], manifest_start))
-    selected = [item[0] for item in sorted(selected, key=lambda item: item[1])]
+            candidates.append(
+                {
+                    "key": item["key"],
+                    "last_modified": item["last_modified"],
+                    "manifest": manifest,
+                    "window_start": manifest_start,
+                    "window_end": manifest_end,
+                }
+            )
 
     errors = []
-    if not selected:
+    if not candidates:
         errors.append("No signed K8s audit manifests found in validation lookback")
 
     previous_hash = event.get("expected_initial_previous_hash")
+    selected = _select_manifest_chain(candidates, previous_hash)
+    if candidates and not selected:
+        errors.append("No continuous K8s audit manifest chain found in validation lookback")
+
     manifest_results = []
-    for manifest_key in selected:
+    for candidate in selected:
+        manifest_key = candidate["key"]
         result = _verify_manifest(archive_bucket, manifest_key, previous_hash)
         manifest_results.append(result)
         if result["status"] != "PASS":
@@ -202,6 +249,8 @@ def _validate(event):
         "window_end": _iso(window_end),
         "status": "PASS" if not errors else "FAIL",
         "errors": errors,
+        "candidate_manifest_count": len(candidates),
+        "ignored_manifest_count": max(len(candidates) - len(selected), 0),
         "manifest_count": len(selected),
         "manifest_results": manifest_results,
     }
