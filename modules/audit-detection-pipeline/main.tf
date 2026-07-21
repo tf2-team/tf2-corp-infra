@@ -15,7 +15,7 @@ data "archive_file" "parser_placeholder" {
 
   type        = "zip"
   source_dir  = "${path.module}/lambda/audit_alert_parser_placeholder"
-  output_path = "${path.module}/lambda/audit_alert_parser_placeholder.zip"
+  output_path = "${path.root}/lambda/build/audit-alert-parser-placeholder.zip"
 }
 
 data "archive_file" "router_placeholder" {
@@ -23,7 +23,7 @@ data "archive_file" "router_placeholder" {
 
   type        = "zip"
   source_dir  = "${path.module}/lambda/audit_alert_router_placeholder"
-  output_path = "${path.module}/lambda/audit_alert_router_placeholder.zip"
+  output_path = "${path.root}/lambda/build/audit-alert-router-placeholder.zip"
 }
 
 locals {
