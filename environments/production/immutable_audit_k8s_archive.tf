@@ -17,6 +17,10 @@ locals {
   immutable_audit_k8s_raw_archive_excluded_log_groups = [
     aws_cloudwatch_log_group.immutable_audit_k8s_raw_firehose.name,
   ]
+  immutable_audit_k8s_archive_protected_prefix_arns = [
+    "${aws_s3_bucket.immutable_audit_k8s_raw.arn}/raw/*",
+    "${aws_s3_bucket.immutable_audit_k8s_raw.arn}/manifests/*",
+  ]
 }
 
 resource "aws_s3_bucket" "immutable_audit_k8s_raw" {
@@ -109,6 +113,19 @@ resource "aws_s3_bucket_lifecycle_configuration" "immutable_audit_k8s_raw" {
     }
   }
 
+  rule {
+    id     = "retain-immutable-k8s-audit-manifests"
+    status = "Enabled"
+
+    filter {
+      prefix = "manifests/"
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = max(var.immutable_audit_k8s_raw_archive_retention_days + 1, 31)
+    }
+  }
+
   depends_on = [
     aws_s3_bucket_object_lock_configuration.immutable_audit_k8s_raw,
     aws_s3_bucket_versioning.immutable_audit_k8s_raw,
@@ -151,7 +168,7 @@ data "aws_iam_policy_document" "immutable_audit_k8s_raw_bucket" {
       "s3:DeleteObject",
       "s3:DeleteObjectVersion",
     ]
-    resources = ["${aws_s3_bucket.immutable_audit_k8s_raw.arn}/raw/*"]
+    resources = local.immutable_audit_k8s_archive_protected_prefix_arns
   }
 
   statement {
@@ -168,7 +185,7 @@ data "aws_iam_policy_document" "immutable_audit_k8s_raw_bucket" {
       "s3:PutObjectLegalHold",
       "s3:PutObjectRetention",
     ]
-    resources = ["${aws_s3_bucket.immutable_audit_k8s_raw.arn}/raw/*"]
+    resources = local.immutable_audit_k8s_archive_protected_prefix_arns
   }
 }
 

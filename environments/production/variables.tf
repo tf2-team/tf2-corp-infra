@@ -146,6 +146,62 @@ variable "immutable_audit_k8s_raw_archive_buffering_interval_seconds" {
   default     = 300
 }
 
+variable "immutable_audit_k8s_sealer_enabled" {
+  type        = bool
+  description = "Enable Mandate 12 Phase 3 scheduled sealer for immutable raw EKS audit archive manifests."
+  default     = true
+}
+
+variable "immutable_audit_k8s_sealer_schedule_expression" {
+  type        = string
+  description = "EventBridge schedule expression for the K8s audit sealer Lambda."
+  default     = "rate(15 minutes)"
+}
+
+variable "immutable_audit_k8s_sealer_window_minutes" {
+  type        = number
+  description = "Closed window size, in minutes, sealed into each signed K8s audit manifest."
+  default     = 15
+
+  validation {
+    condition     = var.immutable_audit_k8s_sealer_window_minutes > 0 && var.immutable_audit_k8s_sealer_window_minutes <= 60
+    error_message = "immutable_audit_k8s_sealer_window_minutes must be between 1 and 60."
+  }
+}
+
+variable "immutable_audit_k8s_sealer_delay_minutes" {
+  type        = number
+  description = "Delay, in minutes, before sealing a window so Firehose delivery can finish."
+  default     = 10
+
+  validation {
+    condition     = var.immutable_audit_k8s_sealer_delay_minutes >= 0 && var.immutable_audit_k8s_sealer_delay_minutes <= 120
+    error_message = "immutable_audit_k8s_sealer_delay_minutes must be between 0 and 120."
+  }
+}
+
+variable "immutable_audit_k8s_sealer_lambda_timeout_seconds" {
+  type        = number
+  description = "Timeout in seconds for the K8s audit sealer Lambda."
+  default     = 300
+
+  validation {
+    condition     = var.immutable_audit_k8s_sealer_lambda_timeout_seconds >= 30 && var.immutable_audit_k8s_sealer_lambda_timeout_seconds <= 900
+    error_message = "immutable_audit_k8s_sealer_lambda_timeout_seconds must be between 30 and 900."
+  }
+}
+
+variable "immutable_audit_k8s_sealer_lambda_memory_mb" {
+  type        = number
+  description = "Memory size in MB for the K8s audit sealer Lambda."
+  default     = 512
+
+  validation {
+    condition     = var.immutable_audit_k8s_sealer_lambda_memory_mb >= 128 && var.immutable_audit_k8s_sealer_lambda_memory_mb <= 10240
+    error_message = "immutable_audit_k8s_sealer_lambda_memory_mb must be between 128 and 10240."
+  }
+}
+
 variable "ecr_project_name" {
   type        = string
   description = "ECR project path segment (e.g. techx-corp). Full image: registry/ecr_project_name/service:tag"
