@@ -108,7 +108,6 @@ def _update_checkpoint(table_name, chain_id, window_start, window_end, previous_
     expression_values = {
         ":window_start": {"S": _iso(window_start)},
         ":window_end": {"S": _iso(window_end)},
-        ":previous_hash": {"S": previous_hash},
         ":manifest_hash": {"S": manifest_hash},
         ":manifest_key": {"S": manifest_key},
         ":status": {"S": "SEALED"},
@@ -116,6 +115,7 @@ def _update_checkpoint(table_name, chain_id, window_start, window_end, previous_
     }
     if previous_hash:
         condition = "previous_manifest_hash = :previous_hash"
+        expression_values[":previous_hash"] = {"S": previous_hash}
     else:
         condition = "attribute_not_exists(chain_id)"
 
