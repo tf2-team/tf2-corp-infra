@@ -1415,9 +1415,6 @@ module "cost_optimization_backlog" {
 # Mandate 10: Sigstore policy-controller IRSA Role
 # ──────────────────────────────────────────────
 
-data "aws_kms_alias" "cosign" {
-  name = "alias/tf2-cosign-signing-key"
-}
 
 data "aws_iam_policy_document" "policy_controller_assume" {
   statement {
@@ -1470,7 +1467,10 @@ data "aws_iam_policy_document" "policy_controller" {
       "kms:GetPublicKey",
       "kms:DescribeKey"
     ]
-    resources = [data.aws_kms_alias.cosign.target_key_arn]
+    resources = [
+      "arn:aws:kms:${var.aws_region}:${data.aws_caller_identity.current.account_id}:alias/tf2-cosign-signing-key",
+      "arn:aws:kms:${var.aws_region}:${data.aws_caller_identity.current.account_id}:key/*"
+    ]
   }
 }
 
