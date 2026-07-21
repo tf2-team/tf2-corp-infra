@@ -113,9 +113,9 @@ output "immutable_audit_k8s_raw_archive_firehose_kms_key_arn" {
   description = "Customer-managed KMS key encrypting the raw EKS audit archive Firehose delivery stream"
 }
 
-output "immutable_audit_k8s_raw_archive_subscription_filter_name" {
-  value       = aws_cloudwatch_log_subscription_filter.immutable_audit_k8s_raw_archive.name
-  description = "CloudWatch Logs subscription filter forwarding EKS audit logs to the immutable raw archive"
+output "immutable_audit_k8s_raw_archive_subscription_policy_name" {
+  value       = aws_cloudwatch_log_account_policy.immutable_audit_k8s_raw_archive.policy_name
+  description = "CloudWatch Logs account-level subscription policy forwarding Kubernetes audit events to the immutable raw archive"
 }
 
 output "immutable_audit_k8s_raw_archive_retention" {
@@ -126,6 +126,59 @@ output "immutable_audit_k8s_raw_archive_retention" {
     lifecycle_noncurrent = max(var.immutable_audit_k8s_raw_archive_retention_days + 1, 31)
   }
   description = "Retention settings for immutable raw EKS audit archive evidence"
+}
+
+output "immutable_audit_k8s_sealer_lambda_name" {
+  value       = local.immutable_audit_k8s_sealer_enabled ? aws_lambda_function.immutable_audit_k8s_sealer[0].function_name : null
+  description = "Lambda that seals raw EKS audit archive windows into signed hash-chain manifests"
+}
+
+output "immutable_audit_k8s_sealer_checkpoint_table_name" {
+  value       = local.immutable_audit_k8s_sealer_enabled ? aws_dynamodb_table.immutable_audit_k8s_sealer_checkpoint[0].name : null
+  description = "DynamoDB checkpoint table for the K8s audit manifest hash chain"
+}
+
+output "immutable_audit_k8s_sealer_signing_key_arn" {
+  value       = local.immutable_audit_k8s_sealer_enabled ? aws_kms_key.immutable_audit_k8s_sealer_signing[0].arn : null
+  description = "Asymmetric KMS key used to sign K8s audit manifest hashes"
+}
+
+output "immutable_audit_k8s_sealer_manifest_prefix" {
+  value       = local.immutable_audit_k8s_sealer_enabled ? local.immutable_audit_k8s_sealer_manifest_prefix : null
+  description = "S3 prefix in the raw archive bucket where signed K8s audit manifests are written"
+}
+
+output "immutable_audit_k8s_sealer_dlq_url" {
+  value       = local.immutable_audit_k8s_sealer_enabled ? aws_sqs_queue.immutable_audit_k8s_sealer_dlq[0].url : null
+  description = "DLQ for failed scheduled K8s audit sealer invocations"
+}
+
+output "immutable_audit_cloudtrail_validator_lambda_name" {
+  value       = local.immutable_audit_validation_enabled ? aws_lambda_function.immutable_audit_cloudtrail_validator[0].function_name : null
+  description = "Lambda that writes scheduled CloudTrail validation health reports"
+}
+
+output "immutable_audit_k8s_manifest_validator_lambda_name" {
+  value       = local.immutable_audit_validation_enabled ? aws_lambda_function.immutable_audit_k8s_manifest_validator[0].function_name : null
+  description = "Lambda that validates signed K8s audit manifest chains"
+}
+
+output "immutable_audit_validation_report_prefix" {
+  value       = local.immutable_audit_validation_enabled ? local.immutable_audit_validation_report_prefix : null
+  description = "S3 prefix in the raw archive bucket where immutable validation reports are written"
+}
+
+output "immutable_audit_validation_dlq_url" {
+  value       = local.immutable_audit_validation_enabled ? aws_sqs_queue.immutable_audit_validation_dlq[0].url : null
+  description = "DLQ for failed scheduled Mandate 12 validation invocations"
+}
+
+output "immutable_audit_validation_alarm_names" {
+  value = local.immutable_audit_validation_enabled ? {
+    cloudtrail    = aws_cloudwatch_metric_alarm.immutable_audit_cloudtrail_validation[0].alarm_name
+    k8s_manifests = aws_cloudwatch_metric_alarm.immutable_audit_k8s_manifest_validation[0].alarm_name
+  } : null
+  description = "CloudWatch alarms that detect Mandate 12 validation failure or missing validation metrics"
 }
 
 # ──────────────────────────────────────────────
