@@ -303,8 +303,8 @@ variable "commerce_valkey_snapshot_retention_limit" {
 
 variable "backup_protection_attach_role_names" {
   type        = list(string)
-  default     = []
-  description = "IAM role names that receive the MANDATE-20 deny-destructive-backup policy. Empty creates the policy only (manual attach / console)."
+  default     = ["techx-prod-tf2-operator-role"]
+  description = "IAM role names that receive the MANDATE-20 deny-destructive-backup policy. Operator roles receive deny guardrail."
 }
 
 variable "rds_postgresql_engine_version" {
