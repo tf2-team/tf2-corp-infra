@@ -128,6 +128,31 @@ output "immutable_audit_k8s_raw_archive_retention" {
   description = "Retention settings for immutable raw EKS audit archive evidence"
 }
 
+output "immutable_audit_k8s_sealer_lambda_name" {
+  value       = local.immutable_audit_k8s_sealer_enabled ? aws_lambda_function.immutable_audit_k8s_sealer[0].function_name : null
+  description = "Lambda that seals raw EKS audit archive windows into signed hash-chain manifests"
+}
+
+output "immutable_audit_k8s_sealer_checkpoint_table_name" {
+  value       = local.immutable_audit_k8s_sealer_enabled ? aws_dynamodb_table.immutable_audit_k8s_sealer_checkpoint[0].name : null
+  description = "DynamoDB checkpoint table for the K8s audit manifest hash chain"
+}
+
+output "immutable_audit_k8s_sealer_signing_key_arn" {
+  value       = local.immutable_audit_k8s_sealer_enabled ? aws_kms_key.immutable_audit_k8s_sealer_signing[0].arn : null
+  description = "Asymmetric KMS key used to sign K8s audit manifest hashes"
+}
+
+output "immutable_audit_k8s_sealer_manifest_prefix" {
+  value       = local.immutable_audit_k8s_sealer_enabled ? local.immutable_audit_k8s_sealer_manifest_prefix : null
+  description = "S3 prefix in the raw archive bucket where signed K8s audit manifests are written"
+}
+
+output "immutable_audit_k8s_sealer_dlq_url" {
+  value       = local.immutable_audit_k8s_sealer_enabled ? aws_sqs_queue.immutable_audit_k8s_sealer_dlq[0].url : null
+  description = "DLQ for failed scheduled K8s audit sealer invocations"
+}
+
 # ──────────────────────────────────────────────
 # ECR Outputs
 # ──────────────────────────────────────────────

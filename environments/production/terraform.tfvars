@@ -29,6 +29,14 @@ immutable_audit_k8s_raw_archive_firehose_log_retention_days = 30
 immutable_audit_k8s_raw_archive_buffering_size_mb           = 5
 immutable_audit_k8s_raw_archive_buffering_interval_seconds  = 300
 
+# Mandate 12 Phase 3: K8s audit sealer signed manifest chain.
+immutable_audit_k8s_sealer_enabled                = true
+immutable_audit_k8s_sealer_schedule_expression    = "rate(15 minutes)"
+immutable_audit_k8s_sealer_window_minutes         = 15
+immutable_audit_k8s_sealer_delay_minutes          = 10
+immutable_audit_k8s_sealer_lambda_timeout_seconds = 300
+immutable_audit_k8s_sealer_lambda_memory_mb       = 512
+
 # Image format: REGISTRY/techx-prod-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
 # Lifecycle matches development (keep last 5 images + 1 buildcache).
