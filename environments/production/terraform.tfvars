@@ -18,8 +18,10 @@ immutable_audit_s3_data_event_object_arns = [
 # Mandate 12.1 multi-channel alerting and continuous audit control health checks.
 # Bootstrap the Discord webhook into the created Secrets Manager secret outside Terraform:
 # aws secretsmanager put-secret-value --secret-id techx-prod-tf2-mandate12-immutable-audit-discord-webhook --secret-string 'https://discord.com/api/webhooks/...'
-immutable_audit_discord_alert_enabled = true
-immutable_audit_health_check_enabled  = true
+immutable_audit_discord_alert_enabled                          = true
+immutable_audit_health_check_enabled                           = true
+immutable_audit_health_check_max_validation_report_age_minutes = 180
+immutable_audit_health_check_max_dlq_visible_messages          = 0
 
 # Mandate 12 Phase 2: immutable raw EKS audit archive.
 # Uses an account-level subscription policy because the EKS audit log group
