@@ -237,6 +237,18 @@ variable "commerce_private_dns_zone" {
   description = "Private Route53 zone providing the stable managed Valkey application address."
 }
 
+variable "commerce_valkey_snapshot_retention_limit" {
+  type        = number
+  default     = 7
+  description = "Days of automated ElastiCache Valkey snapshots to retain (MANDATE-20; RPO still daily)."
+}
+
+variable "backup_protection_attach_role_names" {
+  type        = list(string)
+  default     = []
+  description = "IAM role names that receive the MANDATE-20 deny-destructive-backup policy. Empty creates the policy only (manual attach / console)."
+}
+
 variable "rds_postgresql_engine_version" {
   type        = string
   default     = "16"
@@ -1358,4 +1370,4 @@ variable "mem0_postgresql_kms_key_id" {
   description = "Optional customer-managed KMS key for Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.
+# Change trail: @hungxqt - 2026-07-20 - Add MANDATE-20 Valkey snapshot retention and backup-protection vars.

@@ -429,6 +429,16 @@ output "checkout_outbox_role_arn" {
   description = "IRSA role ARN configured on the checkout ServiceAccount"
 }
 
+output "backup_protection_policy_arn" {
+  value       = module.backup_protection.policy_arn
+  description = "MANDATE-20 managed policy ARN denying destructive backup/PITR actions"
+}
+
+output "backup_protection_policy_name" {
+  value       = module.backup_protection.policy_name
+  description = "MANDATE-20 deny-destructive-backup policy name for console attach"
+}
+
 output "rds_postgresql_endpoint" {
   value       = module.rds_postgresql.endpoint
   description = "Private managed PostgreSQL endpoint used by application DSNs"
@@ -846,4 +856,4 @@ output "mem0_postgresql_security_group_id" {
   description = "Security group attached to Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-20 - Export EKS control plane log group and enabled log types.
+# Change trail: @hungxqt - 2026-07-20 - Export MANDATE-20 backup protection policy outputs.
