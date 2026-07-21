@@ -760,7 +760,7 @@ locals {
         }
       }
     }
-    sns_topic = {
+    sns = {
       name        = "${local.immutable_audit_trail_name}-sns-topic-tamper"
       description = "Alert when SNS topics used by audit alerts are changed or removed."
       pattern = {

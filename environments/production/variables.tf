@@ -100,6 +100,58 @@ variable "immutable_audit_health_check_max_delivery_age_minutes" {
   default     = 60
 }
 
+variable "immutable_audit_k8s_raw_archive_bucket_name" {
+  type        = string
+  description = "Optional S3 bucket name for immutable raw EKS audit logs. Leave empty to derive from project name and account ID."
+  default     = ""
+}
+
+variable "immutable_audit_k8s_raw_archive_retention_mode" {
+  type        = string
+  description = "S3 Object Lock default retention mode for immutable raw EKS audit logs."
+  default     = "GOVERNANCE"
+
+  validation {
+    condition     = contains(["GOVERNANCE", "COMPLIANCE"], var.immutable_audit_k8s_raw_archive_retention_mode)
+    error_message = "immutable_audit_k8s_raw_archive_retention_mode must be GOVERNANCE or COMPLIANCE."
+  }
+}
+
+variable "immutable_audit_k8s_raw_archive_retention_days" {
+  type        = number
+  description = "S3 Object Lock default retention period in days for immutable raw EKS audit logs."
+  default     = 30
+
+  validation {
+    condition     = var.immutable_audit_k8s_raw_archive_retention_days >= 30
+    error_message = "immutable_audit_k8s_raw_archive_retention_days must be at least 30 days."
+  }
+}
+
+variable "immutable_audit_k8s_raw_archive_firehose_log_retention_days" {
+  type        = number
+  description = "CloudWatch Logs retention in days for Kinesis Data Firehose delivery errors for the raw EKS audit archive."
+  default     = 30
+}
+
+variable "immutable_audit_k8s_raw_archive_subscription_filter_name" {
+  type        = string
+  description = "CloudWatch Logs subscription filter name that forwards EKS audit logs to the immutable raw archive Firehose stream."
+  default     = "immutable-k8s-audit-raw-archive"
+}
+
+variable "immutable_audit_k8s_raw_archive_buffering_size_mb" {
+  type        = number
+  description = "Kinesis Data Firehose S3 buffering size in MiB for raw EKS audit archive delivery."
+  default     = 5
+}
+
+variable "immutable_audit_k8s_raw_archive_buffering_interval_seconds" {
+  type        = number
+  description = "Kinesis Data Firehose S3 buffering interval in seconds for raw EKS audit archive delivery."
+  default     = 300
+}
+
 variable "ecr_project_name" {
   type        = string
   description = "ECR project path segment (e.g. techx-corp). Full image: registry/ecr_project_name/service:tag"

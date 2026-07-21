@@ -21,6 +21,15 @@ immutable_audit_s3_data_event_object_arns = [
 immutable_audit_discord_alert_enabled = true
 immutable_audit_health_check_enabled  = true
 
+# Mandate 12 Phase 2: immutable raw EKS audit archive.
+# CloudWatch Logs currently has one runtime-hardening subscription filter; this
+# adds the second subscription for raw audit evidence via Firehose -> S3 Object Lock.
+immutable_audit_k8s_raw_archive_retention_days              = 30
+immutable_audit_k8s_raw_archive_firehose_log_retention_days = 30
+immutable_audit_k8s_raw_archive_buffering_size_mb           = 5
+immutable_audit_k8s_raw_archive_buffering_interval_seconds  = 300
+immutable_audit_k8s_raw_archive_subscription_filter_name    = "immutable-k8s-audit-raw-archive"
+
 # Image format: REGISTRY/techx-prod-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
 # Lifecycle matches development (keep last 5 images + 1 buildcache).
