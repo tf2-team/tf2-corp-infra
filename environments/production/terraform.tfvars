@@ -380,6 +380,28 @@ runtime_security_alert_email                     = "vovudn95@gmail.com"
 runtime_security_enable_guardduty_eventbridge    = false
 runtime_security_enable_node_role_anomaly_events = false
 
+# Mandate 11.2 audit detection pipeline.
+# Enabled for Mandate 11 end-to-end rollout through the approved infra CI/CD workflow.
+audit_detection_pipeline_enabled                   = true
+audit_detection_lambda_function_name               = "techx-audit-alert-parser"
+audit_detection_lambda_role_name                   = "techx-prod-tf2-audit-alert-parser-role"
+audit_detection_lambda_policy_name                 = "techx-prod-tf2-alert-lambda-sqs-consume"
+audit_detection_dlq_name                           = "techx-prod-tf2-alert-lambda-dlq"
+audit_detection_lambda_kms_key_arn                 = "arn:aws:kms:us-east-1:493499579600:key/7847a1cd-8640-4e4e-b7e3-316f26aada37"
+audit_detection_lambda_tracing_mode                = "PassThrough"
+audit_detection_cloudtrail_event_rule_name         = "techx-prod-tf2-cloudtrail-high-risk-eventbridge"
+audit_detection_cloudtrail_event_target_id         = "audit-alert-parser-direct"
+audit_detection_eks_audit_subscription_filter_name = "high-risk-k8s-events-to-parser"
+audit_detection_enable_discord_router              = true
+audit_detection_alert_ready_queue_name             = "techx-prod-tf2-audit-alert-ready"
+audit_detection_alert_ready_dlq_name               = "techx-prod-tf2-audit-alert-ready-dlq"
+audit_detection_router_lambda_function_name        = "techx-audit-alert-router"
+audit_detection_router_lambda_role_name            = "techx-prod-tf2-audit-alert-router-role"
+audit_detection_router_lambda_policy_name          = "techx-prod-tf2-audit-alert-router-policy"
+audit_detection_discord_webhook_secret_name        = "techx-prod-tf2/mandate11/discord-webhook"
+audit_detection_ttd_threshold_seconds              = 300
+audit_detection_ttd_dashboard_name                 = "techx-prod-tf2-mandate11-ttd"
+
 # Overlay: Cost Optimization Hub recommendations export for sprint backlog.
 cost_optimization_backlog_enabled                     = true
 cost_optimization_backlog_bucket_name                 = "techx-prod-tf2-cost-optimization-exports-493499579600-us-east-1"
