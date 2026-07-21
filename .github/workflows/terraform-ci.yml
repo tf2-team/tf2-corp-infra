@@ -54,6 +54,10 @@ jobs:
       - name: Terraform validate
         run: terraform -chdir=${{ matrix.terraform_dir }} validate
 
+      - name: Validate production VPC CNI NetworkPolicy configuration
+        if: matrix.terraform_dir == 'environments/production'
+        run: terraform -chdir=${{ matrix.terraform_dir }} test
+
   tflint:
     name: TFLint
     runs-on: ubuntu-latest
