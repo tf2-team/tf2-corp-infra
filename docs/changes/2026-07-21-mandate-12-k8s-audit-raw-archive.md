@@ -60,6 +60,7 @@ The account policy is used instead of a third per-log-group subscription filter 
 - This preserves the existing runtime-hardening and high-risk audit parser subscription filters on the EKS cluster log group.
 - The account-level policy excludes the Firehose delivery log group to avoid subscription recursion.
 - The Firehose delivery stream is encrypted with a CMK to satisfy IaC policy checks for stream-at-rest encryption.
+- The CloudWatch Logs delivery role is allowed to use the Firehose CMK for encrypted `PutRecord`/`PutRecordBatch` writes.
 - SSE-S3 is used for the raw archive bucket to keep S3 delivery simple during the MVP. Object Lock is the primary retention/integrity control for this phase.
 
 ## Post-Apply Verification
