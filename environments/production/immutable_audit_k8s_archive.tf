@@ -241,6 +241,23 @@ data "aws_iam_policy_document" "immutable_audit_k8s_firehose_kms" {
       values   = ["arn:${data.aws_partition.current.partition}:firehose:${var.aws_region}:${data.aws_caller_identity.current.account_id}:deliverystream/${local.immutable_audit_k8s_raw_archive_firehose_name}"]
     }
   }
+
+  statement {
+    sid    = "AllowCloudWatchLogsEncryptedPuts"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = [aws_iam_role.immutable_audit_k8s_logs_to_firehose.arn]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:GenerateDataKey",
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_kms_key" "immutable_audit_k8s_firehose" {
@@ -430,6 +447,18 @@ data "aws_iam_policy_document" "immutable_audit_k8s_logs_to_firehose" {
       "firehose:PutRecordBatch",
     ]
     resources = [aws_kinesis_firehose_delivery_stream.immutable_audit_k8s_raw.arn]
+  }
+
+  statement {
+    sid    = "UseFirehoseStreamEncryptionKey"
+    effect = "Allow"
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:GenerateDataKey",
+    ]
+    resources = [aws_kms_key.immutable_audit_k8s_firehose.arn]
   }
 }
 
