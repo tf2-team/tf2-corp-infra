@@ -165,6 +165,7 @@ resource "aws_iam_role_policy" "parse_lambda_sqs_send" {
 }
 
 resource "aws_lambda_function" "parse_lambda" {
+  #checkov:skip=CKV_AWS_115:Reserved concurrency would drop account UnreservedConcurrentExecution below AWS's minimum of 10 in this workload account; use unreserved pool until quota headroom exists.
   function_name = "techx-parse-lambda"
   role          = aws_iam_role.parse_lambda.arn
   handler       = "handler.handler"
@@ -174,7 +175,11 @@ resource "aws_lambda_function" "parse_lambda" {
   filename         = data.archive_file.parse_lambda.output_path
   source_code_hash = data.archive_file.parse_lambda.output_base64sha256
 
-  reserved_concurrent_executions = 5
+  # Keep audit Lambdas on account-level unreserved concurrency. Reserving 5
+  # per function fails PutFunctionConcurrency when remaining unreserved would
+  # fall below Lambda's required floor of 10 (same constraint as Discord health
+  # and runtime-security-alerting Lambdas in this account).
+  reserved_concurrent_executions = var.lambda_reserved_concurrent_executions
   kms_key_arn                    = aws_kms_key.audit_pipeline.arn
 
   dead_letter_config {
@@ -268,6 +273,7 @@ resource "aws_iam_role_policy" "alert_lambda_sqs_consume" {
 }
 
 resource "aws_lambda_function" "alert_lambda" {
+  #checkov:skip=CKV_AWS_115:Reserved concurrency would drop account UnreservedConcurrentExecution below AWS's minimum of 10 in this workload account; use unreserved pool until quota headroom exists.
   function_name = "techx-audit-alert-parser"
   role          = aws_iam_role.alert_lambda.arn
   handler       = "handler.handler"
@@ -277,7 +283,8 @@ resource "aws_lambda_function" "alert_lambda" {
   filename         = data.archive_file.alert_lambda.output_path
   source_code_hash = data.archive_file.alert_lambda.output_base64sha256
 
-  reserved_concurrent_executions = 5
+  # Keep audit Lambdas on account-level unreserved concurrency. See parse_lambda.
+  reserved_concurrent_executions = var.lambda_reserved_concurrent_executions
   kms_key_arn                    = aws_kms_key.audit_pipeline.arn
 
   dead_letter_config {
@@ -337,3 +344,5 @@ resource "aws_cloudwatch_event_target" "to_sqs" {
   target_id = "audit-alert-queue"
   arn       = aws_sqs_queue.audit_alert_queue.arn
 }
+
+# Change trail: @hungxqt - 2026-07-21 - Use unreserved Lambda concurrency to avoid account UnreservedConcurrentExecution floor errors.

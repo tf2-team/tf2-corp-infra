@@ -70,8 +70,11 @@ Nếu chưa có (do đã refresh/xoá), thêm lại vào `environments/productio
   - CKV_AWS_117
 ```
 
-(Các check khác — SQS/KMS encryption, Lambda reserved concurrency, DLQ, X-Ray, env var KMS — đã
-fix trực tiếp trong `main.tf`, không cần skip thêm.)
+(Các check khác — SQS/KMS encryption, DLQ, X-Ray, env var KMS — đã fix trực tiếp trong `main.tf`.
+Lambda reserved concurrency defaults to `-1` (account unreserved pool) because this workload
+account cannot reserve concurrency without dropping `UnreservedConcurrentExecution` below AWS's
+minimum of 10; CKV_AWS_115 is skipped on the Lambda resources with that rationale. Override
+`lambda_reserved_concurrent_executions` only after confirming regional quota headroom.)
 
 ## 5. Chạy
 
@@ -103,3 +106,5 @@ aws logs tail /aws/lambda/techx-parse-lambda --since 5m
 aws logs tail /aws/lambda/techx-audit-alert-parser --since 5m --follow
 ```
 Kỳ vọng thấy JSON đã chuẩn hoá in ra trong log `techx-audit-alert-parser` cho cả 2 nhánh.
+
+<!-- Change trail: @hungxqt - 2026-07-21 - Documented default unreserved Lambda concurrency for account quota floor. -->
