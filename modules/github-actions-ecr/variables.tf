@@ -98,6 +98,12 @@ variable "s3_publish_list_prefixes" {
   }
 }
 
+variable "cosign_kms_key_arn" {
+  type        = string
+  default     = ""
+  description = "Optional KMS key ARN to grant signing rights to the OIDC role"
+}
+
 variable "tags" {
   type        = map(string)
   default     = {}

@@ -1411,6 +1411,74 @@ module "cost_optimization_backlog" {
   include_all_recommendations = var.cost_optimization_backlog_include_all_recommendations
   tags                        = var.tags
 }
+# ──────────────────────────────────────────────
+# Mandate 10: Sigstore policy-controller IRSA Role
+# ──────────────────────────────────────────────
+
+
+data "aws_iam_policy_document" "policy_controller_assume" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect  = "Allow"
+    principals {
+      type        = "Federated"
+      identifiers = [module.eks.oidc_provider_arn]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.oidc_issuer, "https://", "")}:sub"
+      values   = ["system:serviceaccount:cosign-system:policy-controller"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.oidc_issuer, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "policy_controller" {
+  name               = "${var.project_name}-policy-controller"
+  assume_role_policy = data.aws_iam_policy_document.policy_controller_assume.json
+  tags               = var.tags
+}
+
+data "aws_iam_policy_document" "policy_controller" {
+  statement {
+    sid    = "EcrRead"
+    effect = "Allow"
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchGetImage",
+      "ecr:DescribeImages",
+      "ecr:DescribeRepositories",
+      "ecr:ListImages"
+    ]
+    resources = [
+      "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/techx-corp/*"
+    ]
+  }
+
+  statement {
+    sid    = "KmsRead"
+    effect = "Allow"
+    actions = [
+      "kms:GetPublicKey",
+      "kms:DescribeKey"
+    ]
+    resources = [
+      "arn:aws:kms:${var.aws_region}:${data.aws_caller_identity.current.account_id}:alias/tf2-cosign-signing-key",
+      "arn:aws:kms:${var.aws_region}:${data.aws_caller_identity.current.account_id}:key/*"
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "policy_controller" {
+  name   = "${var.project_name}-policy-controller"
+  role   = aws_iam_role.policy_controller.id
+  policy = data.aws_iam_policy_document.policy_controller.json
+}
 
 module "audit_pipeline" {
   source = "../../modules/audit-pipeline"
@@ -1428,4 +1496,6 @@ module "audit_pipeline" {
 }
 #Audit pipeline for log filtering cloudtrail and eks audit
 
+# Change trail: @hungxqt - 2026-07-19 - Hybrid CA on system MNG; remove dual-autoscaler mutual exclusion.
+# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.
 # Change trail: @hungxqt - 2026-07-20 - Wire MANDATE-20 backup_protection module and Valkey snapshot retention.

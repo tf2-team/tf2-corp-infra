@@ -135,4 +135,26 @@ resource "aws_iam_role_policy" "s3_publish" {
   role   = aws_iam_role.this.id
   policy = data.aws_iam_policy_document.s3_publish[0].json
 }
+
+data "aws_iam_policy_document" "kms_signing" {
+  count = var.cosign_kms_key_arn != "" ? 1 : 0
+
+  statement {
+    sid    = "KmsCosignSign"
+    effect = "Allow"
+    actions = [
+      "kms:Sign",
+      "kms:GetPublicKey",
+      "kms:DescribeKey"
+    ]
+    resources = [var.cosign_kms_key_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "kms_signing" {
+  count  = var.cosign_kms_key_arn != "" ? 1 : 0
+  name   = "${var.name}-kms-signing"
+  role   = aws_iam_role.this.id
+  policy = data.aws_iam_policy_document.kms_signing[0].json
+}
 # Change trail: @hungxqt - 2026-07-19 - Grant optional S3 model publish to platform GHA ECR roles.
