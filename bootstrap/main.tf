@@ -138,22 +138,6 @@ resource "aws_kms_key" "cosign" {
   key_usage                = "SIGN_VERIFY"
   deletion_window_in_days  = 7
 
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Id      = "cosign-key-policy"
-    Statement = [
-      {
-        Sid    = "Enable IAM User Permits"
-        Effect = "Allow"
-        Principal = {
-          AWS = "arn:aws:iam::${local.account_id}:root"
-        }
-        Action   = "kms:*"
-        Resource = "*"
-      }
-    ]
-  })
-
   tags = merge(var.tags, {
     Purpose = "cosign-image-signing"
     Mandate = "MD10"
