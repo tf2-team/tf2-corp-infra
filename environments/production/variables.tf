@@ -237,6 +237,18 @@ variable "commerce_private_dns_zone" {
   description = "Private Route53 zone providing the stable managed Valkey application address."
 }
 
+variable "commerce_valkey_snapshot_retention_limit" {
+  type        = number
+  default     = 7
+  description = "Days of automated ElastiCache Valkey snapshots to retain (MANDATE-20; RPO still daily)."
+}
+
+variable "backup_protection_attach_role_names" {
+  type        = list(string)
+  default     = []
+  description = "IAM role names that receive the MANDATE-20 deny-destructive-backup policy. Empty creates the policy only (manual attach / console)."
+}
+
 variable "rds_postgresql_engine_version" {
   type        = string
   default     = "16"
@@ -1200,6 +1212,178 @@ variable "runtime_security_enable_node_role_anomaly_events" {
 # Overlay Cost Optimization Hub backlog — production only
 # ──────────────────────────────────────────────
 
+# ------------------------------------------------------------------------------
+# Mandate 11.2 audit detection pipeline
+# ------------------------------------------------------------------------------
+
+variable "audit_detection_pipeline_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, create Mandate 11.2 EventBridge and EKS audit log filters that forward raw events to the Task 11.3 parser Lambda."
+}
+
+variable "audit_detection_lambda_function_name" {
+  type        = string
+  default     = "techx-audit-alert-parser"
+  nullable    = false
+  description = "Lambda function name for the Task 11.3 audit alert parser."
+}
+
+variable "audit_detection_lambda_role_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional IAM role name override for the Mandate 11 parser Lambda."
+}
+
+variable "audit_detection_lambda_policy_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional inline IAM policy name override for the Mandate 11 parser Lambda role."
+}
+
+variable "audit_detection_dlq_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional SQS DLQ name override for failed Mandate 11 parser events."
+}
+
+variable "audit_detection_lambda_kms_key_arn" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional KMS key ARN for the Mandate 11 parser Lambda and DLQ."
+}
+
+variable "audit_detection_lambda_tracing_mode" {
+  type        = string
+  default     = "PassThrough"
+  nullable    = false
+  description = "Lambda tracing mode for Mandate 11 parser. Use Active only after X-Ray cost and sampling are approved."
+}
+
+variable "audit_detection_cloudtrail_event_rule_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional EventBridge rule name override for Mandate 11 CloudTrail high-risk candidates."
+}
+
+variable "audit_detection_cloudtrail_event_target_id" {
+  type        = string
+  default     = "audit-alert-parser-direct"
+  nullable    = false
+  description = "EventBridge target ID for direct CloudTrail to parser Lambda delivery."
+}
+
+variable "audit_detection_audit_log_group_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional EKS audit log group override for Mandate 11.2. Empty derives /aws/eks/<cluster>/cluster."
+}
+
+variable "audit_detection_eks_audit_subscription_filter_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional CloudWatch Logs subscription filter name override for Mandate 11 EKS audit candidates."
+}
+
+variable "audit_detection_eks_audit_filter_pattern" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional CloudWatch Logs subscription filter override for Mandate 11.2 EKS audit candidates. Empty uses module default."
+}
+
+variable "audit_detection_lambda_reserved_concurrent_executions" {
+  type        = number
+  default     = null
+  nullable    = true
+  description = "Optional reserved concurrency for the Mandate 11 parser Lambda. Null omits the setting."
+}
+
+variable "audit_detection_alarm_action_arns" {
+  type        = list(string)
+  default     = []
+  nullable    = false
+  description = "Optional SNS or incident-management ARNs for Mandate 11.2 CloudWatch alarms."
+}
+
+variable "audit_detection_enable_discord_router" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "When true, create the Mandate 11.4 SQS-to-Discord router and wire parser alert-ready output to it."
+}
+
+variable "audit_detection_alert_ready_queue_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional SQS queue name for Mandate 11.4 alert-ready payloads."
+}
+
+variable "audit_detection_alert_ready_dlq_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional SQS DLQ name for Mandate 11.4 alert-ready payloads."
+}
+
+variable "audit_detection_router_lambda_function_name" {
+  type        = string
+  default     = "techx-audit-alert-router"
+  nullable    = false
+  description = "Lambda function name for the Mandate 11.4 Discord router."
+}
+
+variable "audit_detection_router_lambda_role_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional IAM role name for the Mandate 11.4 Discord router Lambda."
+}
+
+variable "audit_detection_router_lambda_policy_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional IAM inline policy name for the Mandate 11.4 Discord router Lambda."
+}
+
+variable "audit_detection_discord_webhook_secret_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional Secrets Manager name for the Mandate 11 Discord webhook URL."
+}
+
+variable "audit_detection_discord_webhook_secret_arn" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional existing Secrets Manager ARN for the Mandate 11 Discord webhook URL."
+}
+
+variable "audit_detection_ttd_threshold_seconds" {
+  type        = number
+  default     = 300
+  nullable    = false
+  description = "Mandate 11.5 end-to-end TTD alarm threshold in seconds."
+}
+
+variable "audit_detection_ttd_dashboard_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional CloudWatch dashboard name for Mandate 11.5 TTD evidence."
+}
+
 variable "cost_optimization_backlog_enabled" {
   type        = bool
   default     = true
@@ -1358,4 +1542,4 @@ variable "mem0_postgresql_kms_key_id" {
   description = "Optional customer-managed KMS key for Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.
+# Change trail: @hungxqt - 2026-07-20 - Add MANDATE-20 Valkey snapshot retention and backup-protection vars.
