@@ -20,6 +20,7 @@ locals {
   immutable_audit_k8s_archive_protected_prefix_arns = [
     "${aws_s3_bucket.immutable_audit_k8s_raw.arn}/raw/*",
     "${aws_s3_bucket.immutable_audit_k8s_raw.arn}/manifests/*",
+    "${aws_s3_bucket.immutable_audit_k8s_raw.arn}/validation-reports/*",
   ]
 }
 
@@ -119,6 +120,19 @@ resource "aws_s3_bucket_lifecycle_configuration" "immutable_audit_k8s_raw" {
 
     filter {
       prefix = "manifests/"
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = max(var.immutable_audit_k8s_raw_archive_retention_days + 1, 31)
+    }
+  }
+
+  rule {
+    id     = "retain-immutable-audit-validation-reports"
+    status = "Enabled"
+
+    filter {
+      prefix = "validation-reports/"
     }
 
     noncurrent_version_expiration {

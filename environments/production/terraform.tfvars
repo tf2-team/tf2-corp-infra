@@ -37,6 +37,15 @@ immutable_audit_k8s_sealer_delay_minutes          = 10
 immutable_audit_k8s_sealer_lambda_timeout_seconds = 300
 immutable_audit_k8s_sealer_lambda_memory_mb       = 512
 
+# Mandate 12 Phase 4: scheduled integrity validation reports.
+immutable_audit_validation_enabled                     = true
+immutable_audit_validation_schedule_expression         = "rate(1 hour)"
+immutable_audit_cloudtrail_validation_lookback_hours   = 24
+immutable_audit_k8s_manifest_validation_lookback_hours = 6
+immutable_audit_validation_delay_minutes               = 30
+immutable_audit_validation_lambda_timeout_seconds      = 600
+immutable_audit_validation_lambda_memory_mb            = 512
+
 # Image format: REGISTRY/techx-prod-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
 # Lifecycle matches development (keep last 5 images + 1 buildcache).
