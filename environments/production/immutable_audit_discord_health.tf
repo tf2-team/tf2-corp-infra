@@ -4,9 +4,6 @@ locals {
   immutable_audit_health_check_name = (
     "${local.immutable_audit_trail_name}-health-check"
   )
-  immutable_audit_health_check_lambda_arn = (
-    "arn:${data.aws_partition.current.partition}:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${local.immutable_audit_health_check_name}"
-  )
 
   immutable_audit_discord_webhook_secret_arn = (
     var.immutable_audit_discord_webhook_secret_arn != ""
@@ -765,29 +762,17 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
       DISCORD_ALERT_QUEUE_ARN     = local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord[0].arn : ""
       DISCORD_WEBHOOK_SECRET_ARN  = local.immutable_audit_discord_enabled ? local.immutable_audit_discord_webhook_secret_arn : ""
       EXPECTED_S3_DATA_EVENT_ARNS = jsonencode(sort(tolist(local.immutable_audit_s3_data_event_object_arns)))
-      EXPECTED_SCHEDULED_TARGETS_BY_RULE = jsonencode(merge(
-        {
-          (aws_cloudwatch_event_rule.immutable_audit_health_check[0].name) = [local.immutable_audit_health_check_lambda_arn]
-        },
-        local.immutable_audit_k8s_sealer_enabled ? {
-          (aws_cloudwatch_event_rule.immutable_audit_k8s_sealer[0].name) = [aws_lambda_function.immutable_audit_k8s_sealer[0].arn]
-        } : {},
-        local.immutable_audit_validation_enabled ? {
-          (aws_cloudwatch_event_rule.immutable_audit_cloudtrail_validator[0].name)   = [aws_lambda_function.immutable_audit_cloudtrail_validator[0].arn]
-          (aws_cloudwatch_event_rule.immutable_audit_k8s_manifest_validator[0].name) = [aws_lambda_function.immutable_audit_k8s_manifest_validator[0].arn]
-        } : {}
-      ))
       K8S_SEALER_CHECKPOINT_TABLE = try(aws_dynamodb_table.immutable_audit_k8s_sealer_checkpoint[0].name, "")
       K8S_SEALER_CHAIN_ID         = try(local.immutable_audit_k8s_sealer_chain_id, "")
       KMS_KEY_IDS = jsonencode(compact([
-        aws_kms_key.immutable_audit.arn,
-        aws_kms_key.immutable_audit_sns.arn,
-        aws_kms_key.immutable_audit_alert_sns.arn,
-        aws_kms_key.immutable_audit_alert_runtime[0].arn,
-        try(aws_kms_key.immutable_audit_k8s_firehose.arn, ""),
-        try(aws_kms_key.immutable_audit_k8s_sealer_runtime[0].arn, ""),
-        try(aws_kms_key.immutable_audit_k8s_sealer_signing[0].arn, ""),
-        try(aws_kms_key.immutable_audit_validation_runtime[0].arn, ""),
+        aws_kms_key.immutable_audit.key_id,
+        aws_kms_key.immutable_audit_sns.key_id,
+        aws_kms_key.immutable_audit_alert_sns.key_id,
+        aws_kms_key.immutable_audit_alert_runtime[0].key_id,
+        try(aws_kms_key.immutable_audit_k8s_firehose.key_id, ""),
+        try(aws_kms_key.immutable_audit_k8s_sealer_runtime[0].key_id, ""),
+        try(aws_kms_key.immutable_audit_k8s_sealer_signing[0].key_id, ""),
+        try(aws_kms_key.immutable_audit_validation_runtime[0].key_id, ""),
       ]))
       MAX_DELIVERY_AGE_MINUTES          = tostring(var.immutable_audit_health_check_max_delivery_age_minutes)
       MAX_DLQ_VISIBLE_MESSAGES          = tostring(var.immutable_audit_health_check_max_dlq_visible_messages)
@@ -797,13 +782,21 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
       RAW_ARCHIVE_BUCKET                = aws_s3_bucket.immutable_audit_k8s_raw.bucket
       RAW_ARCHIVE_OBJECT_LOCK_DAYS      = tostring(var.immutable_audit_k8s_raw_archive_retention_days)
       RAW_ARCHIVE_OBJECT_LOCK_MODE      = var.immutable_audit_k8s_raw_archive_retention_mode
-      TAMPER_RULE_NAMES                 = jsonencode([for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.name])
-      TAMPER_TOPIC_ARN                  = aws_sns_topic.immutable_audit_tamper_alerts.arn
-      TAMPER_TOPIC_RULE_NAMES           = jsonencode([for key, rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.name if contains(local.immutable_audit_email_tamper_rule_keys, key)])
-      TRAIL_NAME                        = aws_cloudtrail.immutable_audit.name
-      VALIDATION_REPORT_BUCKET          = aws_s3_bucket.immutable_audit_k8s_raw.bucket
-      VALIDATION_REPORT_PREFIX          = try(local.immutable_audit_validation_report_prefix, "validation-reports")
-      VALIDATION_REPORT_TYPES           = jsonencode(["cloudtrail", "k8s-manifests"])
+      SCHEDULED_RULE_NAMES = jsonencode(compact(concat(
+        [aws_cloudwatch_event_rule.immutable_audit_health_check[0].name],
+        local.immutable_audit_k8s_sealer_enabled ? [aws_cloudwatch_event_rule.immutable_audit_k8s_sealer[0].name] : [],
+        local.immutable_audit_validation_enabled ? [
+          aws_cloudwatch_event_rule.immutable_audit_cloudtrail_validator[0].name,
+          aws_cloudwatch_event_rule.immutable_audit_k8s_manifest_validator[0].name,
+        ] : []
+      )))
+      TAMPER_RULE_NAMES        = jsonencode([for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.name])
+      TAMPER_TOPIC_ARN         = aws_sns_topic.immutable_audit_tamper_alerts.arn
+      TAMPER_TOPIC_RULE_NAMES  = jsonencode([for key, rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.name if contains(local.immutable_audit_email_tamper_rule_keys, key)])
+      TRAIL_NAME               = aws_cloudtrail.immutable_audit.name
+      VALIDATION_REPORT_BUCKET = aws_s3_bucket.immutable_audit_k8s_raw.bucket
+      VALIDATION_REPORT_PREFIX = try(local.immutable_audit_validation_report_prefix, "validation-reports")
+      VALIDATION_REPORT_TYPES  = jsonencode(["cloudtrail", "k8s-manifests"])
       AUDIT_DLQ_URLS = jsonencode(compact([
         local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord_dlq[0].url : "",
         local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord_lambda_dlq[0].url : "",
