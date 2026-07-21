@@ -58,6 +58,14 @@ ecr_keep_last_n_images     = 5
 ecr_keep_last_n_buildcache = 1
 ecr_scan_on_push           = false
 ecr_force_delete           = true
+ecr_repository_overrides = {
+  cosign-artifacts = {
+    image_tag_mutability = "MUTABLE"
+    scan_on_push         = false
+    keep_last_n_images   = 2000
+    force_delete         = false
+  }
+}
 
 # ──────────────────────────────────────────────
 # VPC Configuration
