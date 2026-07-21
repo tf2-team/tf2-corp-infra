@@ -281,6 +281,8 @@ module "client_vpn" {
 # Mandate 10: Sigstore policy-controller IRSA Role
 # ──────────────────────────────────────────────
 
+data "aws_caller_identity" "current" {}
+
 data "aws_kms_alias" "cosign" {
   name = "alias/tf2-cosign-signing-key"
 }
