@@ -6,11 +6,22 @@ Mandate 12.2 requires audit coverage for sensitive data reads, not only manageme
 
 ## Decision
 
-Enable CloudTrail S3 object data events on the dedicated immutable audit trail for the production AI model artifact bucket:
+Enable CloudTrail S3 object data events on the dedicated immutable audit trail from the production sensitive coverage registry:
 
 - `arn:aws:s3:::techx-prod-tf2-ai-models-493499579600/`
+- `arn:aws:s3:::techx-tf-state-493499579600-us-east-1/`
+- `arn:aws:s3:::techx-prod-tf2-cloudtrail-immutable-493499579600/`
+- `arn:aws:s3:::techx-prod-tf2-k8s-audit-raw-493499579600/`
+- `arn:aws:s3:::techx-prod-tf2-athena-results-493499579600-ap-southeast-1/`
+- `arn:aws:s3:::company-cdo-493499579600-telemetry/`
 
-This bucket contains application model artifacts read by production workloads. The scope is intentionally narrow to limit CloudTrail data-event cost and noise.
+These buckets cover AI model artifacts, Terraform state, immutable audit evidence, K8s audit evidence, Athena CUR query results, and CUR/telemetry exports. This is intentionally broader than the original minimal scope for the MD12 mentor demo; optimize the registry after the demo to reduce CloudTrail data-event cost and noise.
+
+The source of truth is:
+
+```text
+environments/production/audit_sensitive_coverage.yaml
+```
 
 Secrets Manager `GetSecretValue` remains covered by CloudTrail management events because the trail logs read and write management events.
 
@@ -52,6 +63,8 @@ aws cloudtrail lookup-events \
 ## Known Gaps
 
 - S3 data events are not enabled for every bucket in the account.
-- Current explicit coverage is limited to the AI model artifact bucket. CUR, Athena result, Terraform state, and legacy audit buckets are documented as out of MD12.2 demo scope unless separately required.
+- Current explicit coverage is limited to the buckets in `audit_sensitive_coverage.yaml`.
+- Legacy buckets and buckets without confirmed ownership remain documented as `known_gaps` in the registry.
 
 <!-- Change trail: @hungxqt - 2026-07-19 - Add scoped S3 data event coverage for Mandate 12.2. -->
+<!-- Change trail: @hungxqt - 2026-07-21 - Move Mandate 12.2 S3 data-event scope into sensitive coverage registry and broaden demo coverage. -->

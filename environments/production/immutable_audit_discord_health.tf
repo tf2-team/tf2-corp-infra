@@ -764,7 +764,7 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
       CLOUDWATCH_RETENTION_DAYS   = tostring(var.immutable_audit_cloudwatch_retention_days)
       DISCORD_ALERT_QUEUE_ARN     = local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord[0].arn : ""
       DISCORD_WEBHOOK_SECRET_ARN  = local.immutable_audit_discord_enabled ? local.immutable_audit_discord_webhook_secret_arn : ""
-      EXPECTED_S3_DATA_EVENT_ARNS = jsonencode(sort(tolist(var.immutable_audit_s3_data_event_object_arns)))
+      EXPECTED_S3_DATA_EVENT_ARNS = jsonencode(sort(tolist(local.immutable_audit_s3_data_event_object_arns)))
       EXPECTED_SCHEDULED_TARGETS_BY_RULE = jsonencode(merge(
         {
           (aws_cloudwatch_event_rule.immutable_audit_health_check[0].name) = [local.immutable_audit_health_check_lambda_arn]

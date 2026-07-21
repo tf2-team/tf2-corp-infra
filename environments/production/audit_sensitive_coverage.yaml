@@ -1,0 +1,103 @@
+s3_object_prefixes:
+  - id: ai-model-artifacts
+    bucket: techx-prod-tf2-ai-models-493499579600
+    prefix: ""
+    cloudtrail_data_event_arn: arn:aws:s3:::techx-prod-tf2-ai-models-493499579600/
+    reason: Production AI model artifacts are sensitive runtime and release assets.
+    owner: TF2
+    demo_priority: P0
+    expected_events:
+      - GetObject
+      - HeadObject
+      - PutObject
+      - DeleteObject
+
+  - id: terraform-state-primary
+    bucket: techx-tf-state-493499579600-us-east-1
+    prefix: ""
+    cloudtrail_data_event_arn: arn:aws:s3:::techx-tf-state-493499579600-us-east-1/
+    reason: Terraform state contains infrastructure topology, resource identifiers, and sensitive configuration metadata.
+    owner: TF2
+    demo_priority: P0
+    expected_events:
+      - GetObject
+      - HeadObject
+      - PutObject
+      - DeleteObject
+
+  - id: immutable-cloudtrail-evidence
+    bucket: techx-prod-tf2-cloudtrail-immutable-493499579600
+    prefix: ""
+    cloudtrail_data_event_arn: arn:aws:s3:::techx-prod-tf2-cloudtrail-immutable-493499579600/
+    reason: Immutable CloudTrail log and digest evidence must be auditable when read, written, or tampered with.
+    owner: TF2
+    demo_priority: P0
+    expected_events:
+      - GetObject
+      - HeadObject
+      - PutObject
+      - DeleteObject
+
+  - id: k8s-audit-raw-archive
+    bucket: techx-prod-tf2-k8s-audit-raw-493499579600
+    prefix: ""
+    cloudtrail_data_event_arn: arn:aws:s3:::techx-prod-tf2-k8s-audit-raw-493499579600/
+    reason: Raw EKS audit logs, signed manifests, and validation reports are audit evidence.
+    owner: TF2
+    demo_priority: P0
+    expected_events:
+      - GetObject
+      - HeadObject
+      - PutObject
+      - DeleteObject
+
+  - id: athena-cur-query-results
+    bucket: techx-prod-tf2-athena-results-493499579600-ap-southeast-1
+    prefix: ""
+    cloudtrail_data_event_arn: arn:aws:s3:::techx-prod-tf2-athena-results-493499579600-ap-southeast-1/
+    reason: Athena query results can expose CUR-derived account, resource, and cost allocation data.
+    owner: TF2
+    demo_priority: P1
+    expected_events:
+      - GetObject
+      - HeadObject
+      - PutObject
+      - DeleteObject
+
+  - id: company-cur-telemetry
+    bucket: company-cdo-493499579600-telemetry
+    prefix: ""
+    cloudtrail_data_event_arn: arn:aws:s3:::company-cdo-493499579600-telemetry/
+    reason: CUR and telemetry exports expose account usage, resource inventory, and operational metadata.
+    owner: CDO
+    demo_priority: P1
+    expected_events:
+      - GetObject
+      - HeadObject
+      - PutObject
+      - DeleteObject
+
+secrets:
+  - id: discord-webhook
+    secret_id: techx-prod-tf2-mandate12-immutable-audit-discord-webhook
+    reason: Alert sink credential for MD12 tamper notifications.
+    owner: TF2
+    covered_by: CloudTrail management events
+    expected_events:
+      - GetSecretValue
+      - PutSecretValue
+      - UpdateSecret
+
+known_gaps:
+  - id: legacy-cloudtrail-us-west-2
+    resource: aws-cloudtrail-logs-493499579600-7f0b69bb
+    reason: Legacy CloudTrail bucket outside the MD12 production demo trail scope.
+  - id: legacy-tfstate-capstone
+    resource: tfstate-capstone-tf2
+    reason: Legacy Terraform state bucket; add to s3_object_prefixes if still active during demo.
+  - id: audit-events-bucket
+    resource: techx-prod-tf2-audit-events
+    reason: Existing audit pipeline bucket; deferred until owner and data retention semantics are confirmed.
+  - id: account-wide-s3-data-events
+    resource: all other S3 buckets
+    reason: Deliberately not enabled account-wide to control CloudTrail data-event cost and noise.
