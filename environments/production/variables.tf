@@ -100,6 +100,18 @@ variable "immutable_audit_health_check_max_delivery_age_minutes" {
   default     = 60
 }
 
+variable "immutable_audit_health_check_max_validation_report_age_minutes" {
+  type        = number
+  description = "Maximum allowed age for the latest immutable validation report before the audit health check fails."
+  default     = 180
+}
+
+variable "immutable_audit_health_check_max_dlq_visible_messages" {
+  type        = number
+  description = "Maximum allowed visible messages in audit DLQs before the health check fails."
+  default     = 0
+}
+
 variable "immutable_audit_k8s_raw_archive_bucket_name" {
   type        = string
   description = "Optional S3 bucket name for immutable raw EKS audit logs. Leave empty to derive from project name and account ID."
