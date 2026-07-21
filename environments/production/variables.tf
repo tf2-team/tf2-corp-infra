@@ -427,7 +427,13 @@ variable "commerce_valkey_snapshot_retention_limit" {
 variable "backup_protection_attach_role_names" {
   type        = list(string)
   default     = []
-  description = "IAM role names that receive the MANDATE-20 deny-destructive-backup policy. Empty creates the policy only (manual attach / console)."
+  description = "IAM role names that receive the MANDATE-20 deny-destructive-backup policy. Prefer operator roles only; do not attach to break-glass or CI apply roles."
+}
+
+variable "backup_protection_attach_group_names" {
+  type        = list(string)
+  default     = []
+  description = "IAM group names that receive the MANDATE-20 deny-destructive-backup policy (e.g. TF2-TEAM day-to-day operators)."
 }
 
 variable "rds_postgresql_engine_version" {
@@ -1723,4 +1729,4 @@ variable "mem0_postgresql_kms_key_id" {
   description = "Optional customer-managed KMS key for Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-20 - Add MANDATE-20 Valkey snapshot retention and backup-protection vars.
+# Change trail: @hungxqt - 2026-07-21 - Add backup_protection_attach_group_names for TF2-TEAM SoD.

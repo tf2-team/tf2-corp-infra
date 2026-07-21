@@ -10,8 +10,12 @@ output "policy_name" {
 
 output "attached_role_names" {
   value       = var.attach_role_names
-  description = "Roles that received the policy attachment in this apply"
+  description = "Roles that receive the policy attachment in this apply"
 }
 
-# Change trail: @hungxqt - 2026-07-20 - Mandate 20 backup protection and Valkey retention wiring.
+output "attached_group_names" {
+  value       = var.attach_group_names
+  description = "Groups that receive the policy attachment in this apply"
+}
 
+# Change trail: @hungxqt - 2026-07-21 - Export attached group names for Mandate 20 criterion B.

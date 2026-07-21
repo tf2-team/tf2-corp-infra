@@ -1114,14 +1114,15 @@ module "commerce_ha" {
   tags                            = var.tags
 }
 
-# MANDATE-20: managed policy that denies deleting backups / disabling DynamoDB PITR.
-# Policy is always created; attach to operator role names via var.backup_protection_attach_role_names.
+# MANDATE-20 criterion B: managed policy denies deleting backups / disabling DynamoDB PITR.
+# Attach to day-to-day operator roles/groups only (not break-glass admin, not Terraform CI apply).
 module "backup_protection" {
   source = "../../modules/backup-protection"
 
-  name              = var.project_name
-  attach_role_names = var.backup_protection_attach_role_names
-  tags              = var.tags
+  name               = var.project_name
+  attach_role_names  = var.backup_protection_attach_role_names
+  attach_group_names = var.backup_protection_attach_group_names
+  tags               = var.tags
 }
 
 # DIRECTIVE #8: managed PostgreSQL replaces the in-cluster StatefulSet. RDS
@@ -1527,6 +1528,4 @@ resource "aws_iam_role_policy" "policy_controller" {
   policy = data.aws_iam_policy_document.policy_controller.json
 }
 
-# Change trail: @hungxqt - 2026-07-19 - Hybrid CA on system MNG; remove dual-autoscaler mutual exclusion.
-# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.
-# Change trail: @hungxqt - 2026-07-20 - Wire MANDATE-20 backup_protection module and Valkey snapshot retention.
+# Change trail: @hungxqt - 2026-07-21 - Wire backup_protection group attach for Mandate 20 criterion B.
