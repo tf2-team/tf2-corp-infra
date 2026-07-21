@@ -19,6 +19,9 @@ kms = boto3.client("kms", config=CONFIG)
 s3 = boto3.client("s3", config=CONFIG)
 
 
+CODE_REVISION = "checkpoint-fix-v2"
+
+
 def _iso(value):
     return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -242,6 +245,7 @@ def _validate(event):
 
     report = {
         "schema_version": "2026-07-21",
+        "code_revision": CODE_REVISION,
         "validator": "k8s-manifest-chain",
         "chain_id": chain_id,
         "validated_at": _iso(now),
@@ -261,7 +265,7 @@ def handler(event, _context):
     report = _validate(event or {})
     report_key = _put_report(report)
     _put_metric(1 if report["status"] == "PASS" else 0)
-    print(json.dumps({"status": report["status"], "report_key": report_key}, sort_keys=True))
+    print(json.dumps({"status": report["status"], "code_revision": CODE_REVISION, "report_key": report_key}, sort_keys=True))
     if report["status"] != "PASS":
         raise RuntimeError("; ".join(report["errors"]))
     return {"status": report["status"], "report_key": report_key}

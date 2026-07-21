@@ -20,6 +20,9 @@ kms = boto3.client("kms", config=CONFIG)
 s3 = boto3.client("s3", config=CONFIG)
 
 
+CODE_REVISION = "checkpoint-fix-v2"
+
+
 def _parse_time(value):
     return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
 
@@ -167,6 +170,7 @@ def handler(event, _context):
     if last_window_end and _parse_time(last_window_end) >= window_end:
         result = {
             "status": "SKIPPED",
+            "code_revision": CODE_REVISION,
             "reason": "window_already_sealed",
             "chain_id": chain_id,
             "window_start": _iso(window_start),
@@ -225,6 +229,7 @@ def handler(event, _context):
                 json.dumps(
                     {
                         "status": "SKIPPED",
+                        "code_revision": CODE_REVISION,
                         "reason": "checkpoint_changed",
                         "chain_id": chain_id,
                         "window_start": _iso(window_start),
@@ -238,6 +243,7 @@ def handler(event, _context):
 
     result = {
         "status": "SEALED",
+        "code_revision": CODE_REVISION,
         "chain_id": chain_id,
         "window_start": _iso(window_start),
         "window_end": _iso(window_end),
