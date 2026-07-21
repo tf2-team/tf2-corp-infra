@@ -10,9 +10,9 @@ tags = {
 # Mandate 12.1 audit tamper email alerts. Add real inboxes and confirm AWS SNS subscription emails after apply.
 immutable_audit_alert_email_endpoints = ["ctran13904@gmail.com"]
 
-# Mandate 12.2 S3 data events. Scope narrowly to sensitive model artifacts to limit CloudTrail data-event cost.
+# Mandate 12.2 S3 data events are driven by audit_sensitive_coverage.yaml.
+# Keep this override empty unless a one-off ARN must be added without registry metadata.
 immutable_audit_s3_data_event_object_arns = [
-  "arn:aws:s3:::techx-prod-tf2-ai-models-493499579600/"
 ]
 
 # Mandate 12.1 multi-channel alerting and continuous audit control health checks.

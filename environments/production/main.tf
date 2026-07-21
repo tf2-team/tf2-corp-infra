@@ -3,6 +3,14 @@ data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
 locals {
+  immutable_audit_sensitive_coverage = yamldecode(file("${path.module}/audit_sensitive_coverage.yaml"))
+  immutable_audit_s3_data_event_object_arns = toset(distinct(concat(
+    tolist(var.immutable_audit_s3_data_event_object_arns),
+    [
+      for scope in try(local.immutable_audit_sensitive_coverage.s3_object_prefixes, []) :
+      scope.cloudtrail_data_event_arn
+    ]
+  )))
   immutable_audit_bucket_name = (
     var.immutable_audit_bucket_name != ""
     ? var.immutable_audit_bucket_name
@@ -482,7 +490,7 @@ resource "aws_cloudtrail" "immutable_audit" {
     include_management_events = true
 
     dynamic "data_resource" {
-      for_each = var.immutable_audit_s3_data_event_object_arns
+      for_each = local.immutable_audit_s3_data_event_object_arns
 
       content {
         type   = "AWS::S3::Object"

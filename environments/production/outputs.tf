@@ -64,8 +64,8 @@ output "immutable_audit_tamper_alert_topic_arn" {
 }
 
 output "immutable_audit_s3_data_event_object_arns" {
-  value       = var.immutable_audit_s3_data_event_object_arns
-  description = "S3 object ARN scopes logged as CloudTrail data events for Mandate 12.2"
+  value       = local.immutable_audit_s3_data_event_object_arns
+  description = "S3 object ARN scopes logged as CloudTrail data events for Mandate 12.2, derived from the sensitive coverage registry plus any legacy variable overrides"
 }
 
 output "immutable_audit_discord_webhook_secret_arn" {
