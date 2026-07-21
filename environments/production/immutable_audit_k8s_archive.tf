@@ -6,6 +6,17 @@ locals {
   )
   immutable_audit_k8s_raw_archive_firehose_name = "${var.project_name}-k8s-audit-raw-archive"
   immutable_audit_k8s_audit_log_group_name      = "/aws/eks/${module.eks.cluster_name}/cluster"
+  immutable_audit_k8s_raw_archive_policy_name   = "${var.project_name}-k8s-audit-raw-archive"
+  immutable_audit_k8s_raw_archive_filter_pattern = join(" ", [
+    "{",
+    "$.apiVersion = \"audit.k8s.io/v1\"",
+    "&&",
+    "$.kind = \"Event\"",
+    "}",
+  ])
+  immutable_audit_k8s_raw_archive_excluded_log_groups = [
+    aws_cloudwatch_log_group.immutable_audit_k8s_raw_firehose.name,
+  ]
 }
 
 resource "aws_s3_bucket" "immutable_audit_k8s_raw" {
@@ -373,21 +384,13 @@ resource "aws_kinesis_firehose_delivery_stream" "immutable_audit_k8s_raw" {
   ]
 }
 
-resource "time_sleep" "immutable_audit_k8s_firehose_ready" {
-  create_duration = var.immutable_audit_k8s_raw_archive_subscription_ready_wait
-
-  depends_on = [
-    aws_kinesis_firehose_delivery_stream.immutable_audit_k8s_raw,
-  ]
-}
-
 data "aws_iam_policy_document" "immutable_audit_k8s_logs_to_firehose_assume" {
   statement {
     effect = "Allow"
 
     principals {
       type        = "Service"
-      identifiers = ["logs.${var.aws_region}.amazonaws.com"]
+      identifiers = ["logs.amazonaws.com"]
     }
 
     actions = ["sts:AssumeRole"]
@@ -399,9 +402,9 @@ data "aws_iam_policy_document" "immutable_audit_k8s_logs_to_firehose_assume" {
     }
 
     condition {
-      test     = "ArnLike"
+      test     = "StringLike"
       variable = "aws:SourceArn"
-      values   = ["arn:${data.aws_partition.current.partition}:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:${local.immutable_audit_k8s_audit_log_group_name}:*"]
+      values   = ["arn:${data.aws_partition.current.partition}:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"]
     }
   }
 }
@@ -436,15 +439,20 @@ resource "aws_iam_role_policy" "immutable_audit_k8s_logs_to_firehose" {
   policy = data.aws_iam_policy_document.immutable_audit_k8s_logs_to_firehose.json
 }
 
-resource "aws_cloudwatch_log_subscription_filter" "immutable_audit_k8s_raw_archive" {
-  name            = var.immutable_audit_k8s_raw_archive_subscription_filter_name
-  log_group_name  = local.immutable_audit_k8s_audit_log_group_name
-  filter_pattern  = ""
-  destination_arn = aws_kinesis_firehose_delivery_stream.immutable_audit_k8s_raw.arn
-  role_arn        = aws_iam_role.immutable_audit_k8s_logs_to_firehose.arn
+resource "aws_cloudwatch_log_account_policy" "immutable_audit_k8s_raw_archive" {
+  policy_name = local.immutable_audit_k8s_raw_archive_policy_name
+  policy_type = "SUBSCRIPTION_FILTER_POLICY"
+  policy_document = jsonencode({
+    RoleArn        = aws_iam_role.immutable_audit_k8s_logs_to_firehose.arn
+    DestinationArn = aws_kinesis_firehose_delivery_stream.immutable_audit_k8s_raw.arn
+    FilterPattern  = local.immutable_audit_k8s_raw_archive_filter_pattern
+    Distribution   = "Random"
+  })
+  selection_criteria = "LogGroupName NOT IN ${jsonencode(local.immutable_audit_k8s_raw_archive_excluded_log_groups)}"
+  scope              = "ALL"
 
   depends_on = [
     aws_iam_role_policy.immutable_audit_k8s_logs_to_firehose,
-    time_sleep.immutable_audit_k8s_firehose_ready,
+    aws_kinesis_firehose_delivery_stream.immutable_audit_k8s_raw,
   ]
 }

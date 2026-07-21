@@ -113,9 +113,9 @@ output "immutable_audit_k8s_raw_archive_firehose_kms_key_arn" {
   description = "Customer-managed KMS key encrypting the raw EKS audit archive Firehose delivery stream"
 }
 
-output "immutable_audit_k8s_raw_archive_subscription_filter_name" {
-  value       = aws_cloudwatch_log_subscription_filter.immutable_audit_k8s_raw_archive.name
-  description = "CloudWatch Logs subscription filter forwarding EKS audit logs to the immutable raw archive"
+output "immutable_audit_k8s_raw_archive_subscription_policy_name" {
+  value       = aws_cloudwatch_log_account_policy.immutable_audit_k8s_raw_archive.policy_name
+  description = "CloudWatch Logs account-level subscription policy forwarding Kubernetes audit events to the immutable raw archive"
 }
 
 output "immutable_audit_k8s_raw_archive_retention" {
