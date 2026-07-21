@@ -373,6 +373,14 @@ resource "aws_kinesis_firehose_delivery_stream" "immutable_audit_k8s_raw" {
   ]
 }
 
+resource "time_sleep" "immutable_audit_k8s_firehose_ready" {
+  create_duration = var.immutable_audit_k8s_raw_archive_subscription_ready_wait
+
+  depends_on = [
+    aws_kinesis_firehose_delivery_stream.immutable_audit_k8s_raw,
+  ]
+}
+
 data "aws_iam_policy_document" "immutable_audit_k8s_logs_to_firehose_assume" {
   statement {
     effect = "Allow"
@@ -437,6 +445,6 @@ resource "aws_cloudwatch_log_subscription_filter" "immutable_audit_k8s_raw_archi
 
   depends_on = [
     aws_iam_role_policy.immutable_audit_k8s_logs_to_firehose,
-    aws_kinesis_firehose_delivery_stream.immutable_audit_k8s_raw,
+    time_sleep.immutable_audit_k8s_firehose_ready,
   ]
 }
