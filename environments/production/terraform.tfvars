@@ -132,6 +132,13 @@ commerce_valkey_node_type      = "cache.t4g.micro"
 commerce_valkey_engine_version = "8.0"
 commerce_private_dns_zone      = "techx.internal"
 
+# MANDATE-20 criterion B: day-to-day operators (IAM group TF2-TEAM has
+# AdministratorAccess) must not casually delete backups or disable DynamoDB PITR.
+# Do not attach this deny policy to break-glass principals outside the group,
+# or to GitHubTerraform*Apply* roles (CI lifecycle).
+backup_protection_attach_group_names = ["TF2-TEAM"]
+backup_protection_attach_role_names  = []
+
 # Directive #8 managed PostgreSQL. Multi-AZ protects the revenue/accounting
 # path; t4g.small and gp3 are the right-sized production starting point.
 rds_postgresql_engine_version        = "16"
@@ -442,4 +449,4 @@ cost_optimization_backlog_athena_bytes_cutoff         = 1073741824
 cost_optimization_backlog_include_member_accounts     = false
 cost_optimization_backlog_manage_enrollment           = false
 cost_optimization_backlog_include_all_recommendations = false
-# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.
+# Change trail: @hungxqt - 2026-07-21 - Attach deny-destructive-backup policy to TF2-TEAM group.
