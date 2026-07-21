@@ -163,10 +163,18 @@ def _check_kms(errors):
 
 
 def _check_eventbridge(errors):
-    expected_targets_by_rule = {
-        **_env_json("EXPECTED_TAMPER_TARGETS_BY_RULE", {}),
-        **_env_json("EXPECTED_SCHEDULED_TARGETS_BY_RULE", {}),
-    }
+    expected_targets_by_rule = _env_json("EXPECTED_SCHEDULED_TARGETS_BY_RULE", {})
+    tamper_topic_rule_names = set(_env_json("TAMPER_TOPIC_RULE_NAMES", []))
+    tamper_topic_arn = os.environ["TAMPER_TOPIC_ARN"]
+    discord_queue_arn = os.environ.get("DISCORD_ALERT_QUEUE_ARN", "")
+    for rule_name in _env_json("TAMPER_RULE_NAMES", []):
+        expected_targets = []
+        if rule_name in tamper_topic_rule_names:
+            expected_targets.append(tamper_topic_arn)
+        if discord_queue_arn:
+            expected_targets.append(discord_queue_arn)
+        expected_targets_by_rule[rule_name] = expected_targets
+
     for rule_name in sorted(expected_targets_by_rule):
         rule = events.describe_rule(Name=rule_name)
         if rule.get("State") != "ENABLED":
