@@ -762,14 +762,9 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
       AUDIT_BUCKET                = aws_s3_bucket.immutable_audit.bucket
       CLOUDWATCH_LOG_GROUP        = aws_cloudwatch_log_group.immutable_audit.name
       CLOUDWATCH_RETENTION_DAYS   = tostring(var.immutable_audit_cloudwatch_retention_days)
+      DISCORD_ALERT_QUEUE_ARN     = local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord[0].arn : ""
       DISCORD_WEBHOOK_SECRET_ARN  = local.immutable_audit_discord_enabled ? local.immutable_audit_discord_webhook_secret_arn : ""
       EXPECTED_S3_DATA_EVENT_ARNS = jsonencode(sort(tolist(var.immutable_audit_s3_data_event_object_arns)))
-      EXPECTED_TAMPER_TARGETS_BY_RULE = jsonencode({
-        for key, rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.name => compact([
-          contains(local.immutable_audit_email_tamper_rule_keys, key) ? aws_sns_topic.immutable_audit_tamper_alerts.arn : "",
-          local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord[0].arn : "",
-        ])
-      })
       EXPECTED_SCHEDULED_TARGETS_BY_RULE = jsonencode(merge(
         {
           (aws_cloudwatch_event_rule.immutable_audit_health_check[0].name) = [local.immutable_audit_health_check_lambda_arn]
@@ -804,6 +799,7 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
       RAW_ARCHIVE_OBJECT_LOCK_MODE      = var.immutable_audit_k8s_raw_archive_retention_mode
       TAMPER_RULE_NAMES                 = jsonencode([for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.name])
       TAMPER_TOPIC_ARN                  = aws_sns_topic.immutable_audit_tamper_alerts.arn
+      TAMPER_TOPIC_RULE_NAMES           = jsonencode([for key, rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.name if contains(local.immutable_audit_email_tamper_rule_keys, key)])
       TRAIL_NAME                        = aws_cloudtrail.immutable_audit.name
       VALIDATION_REPORT_BUCKET          = aws_s3_bucket.immutable_audit_k8s_raw.bucket
       VALIDATION_REPORT_PREFIX          = try(local.immutable_audit_validation_report_prefix, "validation-reports")
