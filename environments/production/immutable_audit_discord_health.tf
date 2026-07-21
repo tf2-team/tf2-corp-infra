@@ -1,6 +1,9 @@
 locals {
   immutable_audit_discord_enabled = var.immutable_audit_discord_alert_enabled
   immutable_audit_health_enabled  = var.immutable_audit_health_check_enabled
+  immutable_audit_health_check_name = (
+    "${local.immutable_audit_trail_name}-health-check"
+  )
 
   immutable_audit_discord_webhook_secret_arn = (
     var.immutable_audit_discord_webhook_secret_arn != ""
@@ -490,11 +493,11 @@ resource "aws_lambda_event_source_mapping" "immutable_audit_discord_forwarder" {
 resource "aws_iam_role" "immutable_audit_health_check" {
   count = local.immutable_audit_health_enabled ? 1 : 0
 
-  name               = "${local.immutable_audit_trail_name}-health-check"
+  name               = local.immutable_audit_health_check_name
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
 
   tags = merge(var.tags, {
-    Name    = "${local.immutable_audit_trail_name}-health-check"
+    Name    = local.immutable_audit_health_check_name
     Mandate = "MD12"
     Purpose = "audit-control-health-check"
   })
@@ -543,7 +546,34 @@ data "aws_iam_policy_document" "immutable_audit_health_check" {
       "s3:GetBucketObjectLockConfiguration",
       "s3:GetBucketVersioning",
     ]
-    resources = [aws_s3_bucket.immutable_audit.arn]
+    resources = [
+      aws_s3_bucket.immutable_audit.arn,
+      aws_s3_bucket.immutable_audit_k8s_raw.arn,
+    ]
+  }
+
+  statement {
+    sid    = "ListValidationReports"
+    effect = "Allow"
+
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.immutable_audit_k8s_raw.arn]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values = [
+        "${local.immutable_audit_validation_report_prefix}/*",
+      ]
+    }
+  }
+
+  statement {
+    sid    = "ReadValidationReports"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.immutable_audit_k8s_raw.arn}/${local.immutable_audit_validation_report_prefix}/*"]
   }
 
   statement {
@@ -551,12 +581,46 @@ data "aws_iam_policy_document" "immutable_audit_health_check" {
     effect = "Allow"
 
     actions = ["kms:DescribeKey"]
-    resources = [
+    resources = compact([
       aws_kms_key.immutable_audit.arn,
       aws_kms_key.immutable_audit_sns.arn,
       aws_kms_key.immutable_audit_alert_sns.arn,
       aws_kms_key.immutable_audit_alert_runtime[0].arn,
-    ]
+      try(aws_kms_key.immutable_audit_k8s_firehose.arn, ""),
+      try(aws_kms_key.immutable_audit_k8s_sealer_runtime[0].arn, ""),
+      try(aws_kms_key.immutable_audit_k8s_sealer_signing[0].arn, ""),
+      try(aws_kms_key.immutable_audit_validation_runtime[0].arn, ""),
+    ])
+  }
+
+  dynamic "statement" {
+    for_each = local.immutable_audit_k8s_sealer_enabled ? [1] : []
+
+    content {
+      sid    = "ReadK8sSealerCheckpointTable"
+      effect = "Allow"
+
+      actions   = ["dynamodb:GetItem"]
+      resources = [aws_dynamodb_table.immutable_audit_k8s_sealer_checkpoint[0].arn]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = local.immutable_audit_k8s_sealer_enabled ? [1] : []
+
+    content {
+      sid    = "ReadK8sSealerCheckpointKms"
+      effect = "Allow"
+
+      actions   = ["kms:Decrypt"]
+      resources = [aws_kms_key.immutable_audit_k8s_sealer_runtime[0].arn]
+
+      condition {
+        test     = "StringEquals"
+        variable = "kms:ViaService"
+        values   = ["dynamodb.${var.aws_region}.amazonaws.com"]
+      }
+    }
   }
 
   statement {
@@ -580,7 +644,17 @@ data "aws_iam_policy_document" "immutable_audit_health_check" {
       "events:DescribeRule",
       "events:ListTargetsByRule",
     ]
-    resources = [for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.arn]
+    resources = concat(
+      concat(
+        [for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.arn],
+        [aws_cloudwatch_event_rule.immutable_audit_health_check[0].arn]
+      ),
+      compact([
+        try(aws_cloudwatch_event_rule.immutable_audit_k8s_sealer[0].arn, ""),
+        try(aws_cloudwatch_event_rule.immutable_audit_cloudtrail_validator[0].arn, ""),
+        try(aws_cloudwatch_event_rule.immutable_audit_k8s_manifest_validator[0].arn, ""),
+      ])
+    )
   }
 
   statement {
@@ -619,12 +693,26 @@ data "aws_iam_policy_document" "immutable_audit_health_check" {
     resources = [aws_sqs_queue.immutable_audit_health_lambda_dlq[0].arn]
   }
 
+  statement {
+    sid    = "ReadAuditDlqDepth"
+    effect = "Allow"
+
+    actions = ["sqs:GetQueueAttributes"]
+    resources = compact([
+      local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord_dlq[0].arn : "",
+      local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord_lambda_dlq[0].arn : "",
+      aws_sqs_queue.immutable_audit_health_lambda_dlq[0].arn,
+      try(aws_sqs_queue.immutable_audit_k8s_sealer_dlq[0].arn, ""),
+      try(aws_sqs_queue.immutable_audit_validation_dlq[0].arn, ""),
+    ])
+  }
+
 }
 
 resource "aws_iam_role_policy" "immutable_audit_health_check" {
   count = local.immutable_audit_health_enabled ? 1 : 0
 
-  name   = "${local.immutable_audit_trail_name}-health-check"
+  name   = local.immutable_audit_health_check_name
   role   = aws_iam_role.immutable_audit_health_check[0].id
   policy = data.aws_iam_policy_document.immutable_audit_health_check[0].json
 }
@@ -632,11 +720,11 @@ resource "aws_iam_role_policy" "immutable_audit_health_check" {
 resource "aws_cloudwatch_log_group" "immutable_audit_health_check" {
   count = local.immutable_audit_health_enabled ? 1 : 0
 
-  name              = "/aws/lambda/${local.immutable_audit_trail_name}-health-check"
+  name              = "/aws/lambda/${local.immutable_audit_health_check_name}"
   retention_in_days = 30
 
   tags = merge(var.tags, {
-    Name    = "/aws/lambda/${local.immutable_audit_trail_name}-health-check"
+    Name    = "/aws/lambda/${local.immutable_audit_health_check_name}"
     Mandate = "MD12"
     Purpose = "audit-control-health-check"
   })
@@ -648,7 +736,7 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
   #checkov:skip=CKV_AWS_272:Code signing is deferred because this repo does not yet manage a signing profile; source hash and Terraform review remain the deployment control for this capstone.
   count = local.immutable_audit_health_enabled ? 1 : 0
 
-  function_name    = "${local.immutable_audit_trail_name}-health-check"
+  function_name    = local.immutable_audit_health_check_name
   description      = "Checks Mandate 12 audit controls and publishes a health metric."
   role             = aws_iam_role.immutable_audit_health_check[0].arn
   handler          = "immutable_audit_health_check.handler"
@@ -671,26 +759,56 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
       AUDIT_BUCKET                = aws_s3_bucket.immutable_audit.bucket
       CLOUDWATCH_LOG_GROUP        = aws_cloudwatch_log_group.immutable_audit.name
       CLOUDWATCH_RETENTION_DAYS   = tostring(var.immutable_audit_cloudwatch_retention_days)
+      DISCORD_ALERT_QUEUE_ARN     = local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord[0].arn : ""
       DISCORD_WEBHOOK_SECRET_ARN  = local.immutable_audit_discord_enabled ? local.immutable_audit_discord_webhook_secret_arn : ""
-      EXPECTED_S3_DATA_EVENT_ARNS = jsonencode(sort(tolist(var.immutable_audit_s3_data_event_object_arns)))
-      EXPECTED_TAMPER_TARGETS_BY_RULE = jsonencode({
-        for key, rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.name => compact([
-          contains(local.immutable_audit_email_tamper_rule_keys, key) ? aws_sns_topic.immutable_audit_tamper_alerts.arn : "",
-          local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord[0].arn : "",
-        ])
-      })
-      KMS_KEY_IDS              = jsonencode([aws_kms_key.immutable_audit.arn, aws_kms_key.immutable_audit_sns.arn, aws_kms_key.immutable_audit_alert_sns.arn])
-      MAX_DELIVERY_AGE_MINUTES = tostring(var.immutable_audit_health_check_max_delivery_age_minutes)
-      OBJECT_LOCK_DAYS         = tostring(var.immutable_audit_retention_days)
-      OBJECT_LOCK_MODE         = var.immutable_audit_retention_mode
+      EXPECTED_S3_DATA_EVENT_ARNS = jsonencode(sort(tolist(local.immutable_audit_s3_data_event_object_arns)))
+      K8S_SEALER_CHECKPOINT_TABLE = try(aws_dynamodb_table.immutable_audit_k8s_sealer_checkpoint[0].name, "")
+      K8S_SEALER_CHAIN_ID         = try(local.immutable_audit_k8s_sealer_chain_id, "")
+      KMS_KEY_IDS = jsonencode(compact([
+        aws_kms_key.immutable_audit.key_id,
+        aws_kms_key.immutable_audit_sns.key_id,
+        aws_kms_key.immutable_audit_alert_sns.key_id,
+        aws_kms_key.immutable_audit_alert_runtime[0].key_id,
+        try(aws_kms_key.immutable_audit_k8s_firehose.key_id, ""),
+        try(aws_kms_key.immutable_audit_k8s_sealer_runtime[0].key_id, ""),
+        try(aws_kms_key.immutable_audit_k8s_sealer_signing[0].key_id, ""),
+        try(aws_kms_key.immutable_audit_validation_runtime[0].key_id, ""),
+      ]))
+      MAX_DELIVERY_AGE_MINUTES          = tostring(var.immutable_audit_health_check_max_delivery_age_minutes)
+      MAX_DLQ_VISIBLE_MESSAGES          = tostring(var.immutable_audit_health_check_max_dlq_visible_messages)
+      MAX_VALIDATION_REPORT_AGE_MINUTES = tostring(var.immutable_audit_health_check_max_validation_report_age_minutes)
+      OBJECT_LOCK_DAYS                  = tostring(var.immutable_audit_retention_days)
+      OBJECT_LOCK_MODE                  = var.immutable_audit_retention_mode
+      RAW_ARCHIVE_BUCKET                = aws_s3_bucket.immutable_audit_k8s_raw.bucket
+      RAW_ARCHIVE_OBJECT_LOCK_DAYS      = tostring(var.immutable_audit_k8s_raw_archive_retention_days)
+      RAW_ARCHIVE_OBJECT_LOCK_MODE      = var.immutable_audit_k8s_raw_archive_retention_mode
+      SCHEDULED_RULE_NAMES = jsonencode(compact(concat(
+        [aws_cloudwatch_event_rule.immutable_audit_health_check[0].name],
+        local.immutable_audit_k8s_sealer_enabled ? [aws_cloudwatch_event_rule.immutable_audit_k8s_sealer[0].name] : [],
+        local.immutable_audit_validation_enabled ? [
+          aws_cloudwatch_event_rule.immutable_audit_cloudtrail_validator[0].name,
+          aws_cloudwatch_event_rule.immutable_audit_k8s_manifest_validator[0].name,
+        ] : []
+      )))
       TAMPER_RULE_NAMES        = jsonencode([for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.name])
       TAMPER_TOPIC_ARN         = aws_sns_topic.immutable_audit_tamper_alerts.arn
+      TAMPER_TOPIC_RULE_NAMES  = jsonencode([for key, rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.name if contains(local.immutable_audit_email_tamper_rule_keys, key)])
       TRAIL_NAME               = aws_cloudtrail.immutable_audit.name
+      VALIDATION_REPORT_BUCKET = aws_s3_bucket.immutable_audit_k8s_raw.bucket
+      VALIDATION_REPORT_PREFIX = try(local.immutable_audit_validation_report_prefix, "validation-reports")
+      VALIDATION_REPORT_TYPES  = jsonencode(["cloudtrail", "k8s-manifests"])
+      AUDIT_DLQ_URLS = jsonencode(compact([
+        local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord_dlq[0].url : "",
+        local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord_lambda_dlq[0].url : "",
+        aws_sqs_queue.immutable_audit_health_lambda_dlq[0].url,
+        try(aws_sqs_queue.immutable_audit_k8s_sealer_dlq[0].url, ""),
+        try(aws_sqs_queue.immutable_audit_validation_dlq[0].url, ""),
+      ]))
     }
   }
 
   tags = merge(var.tags, {
-    Name    = "${local.immutable_audit_trail_name}-health-check"
+    Name    = local.immutable_audit_health_check_name
     Mandate = "MD12"
     Purpose = "audit-control-health-check"
   })
@@ -704,13 +822,13 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
 resource "aws_cloudwatch_event_rule" "immutable_audit_health_check" {
   count = local.immutable_audit_health_enabled ? 1 : 0
 
-  name                = "${local.immutable_audit_trail_name}-health-check"
+  name                = local.immutable_audit_health_check_name
   description         = "Scheduled health check for Mandate 12 immutable audit controls."
   schedule_expression = var.immutable_audit_health_check_schedule_expression
   state               = "ENABLED"
 
   tags = merge(var.tags, {
-    Name    = "${local.immutable_audit_trail_name}-health-check"
+    Name    = local.immutable_audit_health_check_name
     Mandate = "MD12"
     Purpose = "audit-control-health-check"
   })

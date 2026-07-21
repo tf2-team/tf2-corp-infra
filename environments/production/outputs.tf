@@ -64,8 +64,8 @@ output "immutable_audit_tamper_alert_topic_arn" {
 }
 
 output "immutable_audit_s3_data_event_object_arns" {
-  value       = var.immutable_audit_s3_data_event_object_arns
-  description = "S3 object ARN scopes logged as CloudTrail data events for Mandate 12.2"
+  value       = local.immutable_audit_s3_data_event_object_arns
+  description = "S3 object ARN scopes logged as CloudTrail data events for Mandate 12.2, derived from the sensitive coverage registry plus any legacy variable overrides"
 }
 
 output "immutable_audit_discord_webhook_secret_arn" {
@@ -151,6 +151,34 @@ output "immutable_audit_k8s_sealer_manifest_prefix" {
 output "immutable_audit_k8s_sealer_dlq_url" {
   value       = local.immutable_audit_k8s_sealer_enabled ? aws_sqs_queue.immutable_audit_k8s_sealer_dlq[0].url : null
   description = "DLQ for failed scheduled K8s audit sealer invocations"
+}
+
+output "immutable_audit_cloudtrail_validator_lambda_name" {
+  value       = local.immutable_audit_validation_enabled ? aws_lambda_function.immutable_audit_cloudtrail_validator[0].function_name : null
+  description = "Lambda that writes scheduled CloudTrail validation health reports"
+}
+
+output "immutable_audit_k8s_manifest_validator_lambda_name" {
+  value       = local.immutable_audit_validation_enabled ? aws_lambda_function.immutable_audit_k8s_manifest_validator[0].function_name : null
+  description = "Lambda that validates signed K8s audit manifest chains"
+}
+
+output "immutable_audit_validation_report_prefix" {
+  value       = local.immutable_audit_validation_enabled ? local.immutable_audit_validation_report_prefix : null
+  description = "S3 prefix in the raw archive bucket where immutable validation reports are written"
+}
+
+output "immutable_audit_validation_dlq_url" {
+  value       = local.immutable_audit_validation_enabled ? aws_sqs_queue.immutable_audit_validation_dlq[0].url : null
+  description = "DLQ for failed scheduled Mandate 12 validation invocations"
+}
+
+output "immutable_audit_validation_alarm_names" {
+  value = local.immutable_audit_validation_enabled ? {
+    cloudtrail    = aws_cloudwatch_metric_alarm.immutable_audit_cloudtrail_validation[0].alarm_name
+    k8s_manifests = aws_cloudwatch_metric_alarm.immutable_audit_k8s_manifest_validation[0].alarm_name
+  } : null
+  description = "CloudWatch alarms that detect Mandate 12 validation failure or missing validation metrics"
 }
 
 # ──────────────────────────────────────────────

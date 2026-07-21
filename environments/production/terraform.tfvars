@@ -10,16 +10,18 @@ tags = {
 # Mandate 12.1 audit tamper email alerts. Add real inboxes and confirm AWS SNS subscription emails after apply.
 immutable_audit_alert_email_endpoints = ["ctran13904@gmail.com"]
 
-# Mandate 12.2 S3 data events. Scope narrowly to sensitive model artifacts to limit CloudTrail data-event cost.
+# Mandate 12.2 S3 data events are driven by audit_sensitive_coverage.yaml.
+# Keep this override empty unless a one-off ARN must be added without registry metadata.
 immutable_audit_s3_data_event_object_arns = [
-  "arn:aws:s3:::techx-prod-tf2-ai-models-493499579600/"
 ]
 
 # Mandate 12.1 multi-channel alerting and continuous audit control health checks.
 # Bootstrap the Discord webhook into the created Secrets Manager secret outside Terraform:
 # aws secretsmanager put-secret-value --secret-id techx-prod-tf2-mandate12-immutable-audit-discord-webhook --secret-string 'https://discord.com/api/webhooks/...'
-immutable_audit_discord_alert_enabled = true
-immutable_audit_health_check_enabled  = true
+immutable_audit_discord_alert_enabled                          = true
+immutable_audit_health_check_enabled                           = true
+immutable_audit_health_check_max_validation_report_age_minutes = 180
+immutable_audit_health_check_max_dlq_visible_messages          = 0
 
 # Mandate 12 Phase 2: immutable raw EKS audit archive.
 # Uses an account-level subscription policy because the EKS audit log group
@@ -36,6 +38,15 @@ immutable_audit_k8s_sealer_window_minutes         = 15
 immutable_audit_k8s_sealer_delay_minutes          = 10
 immutable_audit_k8s_sealer_lambda_timeout_seconds = 300
 immutable_audit_k8s_sealer_lambda_memory_mb       = 512
+
+# Mandate 12 Phase 4: scheduled integrity validation reports.
+immutable_audit_validation_enabled                     = true
+immutable_audit_validation_schedule_expression         = "rate(1 hour)"
+immutable_audit_cloudtrail_validation_lookback_hours   = 24
+immutable_audit_k8s_manifest_validation_lookback_hours = 6
+immutable_audit_validation_delay_minutes               = 30
+immutable_audit_validation_lambda_timeout_seconds      = 600
+immutable_audit_validation_lambda_memory_mb            = 512
 
 # Image format: REGISTRY/techx-prod-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).

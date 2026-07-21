@@ -100,6 +100,18 @@ variable "immutable_audit_health_check_max_delivery_age_minutes" {
   default     = 60
 }
 
+variable "immutable_audit_health_check_max_validation_report_age_minutes" {
+  type        = number
+  description = "Maximum allowed age for the latest immutable validation report before the audit health check fails."
+  default     = 180
+}
+
+variable "immutable_audit_health_check_max_dlq_visible_messages" {
+  type        = number
+  description = "Maximum allowed visible messages in audit DLQs before the health check fails."
+  default     = 0
+}
+
 variable "immutable_audit_k8s_raw_archive_bucket_name" {
   type        = string
   description = "Optional S3 bucket name for immutable raw EKS audit logs. Leave empty to derive from project name and account ID."
@@ -199,6 +211,73 @@ variable "immutable_audit_k8s_sealer_lambda_memory_mb" {
   validation {
     condition     = var.immutable_audit_k8s_sealer_lambda_memory_mb >= 128 && var.immutable_audit_k8s_sealer_lambda_memory_mb <= 10240
     error_message = "immutable_audit_k8s_sealer_lambda_memory_mb must be between 128 and 10240."
+  }
+}
+
+variable "immutable_audit_validation_enabled" {
+  type        = bool
+  description = "Enable Mandate 12 Phase 4 validation Lambdas for CloudTrail and K8s signed audit manifests."
+  default     = true
+}
+
+variable "immutable_audit_validation_schedule_expression" {
+  type        = string
+  description = "EventBridge schedule expression for Mandate 12 validation Lambdas."
+  default     = "rate(1 hour)"
+}
+
+variable "immutable_audit_cloudtrail_validation_lookback_hours" {
+  type        = number
+  description = "Lookback window in hours for CloudTrail validation reports."
+  default     = 24
+
+  validation {
+    condition     = var.immutable_audit_cloudtrail_validation_lookback_hours >= 1 && var.immutable_audit_cloudtrail_validation_lookback_hours <= 168
+    error_message = "immutable_audit_cloudtrail_validation_lookback_hours must be between 1 and 168."
+  }
+}
+
+variable "immutable_audit_k8s_manifest_validation_lookback_hours" {
+  type        = number
+  description = "Lookback window in hours for K8s signed manifest validation reports."
+  default     = 6
+
+  validation {
+    condition     = var.immutable_audit_k8s_manifest_validation_lookback_hours >= 1 && var.immutable_audit_k8s_manifest_validation_lookback_hours <= 168
+    error_message = "immutable_audit_k8s_manifest_validation_lookback_hours must be between 1 and 168."
+  }
+}
+
+variable "immutable_audit_validation_delay_minutes" {
+  type        = number
+  description = "Delay, in minutes, before validating recently delivered audit artifacts."
+  default     = 30
+
+  validation {
+    condition     = var.immutable_audit_validation_delay_minutes >= 0 && var.immutable_audit_validation_delay_minutes <= 240
+    error_message = "immutable_audit_validation_delay_minutes must be between 0 and 240."
+  }
+}
+
+variable "immutable_audit_validation_lambda_timeout_seconds" {
+  type        = number
+  description = "Timeout in seconds for Mandate 12 validation Lambdas."
+  default     = 600
+
+  validation {
+    condition     = var.immutable_audit_validation_lambda_timeout_seconds >= 30 && var.immutable_audit_validation_lambda_timeout_seconds <= 900
+    error_message = "immutable_audit_validation_lambda_timeout_seconds must be between 30 and 900."
+  }
+}
+
+variable "immutable_audit_validation_lambda_memory_mb" {
+  type        = number
+  description = "Memory size in MB for Mandate 12 validation Lambdas."
+  default     = 512
+
+  validation {
+    condition     = var.immutable_audit_validation_lambda_memory_mb >= 128 && var.immutable_audit_validation_lambda_memory_mb <= 10240
+    error_message = "immutable_audit_validation_lambda_memory_mb must be between 128 and 10240."
   }
 }
 
