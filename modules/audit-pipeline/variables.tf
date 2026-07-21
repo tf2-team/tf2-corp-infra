@@ -41,8 +41,16 @@ variable "k8s_audit_filter_pattern" {
   default     = "{ ($.objectRef.resource = \"clusterrolebindings\" || $.objectRef.resource = \"rolebindings\") || ($.objectRef.resource = \"secrets\" && ($.verb = \"get\" || $.verb = \"list\" || $.verb = \"watch\")) || ($.objectRef.subresource = \"exec\") || (($.objectRef.resource = \"pods\" || $.objectRef.resource = \"deployments\" || $.objectRef.resource = \"statefulsets\" || $.objectRef.resource = \"daemonsets\") && ($.verb = \"create\" || $.verb = \"update\" || $.verb = \"patch\")) || ($.verb = \"delete\" && $.objectRef.namespace = \"techx-*\" && ($.objectRef.resource = \"deployments\" || $.objectRef.resource = \"statefulsets\" || $.objectRef.resource = \"services\" || $.objectRef.resource = \"configmaps\")) }"
 }
 
+variable "lambda_reserved_concurrent_executions" {
+  type        = number
+  default     = -1
+  description = "Reserved concurrency for parse and alert Lambdas. Default -1 uses the account unreserved pool (required when the account cannot spare reserved concurrency without dropping UnreservedConcurrentExecution below AWS's minimum of 10). Set a positive value only after confirming regional quota headroom."
+}
+
 variable "tags" {
   type        = map(string)
   default     = {}
   description = "Tags chung áp cho mọi resource trong module"
 }
+
+# Change trail: @hungxqt - 2026-07-21 - Added lambda_reserved_concurrent_executions defaulting to -1 for account quota headroom.
