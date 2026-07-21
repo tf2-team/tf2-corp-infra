@@ -163,7 +163,7 @@ def _check_kms(errors):
 
 
 def _check_eventbridge(errors):
-    expected_targets_by_rule = _env_json("EXPECTED_SCHEDULED_TARGETS_BY_RULE", {})
+    expected_targets_by_rule = {}
     tamper_topic_rule_names = set(_env_json("TAMPER_TOPIC_RULE_NAMES", []))
     tamper_topic_arn = os.environ["TAMPER_TOPIC_ARN"]
     discord_queue_arn = os.environ.get("DISCORD_ALERT_QUEUE_ARN", "")
@@ -175,11 +175,14 @@ def _check_eventbridge(errors):
             expected_targets.append(discord_queue_arn)
         expected_targets_by_rule[rule_name] = expected_targets
 
-    for rule_name in sorted(expected_targets_by_rule):
+    scheduled_rule_names = set(_env_json("SCHEDULED_RULE_NAMES", []))
+    for rule_name in sorted(set(expected_targets_by_rule) | scheduled_rule_names):
         rule = events.describe_rule(Name=rule_name)
         if rule.get("State") != "ENABLED":
             errors.append(f"EventBridge rule is not ENABLED: {rule_name}")
         targets = events.list_targets_by_rule(Rule=rule_name).get("Targets", [])
+        if rule_name in scheduled_rule_names and not targets:
+            errors.append(f"EventBridge scheduled rule has no targets: {rule_name}")
         target_arns = {target.get("Arn") for target in targets}
         expected_target_arns = set(expected_targets_by_rule.get(rule_name, []))
         missing = expected_target_arns - target_arns
