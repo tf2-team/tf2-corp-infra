@@ -1458,7 +1458,9 @@ data "aws_iam_policy_document" "policy_controller" {
       "ecr:DescribeRepositories",
       "ecr:ListImages"
     ]
-    resources = ["*"]
+    resources = [
+      "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/techx-corp/*"
+    ]
   }
 
   statement {
