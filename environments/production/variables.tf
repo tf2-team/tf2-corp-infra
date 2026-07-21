@@ -134,12 +134,6 @@ variable "immutable_audit_k8s_raw_archive_firehose_log_retention_days" {
   default     = 30
 }
 
-variable "immutable_audit_k8s_raw_archive_subscription_filter_name" {
-  type        = string
-  description = "CloudWatch Logs subscription filter name that forwards EKS audit logs to the immutable raw archive Firehose stream."
-  default     = "immutable-k8s-audit-raw-archive"
-}
-
 variable "immutable_audit_k8s_raw_archive_buffering_size_mb" {
   type        = number
   description = "Kinesis Data Firehose S3 buffering size in MiB for raw EKS audit archive delivery."
@@ -150,12 +144,6 @@ variable "immutable_audit_k8s_raw_archive_buffering_interval_seconds" {
   type        = number
   description = "Kinesis Data Firehose S3 buffering interval in seconds for raw EKS audit archive delivery."
   default     = 300
-}
-
-variable "immutable_audit_k8s_raw_archive_subscription_ready_wait" {
-  type        = string
-  description = "Delay after Firehose creation before creating the CloudWatch Logs subscription filter. PutSubscriptionFilter sends an immediate test message and can fail while Firehose is still becoming active."
-  default     = "90s"
 }
 
 variable "ecr_project_name" {

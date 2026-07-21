@@ -6,7 +6,7 @@ Add the immutable raw Kubernetes audit archive path required by Mandate 12:
 
 ```text
 EKS audit CloudWatch Logs
-  -> CloudWatch Logs subscription filter
+  -> CloudWatch Logs account-level subscription policy
   -> Kinesis Data Firehose
   -> S3 Object Lock raw archive bucket
 ```
@@ -39,37 +39,38 @@ errors/cluster=<cluster>/<error-type>/year=<yyyy>/month=<MM>/day=<dd>/hour=<HH>/
 /aws/kinesisfirehose/techx-prod-tf2-k8s-audit-raw-archive
 ```
 
-- Adds CloudWatch Logs subscription filter on:
+- Adds a CloudWatch Logs account-level subscription policy:
 
 ```text
-/aws/eks/techx-tf2-prod/cluster
+techx-prod-tf2-k8s-audit-raw-archive
 ```
 
-Filter name:
+The policy forwards JSON Kubernetes audit events matching:
 
 ```text
-immutable-k8s-audit-raw-archive
+{ $.apiVersion = "audit.k8s.io/v1" && $.kind = "Event" }
 ```
 
-- Adds a 90-second Terraform wait barrier before creating the subscription filter. `PutSubscriptionFilter` sends a test message immediately and may fail while a newly created Firehose stream is still becoming ACTIVE.
+The account policy is used instead of a third per-log-group subscription filter because `/aws/eks/techx-tf2-prod/cluster` already has the CloudWatch Logs per-log-group subscription filter quota occupied by the Mandate 05 and Mandate 11 pipelines.
 
 ## Safety Notes
 
 - This does not attach or change SCPs.
 - This does not change CloudTrail event selectors.
-- This preserves the existing runtime-hardening subscription filter. Production currently has one subscription filter on the EKS cluster log group, and this change adds the second one.
+- This preserves the existing runtime-hardening and high-risk audit parser subscription filters on the EKS cluster log group.
+- The account-level policy excludes the Firehose delivery log group to avoid subscription recursion.
 - The Firehose delivery stream is encrypted with a CMK to satisfy IaC policy checks for stream-at-rest encryption.
 - SSE-S3 is used for the raw archive bucket to keep S3 delivery simple during the MVP. Object Lock is the primary retention/integrity control for this phase.
 
 ## Post-Apply Verification
 
-Check subscription filters:
+Check the account-level subscription policy:
 
 ```bash
-aws logs describe-subscription-filters \
+aws logs describe-account-policies \
   --region us-east-1 \
-  --log-group-name /aws/eks/techx-tf2-prod/cluster \
-  --output table
+  --policy-type SUBSCRIPTION_FILTER_POLICY \
+  --output json
 ```
 
 Create a harmless K8s audit event:
