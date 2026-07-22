@@ -50,12 +50,12 @@ immutable_audit_validation_lambda_memory_mb            = 512
 
 # Image format: REGISTRY/techx-prod-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
-# Lifecycle matches development (keep last 5 images + 1 buildcache).
+# Lifecycle matches development (keep last 5 images; buildcache keep 0).
 ecr_project_name           = "techx-prod-corp"
 ecr_naming_mode            = "nested"
 ecr_image_tag_mutability   = "IMMUTABLE"
 ecr_keep_last_n_images     = 5
-ecr_keep_last_n_buildcache = 1
+ecr_keep_last_n_buildcache = 0
 ecr_scan_on_push           = false
 ecr_force_delete           = true
 ecr_repository_overrides = {
@@ -457,4 +457,4 @@ cost_optimization_backlog_athena_bytes_cutoff         = 1073741824
 cost_optimization_backlog_include_member_accounts     = false
 cost_optimization_backlog_manage_enrollment           = false
 cost_optimization_backlog_include_all_recommendations = false
-# Change trail: @hungxqt - 2026-07-21 - Attach deny-destructive-backup policy to TF2-TEAM group.
+# Change trail: @hungxqt - 2026-07-22 - Set ecr_keep_last_n_buildcache to 0; keep images at 5.
