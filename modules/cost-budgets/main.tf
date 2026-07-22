@@ -70,8 +70,7 @@ resource "aws_sns_topic" "cost_alerts" {
   count = local.create ? 1 : 0
 
   name = local.topic_name
-  # Use AWS-managed SNS key (alias/aws/sns) — satisfies CKV_AWS_50 without CMK cost.
-  kms_master_key_id = "alias/aws/sns"
+  #checkov:skip=CKV_AWS_26:AWS Budgets must publish to this topic; alias/aws/sns cannot grant budgets.amazonaws.com KMS access, so keep this low-sensitivity alert topic unencrypted.
 
   tags = merge(var.tags, {
     Name = local.topic_name
