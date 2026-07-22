@@ -17,8 +17,16 @@ spec:
     httpProtocolIPv6: disabled
     httpPutResponseHopLimit: 2
     httpTokens: required
+  blockDeviceMappings:
+    - deviceName: /dev/xvda
+      ebs:
+        volumeSize: {{ .Values.rootVolumeSize | default "20Gi" }}
+        volumeType: gp3
+        encrypted: true
+        deleteOnTermination: true
   {{- /* maxPods requires VPC CNI prefix delegation for values above ENI secondary-IP defaults */}}
   {{- if .Values.maxPods }}
   kubelet:
     maxPods: {{ .Values.maxPods }}
   {{- end }}
+# Change trail: @hungxqt - 2026-07-22 - Explicit encrypted gp3 root volume on EC2NodeClass.

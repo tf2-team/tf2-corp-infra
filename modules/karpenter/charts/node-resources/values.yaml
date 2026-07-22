@@ -8,6 +8,8 @@ terminationGracePeriod: 1h
 consolidateAfter: 0s
 cpuLimit: "32"
 memoryLimit: "64Gi"
+# Root EBS for Karpenter nodes (encrypted gp3; matches live stateless-spot roots).
+rootVolumeSize: 20Gi
 # kubelet maxPods (null/omit = AMI default). Pair with VPC CNI prefix delegation.
 maxPods: 110
 
@@ -28,4 +30,4 @@ nodeTaints: []
 # List of requirement objects: { key, operator, values }
 spotRequirements: []
 onDemandRequirements: []
-# Change trail: @hungxqt - 2026-07-15 - Default consolidateAfter to 0s for immediate empty reclaim.
+# Change trail: @hungxqt - 2026-07-22 - Add rootVolumeSize for encrypted Karpenter root EBS.

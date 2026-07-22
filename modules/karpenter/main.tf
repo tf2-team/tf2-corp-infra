@@ -797,6 +797,7 @@ resource "helm_release" "node_resources" {
       cpuLimit               = var.nodepool_cpu_limit
       memoryLimit            = var.nodepool_memory_limit
       maxPods                = var.node_max_pods
+      rootVolumeSize         = "20Gi"
       nodepoolWeights = {
         spot     = var.nodepool_weights.spot
         onDemand = var.nodepool_weights.on_demand
@@ -816,4 +817,4 @@ resource "helm_release" "node_resources" {
     helm_release.karpenter,
   ]
 }
-# Change trail: @hungxqt - 2026-07-15 - Pass the bounded node termination grace period to NodePool resources.
+# Change trail: @hungxqt - 2026-07-22 - Pass encrypted root volume size into Karpenter EC2NodeClass.
