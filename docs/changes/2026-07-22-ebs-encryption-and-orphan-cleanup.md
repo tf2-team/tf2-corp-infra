@@ -69,43 +69,72 @@ Live inventory showed account EBS encryption-by-default **disabled**, unencrypte
 
 | Field | Value |
 |---|---|
-| Before | 9 available volumes listed above |
-| After snapshots | *(pending ops)* VolumeId → SnapshotId map |
-| After deletes | *(pending ops)* available count → 0 for listed IDs |
-| Expected | 9 volumes removed; snaps retained with `Purpose=ebs-encrypt-2026-07` |
+| Before timestamp | 2026-07-22T09:51:49Z |
+| Before | 9 available volumes; all Attachments=0; default encryption still false |
+| After snapshots (completed ~09:53:44Z) | All 9 snaps `completed` 100% (map below) |
+| After deletes (~09:54:00Z) | All 9 VolumeIds deleted (`InvalidVolume.NotFound` on recheck); available count **0** |
+| Expected met | **Yes** |
+
+**VolumeId → SnapshotId map:**
+
+| VolumeId (deleted) | SnapshotId | PVC | Cluster | Size |
+|---|---|---|---|---|
+| `vol-09441ba14e7a6d03b` | `snap-05e7f98bbca6809d4` | postgresql-data-postgresql-0 | techx-tf2 | 5 |
+| `vol-0558dae370515a86b` | `snap-058fcf0bd3714f7da` | postgresql-data-postgresql-0 | techx-tf2-prod | 5 |
+| `vol-032f5b903a96894ed` | `snap-020f0c8a1cab86f3f` | valkey-cart-data-valkey-cart-0 | techx-tf2 | 2 |
+| `vol-01d0b18b29df61798` | `snap-0de8c83983fc4ccf9` | kafka-data-kafka-0 | techx-tf2-prod | 5 |
+| `vol-00586f3fddb2f589a` | `snap-0e6072d25fbdf5356` | postgresql-data-postgresql-0 | techx-dev | 5 |
+| `vol-02a0ccd04b592c5f2` | `snap-0215bcca874d2f588` | kafka-data-kafka-0 | techx-tf2 | 5 |
+| `vol-04a20efd8430e5532` | `snap-0773bb3c2a55fbbe4` | valkey-cart-data-valkey-cart-0 | techx-tf2-prod | 2 |
+| `vol-02041908660d2fd83` | `snap-0da49b77e78df53c5` | valkey-cart-data-valkey-cart-0 | techx-dev | 2 |
+| `vol-0f1a26aca132626ab` | `snap-0698f4ea78687c7d7` | kafka-data-kafka-0 | techx-dev | 5 |
+
+Snapshots tagged `Purpose=ebs-encrypt-2026-07`, `RetainUntil=2026-08-05`.
 
 #### Phase 2.1 — Default encryption
 
 | Field | Value |
 |---|---|
-| Before | `EbsEncryptionByDefault=false` |
-| After | *(pending ops)* expect `true` |
+| Before | `EbsEncryptionByDefault=false` (09:51:49Z) |
+| Actions | `enable-ebs-encryption-by-default`; `modify-ebs-default-kms-key-id alias/aws/ebs` |
+| After timestamp | 2026-07-22T09:54:34Z |
+| After | `EbsEncryptionByDefault=true`; KMS key `arn:aws:kms:us-east-1:493499579600:key/95a1cd2e-9394-4c27-96af-279945336c09` (AWS managed EBS default) |
+| Expected met | **Yes** |
 
-#### Phase 2.2 — Terraform apply LT / Karpenter
+#### Phase 2.2 — Terraform apply LT / Karpenter (CI runner only)
+
+**Apply path:** production changes are applied by GitHub Actions **Promote Production** (`terraform-promote-production.yml` → `terraform-apply.yml` on `main`), **not** local `terraform apply`.
 
 | Field | Value |
 |---|---|
-| Before | Code not applied to cluster |
-| After | *(pending TF apply)* LT version + EC2NodeClass show encryption |
+| Before | Code committed on `main` (`e8d2152`); cluster may still have pre-apply LT/NodeClass |
+| Trigger | push to `main` paths `modules/**` → [Promote Production run 29909739406](https://github.com/tf2-team/tf2-corp-infra/actions/runs/29909739406) (started ~2026-07-22T09:53:05Z) |
+| Plan job | **success** (~24s) |
+| Apply job | **success** (~8m2s); overall conclusion **success** |
+| After | Runner applied production; LT `encrypted=true` + Karpenter EC2NodeClass mapping from modules |
+| Local apply | **Not used** (infra applies only via repo CI runner) |
 
 #### Phase 2.3 — MNG node roll
 
 | Field | Value |
 |---|---|
-| Before roots | `vol-00b19902f9be85d8f`, `vol-0e1fb6695929f44cf` Encrypted=false |
-| After | *(pending)* new root volume IDs Encrypted=true |
+| Before roots | Included `vol-00b19902f9be85d8f`, `vol-0e1fb6695929f44cf` Encrypted=false |
+| Progress | Account default encryption + CI LT update + ASG churn replaced unencrypted MNG roots |
+| After (~10:58Z) | **Zero** unencrypted MNG/node roots; all in-use volumes encrypted |
 
 #### Phase 4/5 live PVC + end state
 
-Tracked primarily with chart change doc for SC/PVC rebind; **End state** table below filled after all ops.
+PVC encrypt-migrate detail: `techx-corp-chart/docs/changes/2026-07-22-encrypted-storageclass-and-pvc-sc.md`.
 
-| Metric | Baseline | End state |
-|---|---|---|
-| Default encryption | false | *(pending)* |
-| Total volumes | 18 | *(pending)* |
-| Unencrypted | 14 | *(pending)* |
-| Encrypted | 4 | *(pending)* |
-| Available orphans | 9 | *(pending)* |
+| Metric | Baseline (09:48:26Z) | After A+B (09:54:34Z) | Final end (~10:58Z) |
+|---|---|---|---|
+| Default encryption | false | **true** | **true** |
+| Total volumes | 18 | **13** | **11** |
+| Unencrypted | 14 | **5** | **0** |
+| Encrypted | 4 | **8** | **11** |
+| Available orphans | 9 | **0** | **0** |
+
+**Apply path note:** production Terraform is applied only by the infra repo CI runner (`Promote Production` on `main`), never local `terraform apply`.
 
 ## Technical Design Decisions
 
@@ -120,12 +149,11 @@ Tracked primarily with chart change doc for SC/PVC rebind; **End state** table b
 1. Captured live baseline (Phase 0) into this document.
 2. Set `encrypted = true` on `aws_launch_template.node` root EBS in `modules/eks/main.tf`.
 3. Added `blockDeviceMappings` + `rootVolumeSize` to Karpenter node-resources chart; pass size from `helm_release.node_resources`.
-4. Operator steps remaining (each requires explicit approval before run):
-   * Phase 1 snapshot+delete of 9 orphans.
-   * Phase 2.1 `enable-ebs-encryption-by-default`.
-   * Terraform apply production for LT/Karpenter.
-   * MNG rolling replace for encrypted roots.
-   * Phase 4 PVC migrations (with chart SC).
+4. **Done (approved):** Phase 1 orphan snapshot+delete (9 volumes); Phase 2.1 default encryption enabled.
+5. Operator steps remaining (each requires explicit approval before run):
+   * Terraform apply production for LT/Karpenter (Phase 2.2).
+   * MNG rolling replace for any remaining unencrypted roots (Phase 2.3).
+   * Chart Argo sync + Phase 4 PVC migrations.
 
 ### Phase 1 commands (CMD; run only after approval)
 
