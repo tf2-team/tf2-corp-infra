@@ -21,7 +21,8 @@ locals {
   oidc_issuer_path = replace(var.oidc_issuer_url, "https://", "")
   grafana_subject  = "system:serviceaccount:${var.grafana_namespace}:${var.grafana_service_account_name}"
 
-  cur_data_path = "s3://${var.cur_bucket_name}/${var.cur_s3_prefix}/${var.cur_export_name}/data/"
+  cur_data_path             = "s3://${var.cur_bucket_name}/${var.cur_s3_prefix}/${var.cur_export_name}/data/"
+  grafana_cloudwatch_region = var.grafana_cloudwatch_region != "" ? var.grafana_cloudwatch_region : local.region
 }
 
 data "aws_iam_policy_document" "cur_athena_kms" {
@@ -395,6 +396,41 @@ data "aws_iam_policy_document" "grafana_athena" {
       "kms:GenerateDataKey",
     ]
     resources = [aws_kms_key.cur_athena[0].arn]
+  }
+  statement {
+    sid = "ReadMandate11CloudWatchMetrics"
+
+    actions = [
+      "cloudwatch:GetMetricData",
+      "cloudwatch:ListMetrics",
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
+    sid = "DiscoverAndControlCloudWatchLogsQueries"
+
+    actions = [
+      "logs:DescribeLogGroups",
+      "logs:GetQueryResults",
+      "logs:StopQuery",
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
+    sid = "QueryMandate11RouterLogs"
+
+    actions = [
+      "logs:StartQuery",
+    ]
+
+    resources = [
+      "arn:${local.partition}:logs:${local.grafana_cloudwatch_region}:${local.account_id}:log-group:/aws/lambda/techx-audit-alert-router",
+      "arn:${local.partition}:logs:${local.grafana_cloudwatch_region}:${local.account_id}:log-group:/aws/lambda/techx-audit-alert-router:*",
+    ]
   }
 }
 

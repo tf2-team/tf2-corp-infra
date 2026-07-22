@@ -94,3 +94,9 @@ variable "tags" {
   nullable    = false
   description = "Tags applied to supported resources"
 }
+variable "grafana_cloudwatch_region" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "AWS region containing CloudWatch metrics and logs queried by Grafana."
+}

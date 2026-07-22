@@ -1366,6 +1366,7 @@ module "cur_athena" {
   oidc_issuer_url              = module.eks.oidc_issuer
   grafana_namespace            = var.cur_athena_grafana_namespace
   grafana_service_account_name = var.cur_athena_grafana_service_account_name
+  grafana_cloudwatch_region    = var.aws_region
   tags                         = var.tags
 }
 
