@@ -33,8 +33,8 @@ variable "ecr_keep_last_n_images" {
 
 variable "ecr_keep_last_n_buildcache" {
   type        = number
-  description = "Lifecycle: keep N most recent :buildcache-tagged images per service repo (default 1)"
-  default     = 1
+  description = "Lifecycle: keep N most recent :buildcache-tagged images per service repo (0 = expire all buildcache after 1 day)"
+  default     = 0
 }
 
 variable "ecr_scan_on_push" {
@@ -723,4 +723,4 @@ variable "mem0_postgresql_kms_key_id" {
   description = "Optional customer-managed KMS key for Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.
+# Change trail: @hungxqt - 2026-07-22 - Default ecr_keep_last_n_buildcache to 0.

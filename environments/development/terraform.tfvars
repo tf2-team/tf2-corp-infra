@@ -9,12 +9,12 @@ tags = {
 
 # Image format: REGISTRY/techx-dev-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
-# Lifecycle matches production (keep last 5 images + 1 buildcache).
+# Lifecycle matches production (keep last 5 images; buildcache keep 0).
 ecr_project_name           = "techx-dev-corp"
 ecr_naming_mode            = "nested"
 ecr_image_tag_mutability   = "IMMUTABLE"
 ecr_keep_last_n_images     = 5
-ecr_keep_last_n_buildcache = 1
+ecr_keep_last_n_buildcache = 0
 ecr_scan_on_push           = false
 ecr_force_delete           = true
 ecr_repository_overrides = {
@@ -251,4 +251,4 @@ client_vpn_client_cidr_block = "10.101.0.0/22"
 # Trigger CICD
 
 # -----------------------------------------------
-# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.
+# Change trail: @hungxqt - 2026-07-22 - Set ecr_keep_last_n_buildcache to 0; keep images at 5.
