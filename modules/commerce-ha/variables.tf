@@ -40,6 +40,12 @@ variable "checkout_service_account" {
   description = "IRSA-enabled checkout ServiceAccount name"
 }
 
+variable "accounting_service_account" {
+  type        = string
+  default     = "accounting"
+  description = "IRSA-enabled accounting ServiceAccount name used by the stale outbox reconciler"
+}
+
 variable "valkey_node_type" {
   type        = string
   default     = "cache.t4g.micro"

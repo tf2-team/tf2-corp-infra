@@ -27,3 +27,8 @@ output "checkout_outbox_role_arn" {
   value       = aws_iam_role.checkout_outbox.arn
   description = "IRSA role for the checkout ServiceAccount"
 }
+
+output "accounting_outbox_reconciler_role_arn" {
+  value       = aws_iam_role.accounting_outbox_reconciler.arn
+  description = "IRSA role allowing accounting to query and requeue stale published checkout events"
+}
