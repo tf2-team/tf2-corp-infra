@@ -1126,6 +1126,23 @@ module "backup_protection" {
   tags               = var.tags
 }
 
+# MANDATE-20 AWS Backup: locked vault, daily managed stores, hourly tagged EBS.
+# Live resources imported into this module (2026-07-22).
+module "mandate20_backup" {
+  source = "../../modules/mandate20-backup"
+
+  name       = var.project_name
+  aws_region = var.aws_region
+  tags       = var.tags
+
+  # RDS ARN path segment is "db:" (colon), not "db/".
+  daily_backup_resource_arns = [
+    "arn:aws:dynamodb:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/${var.project_name}-checkout-outbox",
+    "arn:aws:rds:${var.aws_region}:${data.aws_caller_identity.current.account_id}:db:${var.project_name}-mem0-postgres",
+    "arn:aws:rds:${var.aws_region}:${data.aws_caller_identity.current.account_id}:db:${var.project_name}-postgresql",
+  ]
+}
+
 # DIRECTIVE #8: managed PostgreSQL replaces the in-cluster StatefulSet. RDS
 # owns the master password; application users are loaded during migration.
 module "rds_postgresql" {
@@ -1529,4 +1546,4 @@ resource "aws_iam_role_policy" "policy_controller" {
   policy = data.aws_iam_policy_document.policy_controller.json
 }
 
-# Change trail: @hungxqt - 2026-07-21 - Wire backup_protection group attach for Mandate 20 criterion B.
+# Change trail: @hungxqt - 2026-07-22 - Wire mandate20_backup vault and EBS hourly plan module.

@@ -542,6 +542,31 @@ output "backup_protection_attached_role_names" {
   description = "IAM roles with the deny-destructive-backup policy attached"
 }
 
+output "mandate20_backup_vault_name" {
+  value       = module.mandate20_backup.vault_name
+  description = "MANDATE-20 AWS Backup vault name"
+}
+
+output "mandate20_backup_vault_arn" {
+  value       = module.mandate20_backup.vault_arn
+  description = "MANDATE-20 AWS Backup vault ARN"
+}
+
+output "mandate20_backup_service_role_arn" {
+  value       = module.mandate20_backup.backup_service_role_arn
+  description = "IAM role used by AWS Backup for Mandate 20 plans"
+}
+
+output "mandate20_ebs_hourly_plan_id" {
+  value       = module.mandate20_backup.ebs_hourly_plan_id
+  description = "Hourly EBS backup plan ID (Mandate20Backup=hourly selection)"
+}
+
+output "mandate20_daily_plan_id" {
+  value       = module.mandate20_backup.daily_plan_id
+  description = "Daily managed-store backup plan ID"
+}
+
 output "rds_postgresql_endpoint" {
   value       = module.rds_postgresql.endpoint
   description = "Private managed PostgreSQL endpoint used by application DSNs"
@@ -1019,4 +1044,4 @@ output "mem0_postgresql_security_group_id" {
   description = "Security group attached to Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-21 - Export backup protection attached role/group names.
+# Change trail: @hungxqt - 2026-07-22 - Export mandate20_backup vault and plan IDs.
