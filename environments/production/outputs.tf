@@ -64,8 +64,8 @@ output "immutable_audit_tamper_alert_topic_arn" {
 }
 
 output "immutable_audit_s3_data_event_object_arns" {
-  value       = var.immutable_audit_s3_data_event_object_arns
-  description = "S3 object ARN scopes logged as CloudTrail data events for Mandate 12.2"
+  value       = local.immutable_audit_s3_data_event_object_arns
+  description = "S3 object ARN scopes logged as CloudTrail data events for Mandate 12.2, derived from the sensitive coverage registry plus any legacy variable overrides"
 }
 
 output "immutable_audit_discord_webhook_secret_arn" {
@@ -525,6 +525,16 @@ output "backup_protection_policy_arn" {
 output "backup_protection_policy_name" {
   value       = module.backup_protection.policy_name
   description = "MANDATE-20 deny-destructive-backup policy name for console attach"
+}
+
+output "backup_protection_attached_group_names" {
+  value       = module.backup_protection.attached_group_names
+  description = "IAM groups with the deny-destructive-backup policy attached"
+}
+
+output "backup_protection_attached_role_names" {
+  value       = module.backup_protection.attached_role_names
+  description = "IAM roles with the deny-destructive-backup policy attached"
 }
 
 output "rds_postgresql_endpoint" {
@@ -1004,4 +1014,4 @@ output "mem0_postgresql_security_group_id" {
   description = "Security group attached to Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-20 - Export MANDATE-20 backup protection policy outputs.
+# Change trail: @hungxqt - 2026-07-21 - Export backup protection attached role/group names.

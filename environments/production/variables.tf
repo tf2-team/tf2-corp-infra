@@ -301,8 +301,8 @@ variable "ecr_keep_last_n_images" {
 
 variable "ecr_keep_last_n_buildcache" {
   type        = number
-  description = "Lifecycle: keep N most recent :buildcache-tagged images per service repo (default 1)"
-  default     = 1
+  description = "Lifecycle: keep N most recent :buildcache-tagged images per service repo (0 = expire all buildcache after 1 day)"
+  default     = 0
 }
 
 variable "ecr_scan_on_push" {
@@ -427,7 +427,13 @@ variable "commerce_valkey_snapshot_retention_limit" {
 variable "backup_protection_attach_role_names" {
   type        = list(string)
   default     = []
-  description = "IAM role names that receive the MANDATE-20 deny-destructive-backup policy. Empty creates policy only for manual/console attach."
+  description = "IAM role names that receive the MANDATE-20 deny-destructive-backup policy. Prefer operator roles only; do not attach to break-glass or CI apply roles."
+}
+
+variable "backup_protection_attach_group_names" {
+  type        = list(string)
+  default     = []
+  description = "IAM group names that receive the MANDATE-20 deny-destructive-backup policy (e.g. TF2-TEAM day-to-day operators)."
 }
 
 variable "rds_postgresql_engine_version" {
@@ -1723,4 +1729,4 @@ variable "mem0_postgresql_kms_key_id" {
   description = "Optional customer-managed KMS key for Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-20 - Add MANDATE-20 Valkey snapshot retention and backup-protection vars.
+# Change trail: @hungxqt - 2026-07-22 - Default ecr_keep_last_n_buildcache to 0.

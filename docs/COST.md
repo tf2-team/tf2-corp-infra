@@ -116,7 +116,7 @@ Both **development** and **production** currently use the same compute shape:
 | Cluster max nodes (MNG only) | **6** | **4** |
 | Karpenter | **Spot preferred** + OD fallback (spot-tolerant apps); CPU limit 32 | On-Demand NodePool when install enabled; CPU limit 64 |
 | Node disk | 30 GB | 30 GB |
-| ECR project | `techx-dev-corp/*` (keep last **5** runtime + **1** `buildcache`) | `techx-corp/*` (keep last **20** runtime + **1** `buildcache`) |
+| ECR project | `techx-dev-corp/*` (keep last **5** runtime + **0** `buildcache`) | `techx-prod-corp/*` (keep last **5** runtime + **0** `buildcache`) |
 | Argo CD (`argocd_enabled`) | **true** | **false** |
 | Storefront internal ALB | Yes (Helm overlay) | Yes (Helm overlay) |
 | Path blocking | CloudFront Function (optional; off default in dev) | CloudFront Function (on when CF enabled) |
@@ -247,7 +247,7 @@ Dev and prod are **independent stacks** (separate VPC, EKS, NAT, ALB, node group
 | **Dev + prod** | **~$560–650** | Planning number **~$600** |
 | Shared bootstrap (S3 state, KMS, OIDC) | **&lt; ~$5** | Negligible vs EKS/EC2 |
 
-Prod ECR keeps more runtime image history (`keep_last_n_images = 20` vs dev `5`; both keep **1** `buildcache`), so **ECR storage** may be higher on prod over time (still small vs compute).
+Dev and prod ECR both keep last **5** runtime images and **0** `buildcache` (buildcache tags expire after 1 day). ECR storage stays small vs compute.
 
 ---
 
@@ -290,7 +290,7 @@ Ordered roughly by impact for this architecture. Trade-offs are intentional — 
 - Single NAT per environment (not one NAT per AZ)
 - Small on-demand node footprint (2× `t3.large` desired)
 - OpenSearch / Prometheus persistence often off or minimal
-- Dev ECR lifecycle keep-last **5** runtime images + **1** `buildcache` per repo
+- Dev/prod ECR lifecycle keep-last **5** runtime images + **0** `buildcache` per repo
 - Prod Argo CD install gated off until ready
 
 ---
@@ -378,4 +378,4 @@ These figures exclude GitHub CI and any non-AWS tools.
 
 This is an **engineering planning document**. It is not a quote from AWS. Taxes, enterprise discounts, Free Tier remaining balance, Support plan fees, and unexpected data-transfer patterns can change the invoice. Prefer **Cost Explorer actuals** for financial reporting once the stacks have run under representative load.
 
-<!-- Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention. -->
+<!-- Change trail: @hungxqt - 2026-07-22 - Align ECR lifecycle cost notes to keep 5 images + 0 buildcache. -->

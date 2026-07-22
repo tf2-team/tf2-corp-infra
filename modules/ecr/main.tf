@@ -70,35 +70,73 @@ resource "aws_ecr_lifecycle_policy" "this" {
   # or a non-ECR cache (e.g. GHA cache) for build cache. Rule 1 still expires leftover
   # buildcache digests so they do not compete with runtime retention.
   # Rule 2 keeps the last N remaining images (sha-* / other tags + untagged layers).
-  policy = jsonencode({
-    rules = [
-      {
-        rulePriority = 1
-        description  = "Keep last ${each.value.keep_last_n_buildcache} buildcache image(s)"
-        selection = {
-          tagStatus     = "tagged"
-          tagPrefixList = ["buildcache"]
-          countType     = "imageCountMoreThan"
-          countNumber   = each.value.keep_last_n_buildcache
+  #
+  # keep_last_n_buildcache = 0: AWS imageCountMoreThan requires countNumber >= 1, so expire
+  # buildcache tags by age (sinceImagePushed, 1 day) — the most aggressive policy that still
+  # targets only the buildcache prefix. Branches are fully jsonencoded to avoid object-type
+  # mismatch (age rule has countUnit; count rule does not).
+  policy = (
+    each.value.keep_last_n_buildcache == 0
+    ? jsonencode({
+      rules = [
+        {
+          rulePriority = 1
+          description  = "Expire buildcache images (keep 0; age-based, AWS min count is 1 day)"
+          selection = {
+            tagStatus     = "tagged"
+            tagPrefixList = ["buildcache"]
+            countType     = "sinceImagePushed"
+            countUnit     = "days"
+            countNumber   = 1
+          }
+          action = {
+            type = "expire"
+          }
+        },
+        {
+          rulePriority = 2
+          description  = "Keep last ${each.value.keep_last_n_images} images"
+          selection = {
+            tagStatus   = "any"
+            countType   = "imageCountMoreThan"
+            countNumber = each.value.keep_last_n_images
+          }
+          action = {
+            type = "expire"
+          }
         }
-        action = {
-          type = "expire"
+      ]
+    })
+    : jsonencode({
+      rules = [
+        {
+          rulePriority = 1
+          description  = "Keep last ${each.value.keep_last_n_buildcache} buildcache image(s)"
+          selection = {
+            tagStatus     = "tagged"
+            tagPrefixList = ["buildcache"]
+            countType     = "imageCountMoreThan"
+            countNumber   = each.value.keep_last_n_buildcache
+          }
+          action = {
+            type = "expire"
+          }
+        },
+        {
+          rulePriority = 2
+          description  = "Keep last ${each.value.keep_last_n_images} images"
+          selection = {
+            tagStatus   = "any"
+            countType   = "imageCountMoreThan"
+            countNumber = each.value.keep_last_n_images
+          }
+          action = {
+            type = "expire"
+          }
         }
-      },
-      {
-        rulePriority = 2
-        description  = "Keep last ${each.value.keep_last_n_images} images"
-        selection = {
-          tagStatus   = "any"
-          countType   = "imageCountMoreThan"
-          countNumber = each.value.keep_last_n_images
-        }
-        action = {
-          type = "expire"
-        }
-      }
-    ]
-  })
+      ]
+    })
+  )
 }
 
-# Change trail: @hungxqt - 2026-07-19 - Document IMMUTABLE impact on movable :buildcache tags.
+# Change trail: @hungxqt - 2026-07-22 - Allow keep_last_n_buildcache=0 via age-based expire rule.

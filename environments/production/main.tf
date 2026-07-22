@@ -3,6 +3,14 @@ data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
 locals {
+  immutable_audit_sensitive_coverage = yamldecode(file("${path.module}/audit_sensitive_coverage.yaml"))
+  immutable_audit_s3_data_event_object_arns = toset(distinct(concat(
+    tolist(var.immutable_audit_s3_data_event_object_arns),
+    [
+      for scope in try(local.immutable_audit_sensitive_coverage.s3_object_prefixes, []) :
+      scope.cloudtrail_data_event_arn
+    ]
+  )))
   immutable_audit_bucket_name = (
     var.immutable_audit_bucket_name != ""
     ? var.immutable_audit_bucket_name
@@ -482,7 +490,7 @@ resource "aws_cloudtrail" "immutable_audit" {
     include_management_events = true
 
     dynamic "data_resource" {
-      for_each = var.immutable_audit_s3_data_event_object_arns
+      for_each = local.immutable_audit_s3_data_event_object_arns
 
       content {
         type   = "AWS::S3::Object"
@@ -1106,14 +1114,15 @@ module "commerce_ha" {
   tags                            = var.tags
 }
 
-# MANDATE-20: managed policy that denies deleting backups / disabling DynamoDB PITR.
-# Policy is always created; attach to operator role names via var.backup_protection_attach_role_names.
+# MANDATE-20 criterion B: managed policy denies deleting backups / disabling DynamoDB PITR.
+# Attach to day-to-day operator roles/groups only (not break-glass admin, not Terraform CI apply).
 module "backup_protection" {
   source = "../../modules/backup-protection"
 
-  name              = var.project_name
-  attach_role_names = var.backup_protection_attach_role_names
-  tags              = var.tags
+  name               = var.project_name
+  attach_role_names  = var.backup_protection_attach_role_names
+  attach_group_names = var.backup_protection_attach_group_names
+  tags               = var.tags
 }
 
 # DIRECTIVE #8: managed PostgreSQL replaces the in-cluster StatefulSet. RDS
@@ -1519,6 +1528,4 @@ resource "aws_iam_role_policy" "policy_controller" {
   policy = data.aws_iam_policy_document.policy_controller.json
 }
 
-# Change trail: @hungxqt - 2026-07-19 - Hybrid CA on system MNG; remove dual-autoscaler mutual exclusion.
-# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.
-# Change trail: @hungxqt - 2026-07-20 - Wire MANDATE-20 backup_protection module and Valkey snapshot retention.
+# Change trail: @hungxqt - 2026-07-21 - Wire backup_protection group attach for Mandate 20 criterion B.

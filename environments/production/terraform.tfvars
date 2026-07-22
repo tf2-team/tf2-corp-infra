@@ -10,9 +10,9 @@ tags = {
 # Mandate 12.1 audit tamper email alerts. Add real inboxes and confirm AWS SNS subscription emails after apply.
 immutable_audit_alert_email_endpoints = ["ctran13904@gmail.com"]
 
-# Mandate 12.2 S3 data events. Scope narrowly to sensitive model artifacts to limit CloudTrail data-event cost.
+# Mandate 12.2 S3 data events are driven by audit_sensitive_coverage.yaml.
+# Keep this override empty unless a one-off ARN must be added without registry metadata.
 immutable_audit_s3_data_event_object_arns = [
-  "arn:aws:s3:::techx-prod-tf2-ai-models-493499579600/"
 ]
 
 # Mandate 12.1 multi-channel alerting and continuous audit control health checks.
@@ -50,14 +50,22 @@ immutable_audit_validation_lambda_memory_mb            = 512
 
 # Image format: REGISTRY/techx-prod-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
-# Lifecycle matches development (keep last 5 images + 1 buildcache).
+# Lifecycle matches development (keep last 5 images; buildcache keep 0).
 ecr_project_name           = "techx-prod-corp"
 ecr_naming_mode            = "nested"
 ecr_image_tag_mutability   = "IMMUTABLE"
 ecr_keep_last_n_images     = 5
-ecr_keep_last_n_buildcache = 1
+ecr_keep_last_n_buildcache = 0
 ecr_scan_on_push           = false
 ecr_force_delete           = true
+ecr_repository_overrides = {
+  cosign-artifacts = {
+    image_tag_mutability = "MUTABLE"
+    scan_on_push         = false
+    keep_last_n_images   = 1000 # shared cosign repo (~services × image keep × 3 artifacts + buffer)
+    force_delete         = false
+  }
+}
 
 # ──────────────────────────────────────────────
 # VPC Configuration
@@ -132,6 +140,13 @@ commerce_valkey_node_type      = "cache.t4g.micro"
 commerce_valkey_engine_version = "8.0"
 commerce_private_dns_zone      = "techx.internal"
 
+# MANDATE-20 criterion B: day-to-day operators (IAM group TF2-TEAM has
+# AdministratorAccess) must not casually delete backups or disable DynamoDB PITR.
+# Do not attach this deny policy to break-glass principals outside the group,
+# or to GitHubTerraform*Apply* roles (CI lifecycle).
+backup_protection_attach_group_names = ["TF2-TEAM"]
+backup_protection_attach_role_names  = []
+
 # Directive #8 managed PostgreSQL. Multi-AZ protects the revenue/accounting
 # path; t4g.small and gp3 are the right-sized production starting point.
 rds_postgresql_engine_version        = "16"
@@ -184,7 +199,7 @@ addons = {
     addon_version = "v1.22.3-eksbuild.1"
     # ENABLE_PREFIX_DELEGATION raises IP density; pair with node max_pods / Karpenter node_max_pods
     # Raw JSON string (jsonencode is not allowed in .tfvars)
-    configuration_values = "{\"env\":{\"ENABLE_PREFIX_DELEGATION\":\"true\",\"WARM_PREFIX_TARGET\":\"1\"},\"resources\":{\"requests\":{\"cpu\":\"25m\",\"memory\":\"64Mi\"},\"limits\":{\"cpu\":\"250m\",\"memory\":\"256Mi\"}},\"init\":{\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"32Mi\"},\"limits\":{\"cpu\":\"100m\",\"memory\":\"128Mi\"}}},\"nodeAgent\":{\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"32Mi\"},\"limits\":{\"cpu\":\"100m\",\"memory\":\"128Mi\"}}}}"
+    configuration_values = "{\"enableNetworkPolicy\":\"true\",\"env\":{\"ENABLE_PREFIX_DELEGATION\":\"true\",\"WARM_PREFIX_TARGET\":\"1\",\"NETWORK_POLICY_ENFORCING_MODE\":\"standard\"},\"resources\":{\"requests\":{\"cpu\":\"25m\",\"memory\":\"64Mi\"},\"limits\":{\"cpu\":\"250m\",\"memory\":\"256Mi\"}},\"init\":{\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"32Mi\"},\"limits\":{\"cpu\":\"100m\",\"memory\":\"128Mi\"}}},\"nodeAgent\":{\"resources\":{\"requests\":{\"cpu\":\"10m\",\"memory\":\"32Mi\"},\"limits\":{\"cpu\":\"100m\",\"memory\":\"128Mi\"}}}}"
   }
   "coredns" = {
     addon_version = "v1.14.3-eksbuild.3"
@@ -442,4 +457,4 @@ cost_optimization_backlog_athena_bytes_cutoff         = 1073741824
 cost_optimization_backlog_include_member_accounts     = false
 cost_optimization_backlog_manage_enrollment           = false
 cost_optimization_backlog_include_all_recommendations = false
-# Change trail: @hungxqt - 2026-07-20 - Enable EKS control plane CloudWatch logs with retention.
+# Change trail: @hungxqt - 2026-07-22 - ECR keep 5 images / 0 buildcache; cosign-artifacts keep 1000.

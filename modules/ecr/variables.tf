@@ -94,16 +94,18 @@ variable "keep_last_n_images" {
 
 variable "keep_last_n_buildcache" {
   type        = number
-  default     = 1
+  default     = 0
   description = <<-EOT
-    Lifecycle policy: keep only the N most recent images tagged with prefix "buildcache".
-    Platform CI pushes IMAGE_NAME/<service>:buildcache as registry build cache (mode=max).
-    Default 1 so only the latest cache artifact is retained per service repo.
+    Lifecycle policy for images tagged with prefix "buildcache".
+    Platform CI may push IMAGE_NAME/<service>:buildcache as registry build cache.
+    0 = keep none (expire buildcache tags after 1 day; AWS cannot use count 0 for
+        imageCountMoreThan, so age-based sinceImagePushed is used).
+    N >= 1 = keep the N most recent buildcache-tagged images (imageCountMoreThan).
   EOT
 
   validation {
-    condition     = var.keep_last_n_buildcache >= 1
-    error_message = "keep_last_n_buildcache must be at least 1."
+    condition     = var.keep_last_n_buildcache >= 0
+    error_message = "keep_last_n_buildcache must be at least 0."
   }
 }
 
@@ -129,4 +131,4 @@ variable "repositories" {
   EOT
 }
 
-# Change trail: @hungxqt - 2026-07-19 - Add shopping-copilot to the default ECR service catalog.
+# Change trail: @hungxqt - 2026-07-22 - Allow keep_last_n_buildcache=0 (default); update validation.
