@@ -21,7 +21,7 @@ ecr_repository_overrides = {
   cosign-artifacts = {
     image_tag_mutability = "MUTABLE"
     scan_on_push         = false
-    keep_last_n_images   = 2000
+    keep_last_n_images   = 5 # same as ecr_keep_last_n_images
     force_delete         = false
   }
 }
@@ -251,4 +251,4 @@ client_vpn_client_cidr_block = "10.101.0.0/22"
 # Trigger CICD
 
 # -----------------------------------------------
-# Change trail: @hungxqt - 2026-07-22 - Set ecr_keep_last_n_buildcache to 0; keep images at 5.
+# Change trail: @hungxqt - 2026-07-22 - ECR keep 5 images / 0 buildcache; cosign-artifacts keep 5.

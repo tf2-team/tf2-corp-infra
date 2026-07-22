@@ -62,7 +62,7 @@ ecr_repository_overrides = {
   cosign-artifacts = {
     image_tag_mutability = "MUTABLE"
     scan_on_push         = false
-    keep_last_n_images   = 2000
+    keep_last_n_images   = 5 # same as ecr_keep_last_n_images
     force_delete         = false
   }
 }
@@ -457,4 +457,4 @@ cost_optimization_backlog_athena_bytes_cutoff         = 1073741824
 cost_optimization_backlog_include_member_accounts     = false
 cost_optimization_backlog_manage_enrollment           = false
 cost_optimization_backlog_include_all_recommendations = false
-# Change trail: @hungxqt - 2026-07-22 - Set ecr_keep_last_n_buildcache to 0; keep images at 5.
+# Change trail: @hungxqt - 2026-07-22 - ECR keep 5 images / 0 buildcache; cosign-artifacts keep 5.
