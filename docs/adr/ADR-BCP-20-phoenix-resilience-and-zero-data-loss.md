@@ -115,8 +115,11 @@ that tag and there are no EBS recovery points.
 * Introduce a KMS-encrypted `gp3` StorageClass and migrate active operational
   PVCs. Existing EBS volumes are unencrypted and cannot be encrypted in place.
 * Bring the live EBS hourly backup plan and selection under Terraform ownership.
-* Apply the `Mandate20Backup=hourly` selection tag to approved active volumes
-  and verify a completed EBS recovery point.
+* ~~Apply the `Mandate20Backup=hourly` selection tag to approved active volumes
+  and verify a completed EBS recovery point.~~ **DONE 2026-07-22:** tagged
+  enc-prometheus / enc-grafana / enc-opensearch; three EBS RPs `COMPLETED` in
+  vault `techx-prod-tf2-mandate20` (snaps `snap-09f3f69baa15c4ee4`,
+  `snap-0a065ccc6a43156fd`, `snap-0dac46428a6cd7adc`).
 * Take final snapshots of orphan Kafka, PostgreSQL, and Valkey volumes, verify
   managed-store migration, and remove the orphan PVCs through an approved
   cleanup change.
@@ -232,3 +235,5 @@ complete procedure in Section 7.
 The ADR is operationally complete only after the infrastructure gate, formal
 restore drill, measured RPO/RTO, integrity proof, and mentor sign-off are all
 recorded.
+
+<!-- Change trail: @hungxqt - 2026-07-22 - Mark EBS hourly tags and vault RPs done. -->
