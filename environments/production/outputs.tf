@@ -517,6 +517,11 @@ output "checkout_outbox_role_arn" {
   description = "IRSA role ARN configured on the checkout ServiceAccount"
 }
 
+output "accounting_outbox_reconciler_role_arn" {
+  value       = module.commerce_ha.accounting_outbox_reconciler_role_arn
+  description = "IRSA role for accounting stale checkout outbox reconciliation"
+}
+
 output "backup_protection_policy_arn" {
   value       = module.backup_protection.policy_arn
   description = "MANDATE-20 managed policy ARN denying destructive backup/PITR actions"

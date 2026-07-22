@@ -211,4 +211,64 @@ resource "aws_iam_role_policy" "checkout_outbox" {
   policy = data.aws_iam_policy_document.checkout_outbox.json
 }
 
+data "aws_iam_policy_document" "accounting_outbox_assume" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect  = "Allow"
+
+    principals {
+      type        = "Federated"
+      identifiers = [var.oidc_provider_arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(var.oidc_issuer_url, "https://", "")}:sub"
+      values   = ["system:serviceaccount:${var.checkout_namespace}:${var.accounting_service_account}"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(var.oidc_issuer_url, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "accounting_outbox_reconciler" {
+  name               = "${var.name}-accounting-outbox-reconciler"
+  assume_role_policy = data.aws_iam_policy_document.accounting_outbox_assume.json
+  tags               = var.tags
+}
+
+data "aws_iam_policy_document" "accounting_outbox_reconciler" {
+  statement {
+    sid = "ReconcilePublishedCheckoutEvents"
+    actions = [
+      "dynamodb:Query",
+      "dynamodb:UpdateItem",
+    ]
+    resources = [
+      aws_dynamodb_table.checkout_outbox.arn,
+      "${aws_dynamodb_table.checkout_outbox.arn}/index/status-created-index",
+    ]
+  }
+
+  statement {
+    sid = "CheckoutOutboxKms"
+    actions = [
+      "kms:Decrypt",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+    ]
+    resources = [aws_kms_key.commerce.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "accounting_outbox_reconciler" {
+  name   = "checkout-outbox-reconciler"
+  role   = aws_iam_role.accounting_outbox_reconciler.id
+  policy = data.aws_iam_policy_document.accounting_outbox_reconciler.json
+}
+
 # Change trail: @hungxqt - 2026-07-20 - Parameterize Valkey snapshot retention for Mandate 20.

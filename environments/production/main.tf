@@ -1107,6 +1107,7 @@ module "commerce_ha" {
   oidc_issuer_url                 = module.eks.oidc_issuer
   checkout_namespace              = "techx-corp-prod"
   checkout_service_account        = "checkout"
+  accounting_service_account      = "accounting"
   valkey_node_type                = var.commerce_valkey_node_type
   valkey_engine_version           = var.commerce_valkey_engine_version
   private_dns_zone                = var.commerce_private_dns_zone
