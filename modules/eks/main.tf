@@ -214,6 +214,7 @@ resource "aws_launch_template" "node" {
     ebs {
       volume_size           = each.value.disk_size
       volume_type           = "gp3"
+      encrypted             = true
       delete_on_termination = true
     }
   }
@@ -411,4 +412,4 @@ resource "aws_eks_access_policy_association" "additional" {
   depends_on = [aws_eks_access_entry.additional]
 }
 
-# Change trail: @hungxqt - 2026-07-20 - Manage EKS control plane CloudWatch log group with retention.
+# Change trail: @hungxqt - 2026-07-22 - Encrypt MNG launch template root EBS volumes.
