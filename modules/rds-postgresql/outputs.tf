@@ -28,3 +28,8 @@ output "security_group_id" {
   value       = aws_security_group.rds.id
   description = "RDS client security group."
 }
+
+output "destructive_ddl_alarm_name" {
+  value       = try(aws_cloudwatch_metric_alarm.destructive_ddl[0].alarm_name, null)
+  description = "CloudWatch alarm that detects logged DROP TABLE and TRUNCATE TABLE statements."
+}

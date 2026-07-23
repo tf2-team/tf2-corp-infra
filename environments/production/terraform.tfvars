@@ -8,7 +8,10 @@ tags = {
 }
 
 # Mandate 12.1 audit tamper email alerts. Add real inboxes and confirm AWS SNS subscription emails after apply.
-immutable_audit_alert_email_endpoints = ["ctran13904@gmail.com"]
+immutable_audit_alert_email_endpoints = [
+  "ctran13904@gmail.com",
+  "khanhle11342@gmail.com",
+]
 
 # Mandate 12.2 S3 data events are driven by audit_sensitive_coverage.yaml.
 # Keep this override empty unless a one-off ARN must be added without registry metadata.

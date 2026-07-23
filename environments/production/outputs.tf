@@ -63,6 +63,11 @@ output "immutable_audit_tamper_alert_topic_arn" {
   description = "SNS topic that receives Mandate 12.1 immutable audit tamper alerts and forwards them to confirmed email subscribers"
 }
 
+output "mandate20_rds_destructive_ddl_alarm_name" {
+  value       = module.rds_postgresql.destructive_ddl_alarm_name
+  description = "MANDATE-20 CloudWatch alarm for logged destructive PostgreSQL DDL."
+}
+
 output "immutable_audit_s3_data_event_object_arns" {
   value       = local.immutable_audit_s3_data_event_object_arns
   description = "S3 object ARN scopes logged as CloudTrail data events for Mandate 12.2, derived from the sensitive coverage registry plus any legacy variable overrides"

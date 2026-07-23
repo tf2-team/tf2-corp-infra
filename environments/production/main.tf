@@ -518,7 +518,7 @@ resource "aws_cloudtrail" "immutable_audit" {
 
 data "aws_iam_policy_document" "immutable_audit_alert_sns_kms" {
   #checkov:skip=CKV_AWS_109:KMS key policies are scoped by the attached key; the root statement follows AWS KMS guidance so IAM can administer the key.
-  #checkov:skip=CKV_AWS_111:KMS key policies require Resource "*" because the policy is attached directly to one key; service statements are limited to SNS and EventBridge.
+  #checkov:skip=CKV_AWS_111:KMS key policies require Resource "*" because the policy is attached directly to one key; service statements are limited to SNS, EventBridge, and same-account CloudWatch alarms.
   #checkov:skip=CKV_AWS_356:KMS key policies require Resource "*" because the key policy itself is the resource boundary.
   statement {
     sid    = "EnableRootPermissions"
@@ -567,6 +567,29 @@ data "aws_iam_policy_document" "immutable_audit_alert_sns_kms" {
       "kms:GenerateDataKey*",
     ]
     resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowCloudWatchAlarmsPublishToEncryptedSns"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudwatch.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:GenerateDataKey*",
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
   }
 }
 
@@ -1148,18 +1171,19 @@ module "mandate20_backup" {
 module "rds_postgresql" {
   source = "../../modules/rds-postgresql"
 
-  name                         = var.project_name
-  vpc_id                       = module.vpc.vpc_id
-  subnet_ids                   = [module.vpc.private_subnet_ids["priv-1a-nodes"], module.vpc.private_subnet_ids["priv-1b-nodes"]]
-  eks_client_security_group_id = module.eks.cluster_security_group_id
-  engine_version               = var.rds_postgresql_engine_version
-  instance_class               = var.rds_postgresql_instance_class
-  database_name                = var.rds_postgresql_database_name
-  allocated_storage            = var.rds_postgresql_allocated_storage
-  max_allocated_storage        = var.rds_postgresql_max_allocated_storage
-  multi_az                     = var.rds_postgresql_multi_az
-  backup_retention_period      = var.rds_postgresql_backup_retention_days
-  tags                         = var.tags
+  name                              = var.project_name
+  vpc_id                            = module.vpc.vpc_id
+  subnet_ids                        = [module.vpc.private_subnet_ids["priv-1a-nodes"], module.vpc.private_subnet_ids["priv-1b-nodes"]]
+  eks_client_security_group_id      = module.eks.cluster_security_group_id
+  engine_version                    = var.rds_postgresql_engine_version
+  instance_class                    = var.rds_postgresql_instance_class
+  database_name                     = var.rds_postgresql_database_name
+  allocated_storage                 = var.rds_postgresql_allocated_storage
+  max_allocated_storage             = var.rds_postgresql_max_allocated_storage
+  multi_az                          = var.rds_postgresql_multi_az
+  backup_retention_period           = var.rds_postgresql_backup_retention_days
+  destructive_ddl_alarm_action_arns = [aws_sns_topic.immutable_audit_tamper_alerts.arn]
+  tags                              = var.tags
 }
 
 # DIRECTIVE #8: Amazon MSK cluster replacement for in-cluster Kafka broker
