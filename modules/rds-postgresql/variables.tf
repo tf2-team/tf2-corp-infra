@@ -66,6 +66,12 @@ variable "backup_retention_period" {
   description = "Automated backup/PITR retention in days."
 }
 
+variable "destructive_ddl_alarm_action_arns" {
+  type        = list(string)
+  default     = []
+  description = "SNS or incident-management ARNs notified when PostgreSQL logs a DROP TABLE or TRUNCATE TABLE statement."
+}
+
 variable "tags" {
   type        = map(string)
   default     = {}

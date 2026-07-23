@@ -168,6 +168,20 @@ points are not retained indefinitely.
 8. Retain the corrupted source for forensics until incident approval permits
    cleanup.
 
+### 6.1 Destructive-DDL Detection
+
+The commerce RDS parameter group records DDL statements in the existing
+encrypted PostgreSQL CloudWatch log export. CloudWatch metric filters emit
+`TechX/Mandate20/DestructiveDdlDetected` for logged `DROP TABLE` and
+`TRUNCATE TABLE` statements. A one-minute alarm notifies the existing encrypted
+SNS alert topic and its confirmed email subscribers.
+
+This is an early-warning control, not a recovery trigger. An alarm does not
+prove data loss and must never automatically select `T_safe`, start PITR,
+change a production endpoint, or import restored data. The canary test and
+evidence procedure are documented in
+`docs/operations/mandate-20-rds-data-loss-detection.md`.
+
 ---
 
 ## 7. Formal Restore Drill Plan (Run After Infrastructure Gate)
@@ -221,6 +235,11 @@ controlled loss, target readiness, restored-data integrity, or achieved RTO.
 The existing `scripts/drills/directive-20-restore-drill.ps1` is a starting
 utility and must not be cited as formal drill evidence until it performs the
 complete procedure in Section 7.
+
+The destructive-DDL detection resources are defined in Terraform but are not
+operational evidence until a production apply has completed and a controlled
+canary `DROP TABLE` has produced the PostgreSQL log event, metric datapoint,
+alarm transition, and delivered notification.
 
 ---
 
