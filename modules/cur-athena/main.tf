@@ -222,6 +222,12 @@ data "aws_iam_policy_document" "glue_s3_read" {
     ]
     resources = [aws_kms_key.cur_athena[0].arn]
   }
+
+  statement {
+    sid       = "AssociateCrawlerLogKmsKey"
+    actions   = ["logs:AssociateKmsKey"]
+    resources = ["arn:${local.partition}:logs:${local.region}:${local.account_id}:log-group:/aws-glue/crawlers-role/${local.crawler_name}-role-${local.crawler_name}-security"]
+  }
 }
 
 resource "aws_iam_role_policy" "glue_s3_read" {
