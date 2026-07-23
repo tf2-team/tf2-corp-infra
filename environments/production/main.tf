@@ -1575,6 +1575,13 @@ resource "aws_iam_role" "policy_controller" {
 
 data "aws_iam_policy_document" "policy_controller" {
   statement {
+    sid       = "EcrAuthToken"
+    effect    = "Allow"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+
+  statement {
     sid    = "EcrRead"
     effect = "Allow"
     actions = [
@@ -1586,7 +1593,7 @@ data "aws_iam_policy_document" "policy_controller" {
       "ecr:ListImages"
     ]
     resources = [
-      "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/techx-corp/*"
+      "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/techx-prod-corp/*"
     ]
   }
 
