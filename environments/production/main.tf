@@ -1149,8 +1149,8 @@ module "mandate20_backup" {
 # denies kms:PutKeyPolicy to the production apply role, so CloudWatch cannot be
 # added to that existing key policy. Alarm payloads contain status metadata only
 # (no SQL payload, credentials, or customer data).
-#checkov:skip=CKV_AWS_26:CloudWatch alarm metadata is non-sensitive; leaving this dedicated topic unencrypted avoids bypassing the organization KMS policy SCP.
 resource "aws_sns_topic" "mandate20_data_loss_alerts" {
+  #checkov:skip=CKV_AWS_26:CloudWatch alarm metadata is non-sensitive; leaving this dedicated topic unencrypted avoids bypassing the organization KMS policy SCP.
   name = "${var.project_name}-mandate20-data-loss-alerts"
 
   tags = merge(var.tags, {
