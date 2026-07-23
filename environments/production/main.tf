@@ -518,7 +518,7 @@ resource "aws_cloudtrail" "immutable_audit" {
 
 data "aws_iam_policy_document" "immutable_audit_alert_sns_kms" {
   #checkov:skip=CKV_AWS_109:KMS key policies are scoped by the attached key; the root statement follows AWS KMS guidance so IAM can administer the key.
-  #checkov:skip=CKV_AWS_111:KMS key policies require Resource "*" because the policy is attached directly to one key; service statements are limited to SNS, EventBridge, and same-account CloudWatch alarms.
+  #checkov:skip=CKV_AWS_111:KMS key policies require Resource "*" because the policy is attached directly to one key; service statements are limited to SNS and EventBridge.
   #checkov:skip=CKV_AWS_356:KMS key policies require Resource "*" because the key policy itself is the resource boundary.
   statement {
     sid    = "EnableRootPermissions"
@@ -569,28 +569,6 @@ data "aws_iam_policy_document" "immutable_audit_alert_sns_kms" {
     resources = ["*"]
   }
 
-  statement {
-    sid    = "AllowCloudWatchAlarmsPublishToEncryptedSns"
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["cloudwatch.amazonaws.com"]
-    }
-
-    actions = [
-      "kms:Decrypt",
-      "kms:DescribeKey",
-      "kms:GenerateDataKey*",
-    ]
-    resources = ["*"]
-
-    condition {
-      test     = "StringEquals"
-      variable = "aws:SourceAccount"
-      values   = [data.aws_caller_identity.current.account_id]
-    }
-  }
 }
 
 resource "aws_kms_key" "immutable_audit_alert_sns" {
@@ -1166,6 +1144,68 @@ module "mandate20_backup" {
   ]
 }
 
+# MANDATE-20 destructive-DDL notifications use a dedicated SNS topic instead
+# of the Mandate 12 encrypted audit topic. The organization SCP deliberately
+# denies kms:PutKeyPolicy to the production apply role, so CloudWatch cannot be
+# added to that existing key policy. Alarm payloads contain status metadata only
+# (no SQL payload, credentials, or customer data).
+#checkov:skip=CKV_AWS_26:CloudWatch alarm metadata is non-sensitive; leaving this dedicated topic unencrypted avoids bypassing the organization KMS policy SCP.
+resource "aws_sns_topic" "mandate20_data_loss_alerts" {
+  name = "${var.project_name}-mandate20-data-loss-alerts"
+
+  tags = merge(var.tags, {
+    Name    = "${var.project_name}-mandate20-data-loss-alerts"
+    Mandate = "MD20"
+    Purpose = "data-loss-detection"
+  })
+}
+
+resource "aws_sns_topic_policy" "mandate20_data_loss_alerts" {
+  arn = aws_sns_topic.mandate20_data_loss_alerts.arn
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowAccountOwnerManageTopic"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action = [
+          "SNS:GetTopicAttributes",
+          "SNS:ListSubscriptionsByTopic",
+          "SNS:Publish",
+          "SNS:Subscribe",
+        ]
+        Resource = aws_sns_topic.mandate20_data_loss_alerts.arn
+      },
+      {
+        Sid    = "AllowSameAccountCloudWatchAlarmsPublish"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudwatch.amazonaws.com"
+        }
+        Action   = "SNS:Publish"
+        Resource = aws_sns_topic.mandate20_data_loss_alerts.arn
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_sns_topic_subscription" "mandate20_data_loss_email" {
+  for_each = var.mandate20_alert_email_endpoints
+
+  topic_arn = aws_sns_topic.mandate20_data_loss_alerts.arn
+  protocol  = "email-json"
+  endpoint  = each.value
+}
+
 # DIRECTIVE #8: managed PostgreSQL replaces the in-cluster StatefulSet. RDS
 # owns the master password; application users are loaded during migration.
 module "rds_postgresql" {
@@ -1182,7 +1222,7 @@ module "rds_postgresql" {
   max_allocated_storage             = var.rds_postgresql_max_allocated_storage
   multi_az                          = var.rds_postgresql_multi_az
   backup_retention_period           = var.rds_postgresql_backup_retention_days
-  destructive_ddl_alarm_action_arns = [aws_sns_topic.immutable_audit_tamper_alerts.arn]
+  destructive_ddl_alarm_action_arns = [aws_sns_topic.mandate20_data_loss_alerts.arn]
   tags                              = var.tags
 }
 
