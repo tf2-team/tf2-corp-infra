@@ -11,9 +11,15 @@ PostgreSQL log_statement=ddl
   -> RDS PostgreSQL log export
   -> CloudWatch Logs metric filter
   -> CloudWatch alarm
-  -> existing encrypted SNS alert topic
+  -> dedicated Mandate 20 SNS alert topic
   -> configured email subscribers
 ```
+
+The dedicated topic is intentionally unencrypted because its alarm messages
+contain status metadata only, not SQL payloads, credentials, or customer data.
+The organization SCP prevents the production apply role from changing the KMS
+policy of the existing encrypted Mandate 12 topic; this design preserves that
+guardrail instead of requesting a bypass.
 
 The filter covers `DROP TABLE` and `TRUNCATE TABLE` statements written with
 consistently upper-case or lower-case SQL keywords. The existing hot-path
@@ -48,7 +54,7 @@ aws cloudwatch describe-alarms `
   --region us-east-1
 
 aws sns list-subscriptions-by-topic `
-  --topic-arn <immutable-audit-tamper-alert-topic-arn> `
+  --topic-arn <mandate20-data-loss-alert-topic-arn> `
   --region us-east-1
 ```
 
