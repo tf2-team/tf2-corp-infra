@@ -173,8 +173,12 @@ points are not retained indefinitely.
 The commerce RDS parameter group records DDL statements in the existing
 encrypted PostgreSQL CloudWatch log export. CloudWatch metric filters emit
 `TechX/Mandate20/DestructiveDdlDetected` for logged `DROP TABLE` and
-`TRUNCATE TABLE` statements. A one-minute alarm notifies the existing encrypted
-SNS alert topic and its confirmed email subscribers.
+`TRUNCATE TABLE` statements. A one-minute alarm notifies a dedicated Mandate 20
+SNS topic and its confirmed email subscribers. The topic contains alarm status
+metadata only and is intentionally unencrypted: the organization SCP prevents
+the production apply role from changing the KMS policy of the existing
+encrypted Mandate 12 topic. This preserves the SCP boundary rather than
+requesting a bypass for an alert that contains no SQL payload or customer data.
 
 This is an early-warning control, not a recovery trigger. An alarm does not
 prove data loss and must never automatically select `T_safe`, start PITR,

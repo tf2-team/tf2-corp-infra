@@ -10,6 +10,10 @@ tags = {
 # Mandate 12.1 audit tamper email alerts. Add real inboxes and confirm AWS SNS subscription emails after apply.
 immutable_audit_alert_email_endpoints = [
   "ctran13904@gmail.com",
+]
+
+# Mandate 20 destructive-DDL alarm recipients. Confirm each AWS SNS email after apply.
+mandate20_alert_email_endpoints = [
   "khanhle11342@gmail.com",
 ]
 

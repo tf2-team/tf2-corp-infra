@@ -68,6 +68,11 @@ output "mandate20_rds_destructive_ddl_alarm_name" {
   description = "MANDATE-20 CloudWatch alarm for logged destructive PostgreSQL DDL."
 }
 
+output "mandate20_data_loss_alert_topic_arn" {
+  value       = aws_sns_topic.mandate20_data_loss_alerts.arn
+  description = "Dedicated SNS topic for MANDATE-20 destructive-DDL alarms."
+}
+
 output "immutable_audit_s3_data_event_object_arns" {
   value       = local.immutable_audit_s3_data_event_object_arns
   description = "S3 object ARN scopes logged as CloudTrail data events for Mandate 12.2, derived from the sensitive coverage registry plus any legacy variable overrides"
