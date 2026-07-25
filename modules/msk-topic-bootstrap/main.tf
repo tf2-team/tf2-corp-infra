@@ -50,6 +50,9 @@ resource "kubernetes_job_v1" "this" {
           "app.kubernetes.io/name"      = var.name
           "app.kubernetes.io/component" = "kafka-topic-bootstrap"
         }
+        annotations = {
+          "linkerd.io/inject" = "disabled"
+        }
       }
 
       spec {
