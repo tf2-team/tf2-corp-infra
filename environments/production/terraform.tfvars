@@ -69,6 +69,15 @@ ecr_keep_last_n_buildcache = 0
 ecr_scan_on_push           = false
 ecr_force_delete           = true
 ecr_repository_overrides = {
+  # Custom Linkerd CNI image refreshes the short-lived projected API token in
+  # the node-local CNI chain. Keep immutable, scanned release artifacts like
+  # the application images; it must never float at a mutable tag in production.
+  linkerd-cni = {
+    image_tag_mutability = "IMMUTABLE"
+    scan_on_push         = true
+    keep_last_n_images   = 10
+    force_delete         = false
+  }
   cosign-artifacts = {
     image_tag_mutability = "MUTABLE"
     scan_on_push         = false
