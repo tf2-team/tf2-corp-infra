@@ -57,11 +57,14 @@ immutable_audit_validation_lambda_memory_mb            = 512
 
 # Image format: REGISTRY/techx-prod-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
-# Lifecycle matches development (keep last 5 images; buildcache keep 0).
-ecr_project_name           = "techx-prod-corp"
-ecr_naming_mode            = "nested"
-ecr_image_tag_mutability   = "IMMUTABLE"
-ecr_keep_last_n_images     = 5
+# Lifecycle matches development (keep about 5 complete multi-arch releases;
+# buildcache keep 0).
+ecr_project_name         = "techx-prod-corp"
+ecr_naming_mode          = "nested"
+ecr_image_tag_mutability = "IMMUTABLE"
+# A multi-architecture BuildKit release consumes roughly five ECR records
+# (index, platform manifests, and attestations). Keep five complete releases.
+ecr_keep_last_n_images     = 25
 ecr_keep_last_n_buildcache = 0
 ecr_scan_on_push           = false
 ecr_force_delete           = true
