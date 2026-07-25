@@ -1241,6 +1241,19 @@ module "msk" {
   tags                         = var.tags
 }
 
+module "msk_orders_persisted_topic" {
+  source = "../../modules/msk-topic-bootstrap"
+
+  namespace          = "techx-corp-prod"
+  secret_name        = "techx-corp-msk"
+  topic_name         = "orders-persisted"
+  partitions         = 3
+  replication_factor = 2
+  vpc_cidr_block     = module.vpc.vpc_cidr_block
+
+  depends_on = [module.msk]
+}
+
 # ──────────────────────────────────────────────
 # Karpenter — node autoscaling (Spot-preferred; same model as development)
 # ──────────────────────────────────────────────
