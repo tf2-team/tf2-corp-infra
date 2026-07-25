@@ -58,13 +58,17 @@
 
 ### Development (`environments/development`)
 
+> **Scope:** development Terraform creates **nested ECR only** (no VPC/EKS/Karpenter/Argo CD/secrets stack).
+> ECR lifecycle and mutability settings match production; only the project path (`techx-dev-corp`) differs.
+
 | Hằng số | Giá trị |
 |---|---|
-| `project_name` | `techx-dev` |
+| `project_name` | `techx-dev-tf2` |
+| Stack scope | **ECR only** (`module.ecr`) |
 | `ecr_project_name` | `techx-dev-corp` |
 | Nested repos | `techx-dev-corp/ad`, … |
 | Image base | `493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-dev-corp` |
-| EKS | `techx-dev` |
+| ECR settings | Same as production: `IMMUTABLE`, keep 5 images, buildcache 0, `scan_on_push=false`, cosign-artifacts override |
 | GHA role (bootstrap) | `techx-gha-platform-dev` |
 | GitHub Environment | `development` |
 | Allowed refs | `refs/heads/techx-dev-corp` |
@@ -172,15 +176,17 @@ terraform -chdir=environments/production plan -out=prod.tfplan
 terraform -chdir=environments/production apply "prod.tfplan"
 ```
 
-### Bước 3: Development stack
+### Bước 3: Development stack (ECR only)
 
-```bash
-# backend.hcl key = "development/terraform.tfstate"
+```cmd
+REM backend.hcl key = "development/terraform.tfstate"
 terraform -chdir=environments/development init -backend-config=backend.hcl
 terraform -chdir=environments/development plan -out=dev.tfplan
-# Kỳ vọng: techx-dev-corp/<service>; không tạo GHA OIDC/roles
+REM Expect: nested techx-dev-corp/<service> repos only (no VPC/EKS/GHA OIDC)
 terraform -chdir=environments/development apply "dev.tfplan"
 ```
+
+> **State migration:** if remote state previously managed VPC/EKS/etc., the next plan will **destroy** those resources and keep ECR. Review the plan carefully before apply.
 
 ### Bước 4: Outputs cho CI/CD & Helm
 
@@ -814,4 +820,4 @@ aws s3api list-object-versions \
 - `techx-corp-platform/docs/DEPLOYMENT.md` — E2E operator runbook  
 - `techx-corp-chart/docs/DEPLOYMENT.md` — Helm / smoke / rollback
 
-<!-- Change trail: @hungxqt - 2026-07-19 - Catalog shopping-copilot (and mem0) in ECR service list. -->
+<!-- Change trail: @hungxqt - 2026-07-25 - Document development stack as ECR-only matching production settings. -->
