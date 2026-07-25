@@ -88,8 +88,8 @@ variable "scan_on_push" {
 
 variable "keep_last_n_images" {
   type        = number
-  default     = 10
-  description = "Lifecycle policy: keep only the N most recent non-buildcache images per repository"
+  default     = 25
+  description = "Lifecycle policy: keep N recent ECR records per repository, accounting for multi-arch manifests and attestations"
 }
 
 variable "keep_last_n_buildcache" {
