@@ -1056,6 +1056,17 @@ module "external_secrets" {
   tags                        = var.tags
 }
 
+module "yace_cloudwatch" {
+  source = "../../modules/cloudwatch-exporter"
+
+  name                 = var.project_name
+  oidc_provider_arn    = module.eks.oidc_provider_arn
+  oidc_issuer_url      = module.eks.oidc_issuer
+  namespace            = "techx-corp-prod"
+  service_account_name = "yace"
+  tags                 = var.tags
+}
+
 module "ai_model_storage" {
   source = "../../modules/ai-model-storage"
 
