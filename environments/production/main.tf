@@ -1056,6 +1056,20 @@ module "external_secrets" {
   tags                        = var.tags
 }
 
+# Read-only CloudWatch access for the YACE exporter (deployed by the chart
+# as components.yace) so managed RDS/ElastiCache/MSK host metrics reach the
+# in-cluster Prometheus for AIOps RCA.
+module "yace_cloudwatch" {
+  source = "../../modules/cloudwatch-exporter"
+
+  name                 = var.project_name
+  oidc_provider_arn    = module.eks.oidc_provider_arn
+  oidc_issuer_url      = module.eks.oidc_issuer
+  namespace            = "techx-corp-prod"
+  service_account_name = "yace"
+  tags                 = var.tags
+}
+
 module "ai_model_storage" {
   source = "../../modules/ai-model-storage"
 
@@ -1631,4 +1645,4 @@ resource "aws_iam_role_policy" "policy_controller" {
   policy = data.aws_iam_policy_document.policy_controller.json
 }
 
-# Change trail: @hungxqt - 2026-07-22 - Wire mandate20_backup vault and EBS hourly plan module.
+# Change trail: @hungxqt - 2026-07-26 - Wire yace_cloudwatch IRSA module for managed-store metrics export.

@@ -1054,4 +1054,9 @@ output "mem0_postgresql_security_group_id" {
   description = "Security group attached to Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-22 - Export mandate20_backup vault and plan IDs.
+output "yace_cloudwatch_role_arn" {
+  value       = module.yace_cloudwatch.role_arn
+  description = "IRSA role ARN for the YACE CloudWatch exporter ServiceAccount annotation (chart components.yace)"
+}
+
+# Change trail: @hungxqt - 2026-07-26 - Export YACE CloudWatch IRSA role ARN for the chart SA annotation.
