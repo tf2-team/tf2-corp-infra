@@ -202,4 +202,37 @@ jobs:
               issue_number: context.issue.number,
               body
             });
+
+  terraform-ci-gate:
+    name: Terraform CI gate
+    if: always()
+    needs:
+      - static-checks
+      - tflint
+      - checkov
+      - plan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce all required Terraform checks
+        env:
+          STATIC_CHECKS_RESULT: ${{ needs.static-checks.result }}
+          TFLINT_RESULT: ${{ needs.tflint.result }}
+          CHECKOV_RESULT: ${{ needs.checkov.result }}
+          PLAN_RESULT: ${{ needs.plan.result }}
+        run: |
+          set -euo pipefail
+          failed=0
+          for check in \
+            "static-checks:${STATIC_CHECKS_RESULT}" \
+            "tflint:${TFLINT_RESULT}" \
+            "checkov:${CHECKOV_RESULT}" \
+            "plan:${PLAN_RESULT}"; do
+            name="${check%%:*}"
+            result="${check#*:}"
+            if [[ "${result}" != "success" ]]; then
+              echo "::error::Required check '${name}' finished as '${result}'"
+              failed=1
+            fi
+          done
+          exit "${failed}"
 # Change trail: @hungxqt - 2026-07-20 - Bump third-party actions to Node 24 runtimes (SHA pins).
