@@ -272,6 +272,9 @@ karpenter_availability_zones       = ["us-east-1a", "us-east-1b"]
 # Match MNG density + avoid 1-vCPU nodes (~8 max pods, no room for DaemonSets)
 karpenter_node_max_pods    = 110
 karpenter_min_instance_cpu = 2
+# AIOps long-run profile: reserve room for the OTel DaemonSet beside app pods.
+# t4g.medium (4GiB) is too small; t4g.large (8GiB) is the minimum.
+karpenter_min_instance_memory = 8192
 # Hard placement contract for classified stateless apps
 karpenter_node_taints = [
   {

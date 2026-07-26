@@ -40,6 +40,14 @@ locals {
     values   = [tostring(var.min_instance_cpu - 1)]
   }] : []
 
+  # Optional memory floor: Gt (min-1) so min_instance_memory=8192 permits
+  # 8GiB instances while excluding 4GiB t4g.medium nodes.
+  min_memory_requirement = var.min_instance_memory > 0 ? [{
+    key      = "karpenter.k8s.aws/instance-memory"
+    operator = "Gt"
+    values   = [tostring(var.min_instance_memory - 1)]
+  }] : []
+
   node_requirements_base = concat(
     [
       {
@@ -74,6 +82,7 @@ locals {
       }
     ],
     local.min_cpu_requirement,
+    local.min_memory_requirement,
   )
 
   spot_requirements = concat(local.node_requirements_base, [{

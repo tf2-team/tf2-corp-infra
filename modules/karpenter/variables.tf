@@ -195,6 +195,23 @@ variable "min_instance_cpu" {
   EOT
 }
 
+variable "min_instance_memory" {
+  type        = number
+  default     = 0
+  nullable    = false
+  description = <<-EOT
+    Minimum memory in MiB for Karpenter-provisioned nodes
+    (karpenter.k8s.aws/instance-memory Gt min-1). Set to 0 to disable the
+    requirement. A 8192MiB floor excludes 4GiB t4g.medium nodes, which cannot
+    reliably host the per-node OTel Collector alongside application pods.
+  EOT
+
+  validation {
+    condition     = var.min_instance_memory >= 0 && floor(var.min_instance_memory) == var.min_instance_memory
+    error_message = "min_instance_memory must be a non-negative whole number of MiB."
+  }
+}
+
 variable "node_max_pods" {
   type        = number
   default     = 110

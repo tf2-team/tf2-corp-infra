@@ -1286,6 +1286,7 @@ module "karpenter" {
   availability_zones       = var.karpenter_availability_zones
   node_max_pods            = var.karpenter_node_max_pods
   min_instance_cpu         = var.karpenter_min_instance_cpu
+  min_instance_memory      = var.karpenter_min_instance_memory
   tags                     = var.tags
 }
 
