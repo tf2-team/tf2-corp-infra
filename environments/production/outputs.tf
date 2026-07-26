@@ -7,6 +7,11 @@ output "immutable_audit_bucket_name" {
   description = "Production S3 Object Lock bucket receiving the dedicated immutable CloudTrail audit trail"
 }
 
+output "yace_cloudwatch_role_arn" {
+  value       = module.yace_cloudwatch.role_arn
+  description = "IRSA role ARN for the production YACE CloudWatch exporter"
+}
+
 output "immutable_audit_bucket_arn" {
   value       = aws_s3_bucket.immutable_audit.arn
   description = "ARN of the production immutable CloudTrail audit bucket"
