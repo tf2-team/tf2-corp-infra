@@ -851,6 +851,13 @@ variable "karpenter_min_instance_cpu" {
   description = "Minimum vCPU for Karpenter nodes (0 disables). Avoids 1-vCPU instances with ~8 max pods."
 }
 
+variable "karpenter_min_instance_memory" {
+  type        = number
+  default     = 0
+  nullable    = false
+  description = "Minimum memory in MiB for Karpenter nodes (0 disables). Use 8192 to require at least 8GiB for the long-running AIOps profile."
+}
+
 # ──────────────────────────────────────────────
 # Cluster Autoscaler (hybrid: system-* MNG only; coexists with Karpenter)
 # ──────────────────────────────────────────────
