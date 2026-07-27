@@ -5,11 +5,11 @@
 data "aws_caller_identity" "current" {}
 
 locals {
-  vault_name     = "${var.name}-mandate20"
-  backup_role    = "${var.name}-mandate20-backup-service"
-  daily_plan     = "${var.name}-mandate20-daily"
+  vault_name      = "${var.name}-mandate20"
+  backup_role     = "${var.name}-mandate20-backup-service"
+  daily_plan      = "${var.name}-mandate20-daily"
   ebs_hourly_plan = "${var.name}-mandate20-ebs-hourly"
-  kms_alias      = "alias/${var.name}-backup"
+  kms_alias       = "alias/${var.name}-backup"
 
   common_tags = merge(var.tags, {
     Mandate = "20"
@@ -70,9 +70,9 @@ resource "aws_backup_vault" "mandate20" {
 }
 
 resource "aws_backup_vault_lock_configuration" "mandate20" {
-  backup_vault_name   = aws_backup_vault.mandate20.name
-  min_retention_days  = var.vault_min_retention_days
-  max_retention_days  = var.vault_max_retention_days
+  backup_vault_name  = aws_backup_vault.mandate20.name
+  min_retention_days = var.vault_min_retention_days
+  max_retention_days = var.vault_max_retention_days
 }
 
 # ──────────────────────────────────────────────
@@ -114,13 +114,13 @@ resource "aws_backup_plan" "daily" {
   name = local.daily_plan
 
   rule {
-    rule_name                = "daily-managed-store-snapshot"
-    target_vault_name        = aws_backup_vault.mandate20.name
-    schedule                 = var.daily_schedule_expression
+    rule_name                    = "daily-managed-store-snapshot"
+    target_vault_name            = aws_backup_vault.mandate20.name
+    schedule                     = var.daily_schedule_expression
     schedule_expression_timezone = "Etc/UTC"
-    start_window             = 60
-    completion_window        = 360
-    enable_continuous_backup = false
+    start_window                 = 60
+    completion_window            = 360
+    enable_continuous_backup     = false
 
     lifecycle {
       delete_after = var.daily_delete_after_days

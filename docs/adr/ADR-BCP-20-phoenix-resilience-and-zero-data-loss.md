@@ -80,11 +80,14 @@ and checkout image have all been deployed and smoke-tested.
 | Valkey cart | Daily snapshot window `18:00-19:00` UTC | 7 days | <= 24 hours | <= 20 minutes | New isolated replication group |
 | Mem0 RDS | Continuous transaction logs plus daily automated backup | 14 days | <= 5 minutes | <= 30 minutes | New private RDS instance |
 | Cluster manifests and IaC | Commit on every approved production change | Git history per repository policy | <= 1 hour | <= 60 minutes | Clean workspace and isolated reconstruction environment |
-| Active operational EBS PVCs | Planned hourly AWS Backup selection | 7 days | <= 1 hour | <= 60 minutes | New encrypted EBS volume / isolated PVC |
+| Active operational EBS PVCs | Hourly AWS Backup selection by `Mandate20Backup=hourly` | 7 days | <= 1 hour | <= 60 minutes | New encrypted EBS volume / isolated PVC |
 
-The EBS target is not yet an achieved control. The live hourly backup plan uses
-the condition `Mandate20Backup=hourly`, but no production volume currently has
-that tag and there are no EBS recovery points.
+The hourly EBS plan selects only approved volumes carrying
+`Mandate20Backup=hourly`. Existing operational volumes were tagged and have
+completed recovery points. The production `gp3-encrypted` StorageClass now
+declares that tag for newly provisioned volumes; this desired-state change must
+still pass Helm rendering, GitOps review, promotion, and read-only live
+verification. Existing PVCs must not be recreated solely to adopt this change.
 
 ---
 
@@ -111,10 +114,11 @@ that tag and there are no EBS recovery points.
 ### 4.2 Must Be Completed Before the Formal Drill
 
 * Confirm the first available Valkey snapshot and retain its evidence.
-* Enable EBS encryption by default in `us-east-1`.
-* Introduce a KMS-encrypted `gp3` StorageClass and migrate active operational
-  PVCs. Existing EBS volumes are unencrypted and cannot be encrypted in place.
-* Bring the live EBS hourly backup plan and selection under Terraform ownership.
+* Verify the documented account-level EBS encryption default remains enabled in
+  `us-east-1`; node and PVC desired state already declares encryption.
+* Promote and verify the automatic `Mandate20Backup=hourly` tag on newly
+  provisioned `gp3-encrypted` volumes without recreating current PVCs.
+* Keep the live EBS hourly backup plan and selection under Terraform ownership.
 * ~~Apply the `Mandate20Backup=hourly` selection tag to approved active volumes
   and verify a completed EBS recovery point.~~ **DONE 2026-07-22:** tagged
   enc-prometheus / enc-grafana / enc-opensearch; three EBS RPs `COMPLETED` in
@@ -125,6 +129,10 @@ that tag and there are no EBS recovery points.
   cleanup change.
 * Verify Terraform remote-state bucket versioning, encryption, locking, and a
   documented state recovery procedure.
+* Promote the seven-day production Secrets Manager recovery window without
+  rotating values or changing secret names/ARNs.
+* Promote the operator deny on disabling, re-policying, or scheduling deletion
+  of the exact KMS key that encrypts Mandate 20 recovery points.
 * Create and verify the `orders-persisted` MSK topic with three partitions and
   replication factor two.
 * Deploy accounting before checkout, then pass the normal outbox -> MSK -> RDS

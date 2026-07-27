@@ -248,8 +248,9 @@ argocd_chart_repo_url = "https://github.com/tf2-team/tf2-corp-chart/tree/main"
 # Path blocking is at CloudFront (cloudfront_block_sensitive_paths below).
 storefront_alb_scheme = "internal"
 
-# Force-delete secret shells (same as development) for faster tear-down / re-bootstrap
-secrets_manager_recovery_window_in_days = 0
+# Production secrets remain recoverable after accidental deletion. This changes
+# delete behavior only; it does not rotate values or change secret ARNs.
+secrets_manager_recovery_window_in_days = 7
 
 # ──────────────────────────────────────────────
 # Karpenter (node autoscaling) — Spot preferred (same as development)
