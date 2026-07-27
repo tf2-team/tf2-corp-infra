@@ -313,18 +313,19 @@ module "github_actions_terraform" {
   source   = "../modules/github-actions-terraform"
   for_each = local.github_actions_terraform_roles
 
-  name                = each.value.name
-  description         = each.value.description
-  github_repository   = each.value.github_repository
-  github_environments = each.value.github_environments
-  allowed_refs        = each.value.allowed_refs
-  allow_pull_request  = each.value.allow_pull_request
-  oidc_provider_arn   = aws_iam_openid_connect_provider.github.arn
-  permission_level    = each.value.permission_level
-  state_bucket_arn    = aws_s3_bucket.state_bucket.arn
-  state_kms_key_arn   = aws_kms_key.state_key.arn
-  state_key_prefixes  = each.value.state_key_prefixes
-  iam_name_prefixes   = each.value.iam_name_prefixes
+  name                               = each.value.name
+  description                        = each.value.description
+  github_repository                  = each.value.github_repository
+  github_environments                = each.value.github_environments
+  allowed_refs                       = each.value.allowed_refs
+  allow_pull_request                 = each.value.allow_pull_request
+  oidc_provider_arn                  = aws_iam_openid_connect_provider.github.arn
+  permission_level                   = each.value.permission_level
+  state_bucket_arn                   = aws_s3_bucket.state_bucket.arn
+  state_kms_key_arn                  = aws_kms_key.state_key.arn
+  state_key_prefixes                 = each.value.state_key_prefixes
+  iam_name_prefixes                  = each.value.iam_name_prefixes
+  enforce_managed_policy_exclusivity = each.key == "production-apply"
 
   tags = merge(var.tags, {
     Purpose = "github-actions-terraform"

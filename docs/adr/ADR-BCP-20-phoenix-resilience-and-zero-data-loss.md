@@ -129,6 +129,12 @@ verification. Existing PVCs must not be recreated solely to adopt this change.
   cleanup change.
 * Verify Terraform remote-state bucket versioning, encryption, locking, and a
   documented state recovery procedure.
+* Promote and verify the explicit deny on deleting historical production
+  Terraform state versions. Current state writes and native `.tflock` deletion
+  remain allowed.
+* Promote bootstrap exclusive managed-policy ownership for
+  `GitHubTerraformProdApplyRole` so stale out-of-band backup policy attachments
+  are removed without changing its inline policies.
 * Promote the seven-day production Secrets Manager recovery window without
   rotating values or changing secret names/ARNs.
 * Promote the operator deny on disabling, re-policying, or scheduling deletion
