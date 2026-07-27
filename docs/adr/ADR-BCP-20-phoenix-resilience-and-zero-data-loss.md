@@ -84,10 +84,10 @@ and checkout image have all been deployed and smoke-tested.
 
 The hourly EBS plan selects only approved volumes carrying
 `Mandate20Backup=hourly`. Existing operational volumes were tagged and have
-completed recovery points. The production `gp3-encrypted` StorageClass now
-declares that tag for newly provisioned volumes; this desired-state change must
-still pass Helm rendering, GitOps review, promotion, and read-only live
-verification. Existing PVCs must not be recreated solely to adopt this change.
+completed recovery points. Production keeps the existing `gp3-encrypted`
+StorageClass unchanged and creates `gp3-encrypted-m20` for newly provisioned
+volumes. This avoids mutating immutable StorageClass/PVC fields. Existing PVCs
+must not be recreated solely to adopt the new StorageClass.
 
 ---
 
@@ -117,7 +117,7 @@ verification. Existing PVCs must not be recreated solely to adopt this change.
 * Verify the documented account-level EBS encryption default remains enabled in
   `us-east-1`; node and PVC desired state already declares encryption.
 * Promote and verify the automatic `Mandate20Backup=hourly` tag on newly
-  provisioned `gp3-encrypted` volumes without recreating current PVCs.
+  provisioned `gp3-encrypted-m20` volumes without recreating current PVCs.
 * Keep the live EBS hourly backup plan and selection under Terraform ownership.
 * ~~Apply the `Mandate20Backup=hourly` selection tag to approved active volumes
   and verify a completed EBS recovery point.~~ **DONE 2026-07-22:** tagged

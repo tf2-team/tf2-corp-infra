@@ -17,7 +17,8 @@ Post-promotion verification found two desired-state gaps:
   `PowerUserAccess`; inline Terraform state and scoped IAM policies are not
   affected.
 - Add `s3:DeleteObjectVersion` to the existing Mandate 20 deny policy for the
-  exact object `production/terraform.tfstate`.
+  exact object `production/terraform.tfstate` in the bootstrap-owned
+  `techx-tf-state-<account>-<region>` bucket.
 - Do not deny `s3:DeleteObject`: Terraform must continue deleting the native
   `.tflock` object, and normal state writes must remain uninterrupted.
 - Keep S3 lifecycle expiration of noncurrent versions at 90 days. The explicit
@@ -46,3 +47,11 @@ Post-promotion verification found two desired-state gaps:
 5. Verify a normal production plan can acquire/release the S3 lockfile.
 
 No direct IAM detach or S3 mutation is part of this change.
+
+## Post-merge correction
+
+Live verification found that the first production expression used the
+environment project name (`techx-prod-tf2`) when constructing the state bucket
+ARN. The bootstrap stack uses the root project name (`techx`), so the policy
+pointed at a non-existent bucket. The follow-up changes the resource ARN to the
+canonical live bucket without changing the bucket, state object, or backend.
