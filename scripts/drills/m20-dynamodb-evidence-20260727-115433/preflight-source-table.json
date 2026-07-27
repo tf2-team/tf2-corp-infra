@@ -1,0 +1,83 @@
+{
+  "Table": {
+    "AttributeDefinitions": [
+      {
+        "AttributeName": "created_at",
+        "AttributeType": "N"
+      },
+      {
+        "AttributeName": "event_id",
+        "AttributeType": "S"
+      },
+      {
+        "AttributeName": "status",
+        "AttributeType": "S"
+      }
+    ],
+    "TableName": "techx-prod-tf2-checkout-outbox",
+    "KeySchema": [
+      {
+        "AttributeName": "event_id",
+        "KeyType": "HASH"
+      }
+    ],
+    "TableStatus": "ACTIVE",
+    "CreationDateTime": "2026-07-15T08:24:52.073000+07:00",
+    "ProvisionedThroughput": {
+      "NumberOfDecreasesToday": 0,
+      "ReadCapacityUnits": 0,
+      "WriteCapacityUnits": 0
+    },
+    "TableSizeBytes": 195637173,
+    "ItemCount": 668027,
+    "TableArn": "arn:aws:dynamodb:us-east-1:493499579600:table/techx-prod-tf2-checkout-outbox",
+    "TableId": "dd2daa79-de47-455d-889a-1310dedcb3cb",
+    "BillingModeSummary": {
+      "BillingMode": "PAY_PER_REQUEST",
+      "LastUpdateToPayPerRequestDateTime": "2026-07-15T08:24:52.073000+07:00"
+    },
+    "GlobalSecondaryIndexes": [
+      {
+        "IndexName": "status-created-index",
+        "KeySchema": [
+          {
+            "AttributeName": "status",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "created_at",
+            "KeyType": "RANGE"
+          }
+        ],
+        "Projection": {
+          "ProjectionType": "ALL"
+        },
+        "IndexStatus": "ACTIVE",
+        "ProvisionedThroughput": {
+          "NumberOfDecreasesToday": 0,
+          "ReadCapacityUnits": 0,
+          "WriteCapacityUnits": 0
+        },
+        "IndexSizeBytes": 195634977,
+        "ItemCount": 667982,
+        "IndexArn": "arn:aws:dynamodb:us-east-1:493499579600:table/techx-prod-tf2-checkout-outbox/index/status-created-index",
+        "WarmThroughput": {
+          "ReadUnitsPerSecond": 12000,
+          "WriteUnitsPerSecond": 4000,
+          "Status": "ACTIVE"
+        }
+      }
+    ],
+    "SSEDescription": {
+      "Status": "ENABLED",
+      "SSEType": "KMS",
+      "KMSMasterKeyArn": "arn:aws:kms:us-east-1:493499579600:key/34015827-9a84-495c-8919-65bfc9ccc8c6"
+    },
+    "DeletionProtectionEnabled": false,
+    "WarmThroughput": {
+      "ReadUnitsPerSecond": 12000,
+      "WriteUnitsPerSecond": 4000,
+      "Status": "ACTIVE"
+    }
+  }
+}

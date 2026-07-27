@@ -1,0 +1,380 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "Deployment",
+  "metadata": {
+    "annotations": {
+      "deployment.kubernetes.io/revision": "85",
+      "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/component\":\"flagd\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"flagd\",\"app.kubernetes.io/part-of\":\"techx-corp\",\"app.kubernetes.io/version\":\"2.2.0\",\"argocd.argoproj.io/instance\":\"techx-corp\",\"helm.sh/chart\":\"techx-corp-0.48.12\",\"opentelemetry.io/name\":\"flagd\"},\"name\":\"flagd\",\"namespace\":\"techx-corp-prod\"},\"spec\":{\"minReadySeconds\":10,\"progressDeadlineSeconds\":300,\"replicas\":1,\"revisionHistoryLimit\":2,\"selector\":{\"matchLabels\":{\"opentelemetry.io/name\":\"flagd\"}},\"strategy\":{\"rollingUpdate\":{\"maxSurge\":1,\"maxUnavailable\":0},\"type\":\"RollingUpdate\"},\"template\":{\"metadata\":{\"annotations\":{\"resource.opentelemetry.io/service.namespace\":\"techx-corp-prod\"},\"labels\":{\"app.kubernetes.io/component\":\"flagd\",\"app.kubernetes.io/name\":\"flagd\",\"app.kubernetes.io/part-of\":\"techx-corp\",\"app.kubernetes.io/version\":\"2.2.0\",\"opentelemetry.io/name\":\"flagd\"}},\"spec\":{\"automountServiceAccountToken\":false,\"containers\":[{\"command\":[\"/flagd-build\",\"start\",\"--port\",\"8013\",\"--ofrep-port\",\"8016\",\"--sources\",\"[{\\\"uri\\\":\\\"/etc/flagd/demo.flagd.json\\\",\\\"provider\\\":\\\"file\\\"},{\\\"uri\\\":\\\"https://122.248.223.194.sslip.io/flags.json\\\",\\\"provider\\\":\\\"http\\\",\\\"authHeader\\\":\\\"Bearer $(FLAGD_SYNC_TOKEN)\\\"}]\"],\"env\":[{\"name\":\"OTEL_SERVICE_NAME\",\"valueFrom\":{\"fieldRef\":{\"apiVersion\":\"v1\",\"fieldPath\":\"metadata.labels[\u0027app.kubernetes.io/component\u0027]\"}}},{\"name\":\"OTEL_COLLECTOR_NAME\",\"value\":\"otel-collector\"},{\"name\":\"OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE\",\"value\":\"cumulative\"},{\"name\":\"FLAGD_METRICS_EXPORTER\",\"value\":\"otel\"},{\"name\":\"FLAGD_OTEL_COLLECTOR_URI\",\"value\":\"$(OTEL_COLLECTOR_NAME):4317\"},{\"name\":\"GOMEMLIMIT\",\"value\":\"100MiB\"},{\"name\":\"FLAGD_SYNC_TOKEN\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"FLAGD_SYNC_TOKEN\",\"name\":\"techx-corp-flagd-ui\"}}}],\"image\":\"ghcr.io/open-feature/flagd:v0.15.0\",\"imagePullPolicy\":\"IfNotPresent\",\"lifecycle\":{\"preStop\":{\"sleep\":{\"seconds\":10}}},\"livenessProbe\":{\"failureThreshold\":3,\"periodSeconds\":20,\"tcpSocket\":{\"port\":8013},\"timeoutSeconds\":3},\"name\":\"flagd\",\"ports\":[{\"containerPort\":8013,\"name\":\"rpc\"},{\"containerPort\":8016,\"name\":\"ofrep\"}],\"readinessProbe\":{\"failureThreshold\":3,\"periodSeconds\":10,\"tcpSocket\":{\"port\":8013},\"timeoutSeconds\":2},\"resources\":{\"limits\":{\"cpu\":\"100m\",\"memory\":\"128Mi\"},\"requests\":{\"cpu\":\"10m\",\"memory\":\"64Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":true,\"runAsNonRoot\":true},\"volumeMounts\":[{\"mountPath\":\"/etc/flagd\",\"name\":\"config-rw\"},{\"mountPath\":\"/tmp\",\"name\":\"tmp-dir\"}]},{\"command\":[\"/app/bin/flagd_ui\",\"start\"],\"env\":[{\"name\":\"OTEL_SERVICE_NAME\",\"valueFrom\":{\"fieldRef\":{\"apiVersion\":\"v1\",\"fieldPath\":\"metadata.labels[\u0027app.kubernetes.io/component\u0027]\"}}},{\"name\":\"OTEL_COLLECTOR_NAME\",\"value\":\"otel-collector\"},{\"name\":\"OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE\",\"value\":\"cumulative\"},{\"name\":\"FLAGD_METRICS_EXPORTER\",\"value\":\"otel\"},{\"name\":\"OTEL_EXPORTER_OTLP_ENDPOINT\",\"value\":\"http://$(OTEL_COLLECTOR_NAME):4318\"},{\"name\":\"FLAGD_UI_PORT\",\"value\":\"4000\"},{\"name\":\"SECRET_KEY_BASE\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"SECRET_KEY_BASE\",\"name\":\"techx-corp-flagd-ui\"}}},{\"name\":\"PHX_HOST\",\"value\":\"localhost\"},{\"name\":\"PHX_SERVER\",\"value\":\"true\"}],\"image\":\"493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/flagd-ui@sha256:0f8f19f5580bcdba4056cafeb1b3b8693d573084223d614706b3841774cae7bd\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"flagd-ui\",\"ports\":[{\"containerPort\":4000,\"name\":\"service\"}],\"resources\":{\"limits\":{\"cpu\":\"20m\",\"memory\":\"192Mi\"},\"requests\":{\"cpu\":\"5m\",\"memory\":\"144Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":true,\"runAsGroup\":10001,\"runAsNonRoot\":true,\"runAsUser\":10001},\"volumeMounts\":[{\"mountPath\":\"/app/data\",\"name\":\"config-rw\"},{\"mountPath\":\"/tmp\",\"name\":\"tmp-dir\"}]}],\"initContainers\":[{\"command\":[\"sh\",\"-c\",\"cp /config-ro/demo.flagd.json /config-rw/demo.flagd.json \\u0026\\u0026 cat /config-rw/demo.flagd.json\"],\"image\":\"busybox:1.37.0\",\"name\":\"init-config\",\"resources\":{\"limits\":{\"cpu\":\"100m\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"10m\",\"memory\":\"16Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":true,\"runAsGroup\":10001,\"runAsNonRoot\":true,\"runAsUser\":10001},\"volumeMounts\":[{\"mountPath\":\"/config-ro\",\"name\":\"config-ro\"},{\"mountPath\":\"/config-rw\",\"name\":\"config-rw\"}]}],\"nodeSelector\":{\"workload-class\":\"critical\"},\"securityContext\":{\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"serviceAccountName\":\"flagd\",\"terminationGracePeriodSeconds\":30,\"volumes\":[{\"emptyDir\":{},\"name\":\"config-rw\"},{\"emptyDir\":{},\"name\":\"tmp-dir\"},{\"configMap\":{\"name\":\"flagd-config\"},\"name\":\"config-ro\"}]}}}}\n"
+    },
+    "creationTimestamp": "2026-07-13T02:55:00Z",
+    "generation": 112,
+    "labels": {
+      "app.kubernetes.io/component": "flagd",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "flagd",
+      "app.kubernetes.io/part-of": "techx-corp",
+      "app.kubernetes.io/version": "2.2.0",
+      "argocd.argoproj.io/instance": "techx-corp",
+      "helm.sh/chart": "techx-corp-0.48.12",
+      "opentelemetry.io/name": "flagd"
+    },
+    "name": "flagd",
+    "namespace": "techx-corp-prod",
+    "resourceVersion": "10096136",
+    "uid": "dffbbd77-9c87-4fdd-8145-e5bbbfd527dd"
+  },
+  "spec": {
+    "minReadySeconds": 10,
+    "progressDeadlineSeconds": 300,
+    "replicas": 1,
+    "revisionHistoryLimit": 2,
+    "selector": {
+      "matchLabels": {
+        "opentelemetry.io/name": "flagd"
+      }
+    },
+    "strategy": {
+      "rollingUpdate": {
+        "maxSurge": 1,
+        "maxUnavailable": 0
+      },
+      "type": "RollingUpdate"
+    },
+    "template": {
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/restartedAt": "2026-07-26T19:29:09+07:00",
+          "resource.opentelemetry.io/service.namespace": "techx-corp-prod"
+        },
+        "labels": {
+          "app.kubernetes.io/component": "flagd",
+          "app.kubernetes.io/name": "flagd",
+          "app.kubernetes.io/part-of": "techx-corp",
+          "app.kubernetes.io/version": "2.2.0",
+          "opentelemetry.io/name": "flagd"
+        }
+      },
+      "spec": {
+        "automountServiceAccountToken": false,
+        "containers": [
+          {
+            "command": [
+              "/flagd-build",
+              "start",
+              "--port",
+              "8013",
+              "--ofrep-port",
+              "8016",
+              "--sources",
+              "[{\"uri\":\"/etc/flagd/demo.flagd.json\",\"provider\":\"file\"},{\"uri\":\"https://122.248.223.194.sslip.io/flags.json\",\"provider\":\"http\",\"authHeader\":\"Bearer $(FLAGD_SYNC_TOKEN)\"}]"
+            ],
+            "env": [
+              {
+                "name": "OTEL_SERVICE_NAME",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.labels[\u0027app.kubernetes.io/component\u0027]"
+                  }
+                }
+              },
+              {
+                "name": "OTEL_COLLECTOR_NAME",
+                "value": "otel-collector"
+              },
+              {
+                "name": "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE",
+                "value": "cumulative"
+              },
+              {
+                "name": "FLAGD_METRICS_EXPORTER",
+                "value": "otel"
+              },
+              {
+                "name": "FLAGD_OTEL_COLLECTOR_URI",
+                "value": "$(OTEL_COLLECTOR_NAME):4317"
+              },
+              {
+                "name": "GOMEMLIMIT",
+                "value": "100MiB"
+              },
+              {
+                "name": "FLAGD_SYNC_TOKEN",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "FLAGD_SYNC_TOKEN",
+                    "name": "techx-corp-flagd-ui"
+                  }
+                }
+              }
+            ],
+            "image": "ghcr.io/open-feature/flagd:v0.15.0",
+            "imagePullPolicy": "IfNotPresent",
+            "lifecycle": {
+              "preStop": {
+                "sleep": {
+                  "seconds": 10
+                }
+              }
+            },
+            "livenessProbe": {
+              "failureThreshold": 3,
+              "periodSeconds": 20,
+              "successThreshold": 1,
+              "tcpSocket": {
+                "port": 8013
+              },
+              "timeoutSeconds": 3
+            },
+            "name": "flagd",
+            "ports": [
+              {
+                "containerPort": 8013,
+                "name": "rpc",
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 8016,
+                "name": "ofrep",
+                "protocol": "TCP"
+              }
+            ],
+            "readinessProbe": {
+              "failureThreshold": 3,
+              "periodSeconds": 10,
+              "successThreshold": 1,
+              "tcpSocket": {
+                "port": 8013
+              },
+              "timeoutSeconds": 2
+            },
+            "resources": {
+              "limits": {
+                "cpu": "100m",
+                "memory": "128Mi"
+              },
+              "requests": {
+                "cpu": "10m",
+                "memory": "64Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": ["ALL"]
+              },
+              "readOnlyRootFilesystem": true,
+              "runAsNonRoot": true
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/etc/flagd",
+                "name": "config-rw"
+              },
+              {
+                "mountPath": "/tmp",
+                "name": "tmp-dir"
+              }
+            ]
+          },
+          {
+            "command": ["/app/bin/flagd_ui", "start"],
+            "env": [
+              {
+                "name": "OTEL_SERVICE_NAME",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.labels[\u0027app.kubernetes.io/component\u0027]"
+                  }
+                }
+              },
+              {
+                "name": "OTEL_COLLECTOR_NAME",
+                "value": "otel-collector"
+              },
+              {
+                "name": "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE",
+                "value": "cumulative"
+              },
+              {
+                "name": "FLAGD_METRICS_EXPORTER",
+                "value": "otel"
+              },
+              {
+                "name": "OTEL_EXPORTER_OTLP_ENDPOINT",
+                "value": "http://$(OTEL_COLLECTOR_NAME):4318"
+              },
+              {
+                "name": "FLAGD_UI_PORT",
+                "value": "4000"
+              },
+              {
+                "name": "SECRET_KEY_BASE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "SECRET_KEY_BASE",
+                    "name": "techx-corp-flagd-ui"
+                  }
+                }
+              },
+              {
+                "name": "PHX_HOST",
+                "value": "localhost"
+              },
+              {
+                "name": "PHX_SERVER",
+                "value": "true"
+              }
+            ],
+            "image": "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/flagd-ui@sha256:0f8f19f5580bcdba4056cafeb1b3b8693d573084223d614706b3841774cae7bd",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "flagd-ui",
+            "ports": [
+              {
+                "containerPort": 4000,
+                "name": "service",
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "20m",
+                "memory": "192Mi"
+              },
+              "requests": {
+                "cpu": "5m",
+                "memory": "144Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": ["ALL"]
+              },
+              "readOnlyRootFilesystem": true,
+              "runAsGroup": 10001,
+              "runAsNonRoot": true,
+              "runAsUser": 10001
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/app/data",
+                "name": "config-rw"
+              },
+              {
+                "mountPath": "/tmp",
+                "name": "tmp-dir"
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "initContainers": [
+          {
+            "command": [
+              "sh",
+              "-c",
+              "cp /config-ro/demo.flagd.json /config-rw/demo.flagd.json \u0026\u0026 cat /config-rw/demo.flagd.json"
+            ],
+            "image": "busybox:1.37.0",
+            "imagePullPolicy": "Always",
+            "name": "init-config",
+            "resources": {
+              "limits": {
+                "cpu": "100m",
+                "memory": "64Mi"
+              },
+              "requests": {
+                "cpu": "10m",
+                "memory": "16Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": ["ALL"]
+              },
+              "readOnlyRootFilesystem": true,
+              "runAsGroup": 10001,
+              "runAsNonRoot": true,
+              "runAsUser": 10001
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/config-ro",
+                "name": "config-ro"
+              },
+              {
+                "mountPath": "/config-rw",
+                "name": "config-rw"
+              }
+            ]
+          }
+        ],
+        "nodeSelector": {
+          "workload-class": "critical"
+        },
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "serviceAccount": "flagd",
+        "serviceAccountName": "flagd",
+        "terminationGracePeriodSeconds": 30,
+        "volumes": [
+          {
+            "emptyDir": {},
+            "name": "config-rw"
+          },
+          {
+            "emptyDir": {},
+            "name": "tmp-dir"
+          },
+          {
+            "configMap": {
+              "defaultMode": 420,
+              "name": "flagd-config"
+            },
+            "name": "config-ro"
+          }
+        ]
+      }
+    }
+  },
+  "status": {
+    "availableReplicas": 1,
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-07-22T09:57:32Z",
+        "lastUpdateTime": "2026-07-22T09:57:32Z",
+        "message": "Deployment has minimum availability.",
+        "reason": "MinimumReplicasAvailable",
+        "status": "True",
+        "type": "Available"
+      },
+      {
+        "lastTransitionTime": "2026-07-23T22:45:40Z",
+        "lastUpdateTime": "2026-07-27T04:06:46Z",
+        "message": "ReplicaSet \"flagd-7d44bd8cc7\" has successfully progressed.",
+        "reason": "NewReplicaSetAvailable",
+        "status": "True",
+        "type": "Progressing"
+      }
+    ],
+    "observedGeneration": 112,
+    "readyReplicas": 1,
+    "replicas": 1,
+    "terminatingReplicas": 0,
+    "updatedReplicas": 1
+  }
+}

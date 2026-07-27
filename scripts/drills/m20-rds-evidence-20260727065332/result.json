@@ -1,0 +1,19 @@
+{
+  "SourceInstance": "techx-prod-tf2-postgresql",
+  "IsolatedTarget": "m20-rds-drill-20260727065332",
+  "CanaryTable": "m20_canary_20260727065332",
+  "SafeTimeUtc": "2026-07-27T06:56:58.0000000Z",
+  "LossTimeUtc": "2026-07-27T07:01:29.5933946Z",
+  "ActualRpoSeconds": 272,
+  "RpoTargetSeconds": 300,
+  "RestoreStartUtc": "2026-07-27T07:01:29.6080472Z",
+  "IntegrityConfirmedUtc": "2026-07-27T07:14:36.4383750Z",
+  "ActualRtoMinutes": 13.11,
+  "RtoTargetMinutes": 30,
+  "PayloadHashMatched": true,
+  "SourceCanaryAbsent": true,
+  "ProductionOverwritten": false,
+  "StorefrontBeforeHttp": 200,
+  "StorefrontAfterHttp": 200,
+  "Result": "PASS"
+}

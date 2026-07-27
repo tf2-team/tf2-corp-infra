@@ -1,0 +1,112 @@
+{
+  "DBInstance": {
+    "DBInstanceIdentifier": "m20-rds-drill-20260727065332",
+    "DBInstanceClass": "db.t4g.small",
+    "Engine": "postgres",
+    "DBInstanceStatus": "creating",
+    "MasterUsername": "postgres_admin",
+    "DBName": "otel",
+    "AllocatedStorage": 20,
+    "PreferredBackupWindow": "17:00-18:00",
+    "BackupRetentionPeriod": 0,
+    "DBSecurityGroups": [],
+    "VpcSecurityGroups": [
+      {
+        "VpcSecurityGroupId": "sg-0df18e1a2c0fd362c",
+        "Status": "active"
+      }
+    ],
+    "DBParameterGroups": [
+      {
+        "DBParameterGroupName": "techx-prod-tf2-postgresql",
+        "ParameterApplyStatus": "in-sync"
+      }
+    ],
+    "DBSubnetGroup": {
+      "DBSubnetGroupName": "techx-prod-tf2-postgresql",
+      "DBSubnetGroupDescription": "Managed by Terraform",
+      "VpcId": "vpc-0eef6ab7c99ef3bf4",
+      "SubnetGroupStatus": "Complete",
+      "Subnets": [
+        {
+          "SubnetIdentifier": "subnet-0ee04e7bc69e247a3",
+          "SubnetAvailabilityZone": {
+            "Name": "us-east-1b"
+          },
+          "SubnetOutpost": {},
+          "SubnetStatus": "Active"
+        },
+        {
+          "SubnetIdentifier": "subnet-07599236e4979c4b2",
+          "SubnetAvailabilityZone": {
+            "Name": "us-east-1a"
+          },
+          "SubnetOutpost": {},
+          "SubnetStatus": "Active"
+        }
+      ]
+    },
+    "PreferredMaintenanceWindow": "sun:18:00-sun:19:00",
+    "UpgradeRolloutOrder": "second",
+    "PendingModifiedValues": {},
+    "MultiAZ": false,
+    "EngineVersion": "16.13",
+    "AutoMinorVersionUpgrade": true,
+    "ReadReplicaDBInstanceIdentifiers": [],
+    "LicenseModel": "postgresql-license",
+    "Iops": 3000,
+    "StorageThroughput": 125,
+    "OptionGroupMemberships": [
+      {
+        "OptionGroupName": "default:postgres-16",
+        "Status": "pending-apply"
+      }
+    ],
+    "PubliclyAccessible": false,
+    "StorageType": "gp3",
+    "DbInstancePort": 0,
+    "StorageEncrypted": true,
+    "KmsKeyId": "arn:aws:kms:us-east-1:493499579600:key/b8379930-13d9-4b17-b140-95e6319a856c",
+    "DbiResourceId": "db-YVJEPLS7VFJQG3BNZ5WTF6BCLQ",
+    "CACertificateIdentifier": "rds-ca-rsa2048-g1",
+    "DomainMemberships": [],
+    "CopyTagsToSnapshot": true,
+    "MonitoringInterval": 0,
+    "DBInstanceArn": "arn:aws:rds:us-east-1:493499579600:db:m20-rds-drill-20260727065332",
+    "IAMDatabaseAuthenticationEnabled": true,
+    "DatabaseInsightsMode": "standard",
+    "PerformanceInsightsEnabled": false,
+    "DeletionProtection": false,
+    "AssociatedRoles": [],
+    "TagList": [
+      {
+        "Key": "Project",
+        "Value": "techx-platform"
+      },
+      {
+        "Key": "Environment",
+        "Value": "production"
+      },
+      {
+        "Key": "Owner",
+        "Value": "CDO-03-06"
+      },
+      {
+        "Key": "ManagedBy",
+        "Value": "Terraform"
+      },
+      {
+        "Key": "Name",
+        "Value": "techx-prod-tf2-postgresql"
+      }
+    ],
+    "CustomerOwnedIpEnabled": false,
+    "NetworkType": "IPV4",
+    "BackupTarget": "region",
+    "CertificateDetails": {
+      "CAIdentifier": "rds-ca-rsa2048-g1"
+    },
+    "DedicatedLogVolume": false,
+    "EngineLifecycleSupport": "open-source-rds-extended-support"
+  }
+}

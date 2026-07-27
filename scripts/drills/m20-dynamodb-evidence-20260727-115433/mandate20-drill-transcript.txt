@@ -1,0 +1,235 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260727115433
+Username: TRTIEZPH\phuct
+RunAs User: TRTIEZPH\phuct
+Configuration Name: 
+Machine: TRTIEZPH (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\drills\mandate-20-dynamodb-drill.ps1 -EvidenceRoot C:\Users\phuct\Downloads\mandate-20-evidence -Execute
+Process ID: 23812
+PSVersion: 5.1.26100.8875
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.8875
+BuildVersion: 10.0.26100.8875
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+
+==============================================================================
+MANDATE 20 — RUN CONTEXT
+==============================================================================
+Mode=EXECUTE
+Region=us-east-1
+ExpectedAccount=493499579600
+SourceTable=techx-prod-tf2-checkout-outbox
+MarkerId=m20-drill-20260727115433
+TargetTable=m20-drill-outbox-20260727115433
+EvidenceDir=C:\Users\phuct\Downloads\mandate-20-evidence\m20-evidence-20260727-115433
+
+==============================================================================
+1. READ-ONLY PREFLIGHT
+==============================================================================
+CallerArn=arn:aws:iam::493499579600:user/tran-phuc-tien
+AccountCheck=PASS
+PS>TerminatingError(Invoke-WebRequest): "The remote server returned an error: (404) Not Found."
+AwsServiceUTC=2026-07-27T04:54:21.0000000Z
+LocalClockSkewSeconds=16.16
+ClockSkewCheck=PASS
+SourceStatus=ACTIVE
+SourceKmsStatus=ENABLED
+SourceGSI=status-created-index
+PITRStatus=ENABLED
+PITRRecoveryDays=35
+EarliestRestorable=2026-07-15T08:25:15+07:00
+LatestRestorable=2026-07-27T11:49:25.924000+07:00
+TargetAbsent=m20-drill-outbox-20260727115433
+BeforeArgoSync=Synced
+BeforeArgoHealth=Healthy
+Before-checkout-Ready=10/10
+Before-flagd-Ready=1/1
+BeforeStorefrontHTTP=200
+Preflight=PASS
+
+==============================================================================
+2. EXECUTION AUTHORIZATION
+==============================================================================
+WARNING: This will write and delete ONE synthetic marker in the production DynamoDB source.
+WARNING: It will then create a NEW isolated PITR target. It will NOT overwrite production.
+Required confirmation: EXECUTE m20-drill-20260727115433
+
+==============================================================================
+3. INSERT SYNTHETIC MARKER
+==============================================================================
+MarkerInserted=PASS
+Payload=mandate20-restore-proof-20260727115433
+ExpectedSHA256=92b6a3a27db9b8bf0df56a2899b213e38f1a6af5fbf969d6988faf2c23bd98d7
+SafetyContract=status drill-hold is outside worker query status=pending
+
+==============================================================================
+4. SELECT T_safe AND WAIT FOR CONFIRMED PITR COVERAGE
+==============================================================================
+PS>TerminatingError(Invoke-WebRequest): "The remote server returned an error: (404) Not Found."
+T_safe=2026-07-27T04:56:21Z
+2026-07-27T11:56:39.8311201+07:00 LatestRestorableUTC=2026-07-27T04:51:23.8150000Z
+2026-07-27T11:56:57.3740077+07:00 LatestRestorableUTC=2026-07-27T04:51:41.3620000Z
+2026-07-27T11:57:14.8889074+07:00 LatestRestorableUTC=2026-07-27T04:51:58.9270000Z
+2026-07-27T11:57:32.3702512+07:00 LatestRestorableUTC=2026-07-27T04:52:16.3740000Z
+2026-07-27T11:57:50.0322924+07:00 LatestRestorableUTC=2026-07-27T04:52:33.9410000Z
+2026-07-27T11:58:07.4306574+07:00 LatestRestorableUTC=2026-07-27T04:52:51.4480000Z
+2026-07-27T11:58:25.0992816+07:00 LatestRestorableUTC=2026-07-27T04:53:09.1610000Z
+2026-07-27T11:58:42.6007383+07:00 LatestRestorableUTC=2026-07-27T04:53:26.6300000Z
+2026-07-27T11:58:59.9359430+07:00 LatestRestorableUTC=2026-07-27T04:53:44.0010000Z
+2026-07-27T11:59:18.0644098+07:00 LatestRestorableUTC=2026-07-27T04:54:01.7440000Z
+2026-07-27T11:59:36.0334609+07:00 LatestRestorableUTC=2026-07-27T04:54:19.7930000Z
+2026-07-27T11:59:53.8382161+07:00 LatestRestorableUTC=2026-07-27T04:54:37.8430000Z
+2026-07-27T12:00:11.2694692+07:00 LatestRestorableUTC=2026-07-27T04:54:55.2630000Z
+2026-07-27T12:00:28.6375055+07:00 LatestRestorableUTC=2026-07-27T04:55:12.6860000Z
+2026-07-27T12:00:46.3468181+07:00 LatestRestorableUTC=2026-07-27T04:55:30.3720000Z
+2026-07-27T12:01:03.8803480+07:00 LatestRestorableUTC=2026-07-27T04:55:47.9020000Z
+2026-07-27T12:01:22.2283508+07:00 LatestRestorableUTC=2026-07-27T04:56:06.1320000Z
+2026-07-27T12:01:39.6553504+07:00 LatestRestorableUTC=2026-07-27T04:56:23.6430000Z
+PS>TerminatingError(Invoke-WebRequest): "The remote server returned an error: (404) Not Found."
+PITRAvailabilityLagMinutes=5.05
+PITRCoverage=PASS
+
+==============================================================================
+5. CONTROLLED LOSS CONFIRMATION
+==============================================================================
+PITR covers T_safe and the marker is still present.
+Type the exact marker ID immediately before controlled deletion:
+m20-drill-20260727115433
+PS>TerminatingError(Invoke-WebRequest): "The remote server returned an error: (404) Not Found."
+T_delete_request=2026-07-27T05:02:11.5875360Z
+T_loss=2026-07-27T05:01:58.0000000Z
+ActualRPOSeconds=337
+RPOTargetSeconds=600
+ControlledLoss=PASS
+RPO=PASS
+
+==============================================================================
+6. RESTORE TO ISOLATED TARGET
+==============================================================================
+TargetAbsent=m20-drill-outbox-20260727115433
+T_restore_start=2026-07-27T05:02:20.2580926Z
+2026-07-27T12:02:40.9822045+07:00 TargetStatus=CREATING
+2026-07-27T12:02:58.4597081+07:00 TargetStatus=CREATING
+2026-07-27T12:03:16.0764548+07:00 TargetStatus=CREATING
+2026-07-27T12:03:33.5057633+07:00 TargetStatus=CREATING
+2026-07-27T12:03:50.9572611+07:00 TargetStatus=CREATING
+2026-07-27T12:04:08.5558732+07:00 TargetStatus=CREATING
+2026-07-27T12:04:26.4933619+07:00 TargetStatus=CREATING
+2026-07-27T12:04:44.1202246+07:00 TargetStatus=CREATING
+2026-07-27T12:05:01.6316687+07:00 TargetStatus=CREATING
+2026-07-27T12:05:19.0657932+07:00 TargetStatus=CREATING
+2026-07-27T12:05:36.5514872+07:00 TargetStatus=CREATING
+2026-07-27T12:05:54.0208115+07:00 TargetStatus=CREATING
+2026-07-27T12:06:11.5572204+07:00 TargetStatus=CREATING
+2026-07-27T12:06:29.0007103+07:00 TargetStatus=CREATING
+2026-07-27T12:06:46.4401877+07:00 TargetStatus=CREATING
+2026-07-27T12:07:04.0047985+07:00 TargetStatus=CREATING
+2026-07-27T12:07:21.6653557+07:00 TargetStatus=CREATING
+2026-07-27T12:07:39.0704949+07:00 TargetStatus=CREATING
+2026-07-27T12:07:56.8642306+07:00 TargetStatus=CREATING
+2026-07-27T12:08:14.6508941+07:00 TargetStatus=CREATING
+2026-07-27T12:08:32.1894402+07:00 TargetStatus=CREATING
+2026-07-27T12:08:49.6088276+07:00 TargetStatus=CREATING
+2026-07-27T12:09:06.9923896+07:00 TargetStatus=CREATING
+2026-07-27T12:09:24.5294883+07:00 TargetStatus=CREATING
+2026-07-27T12:09:42.0002350+07:00 TargetStatus=CREATING
+2026-07-27T12:09:59.7285459+07:00 TargetStatus=CREATING
+2026-07-27T12:10:17.3318891+07:00 TargetStatus=CREATING
+2026-07-27T12:10:34.6637986+07:00 TargetStatus=CREATING
+2026-07-27T12:10:52.0824041+07:00 TargetStatus=CREATING
+2026-07-27T12:11:10.8655897+07:00 TargetStatus=CREATING
+2026-07-27T12:11:28.2430362+07:00 TargetStatus=CREATING
+2026-07-27T12:11:46.4393761+07:00 TargetStatus=CREATING
+2026-07-27T12:12:04.1806769+07:00 TargetStatus=CREATING
+2026-07-27T12:12:21.5140978+07:00 TargetStatus=CREATING
+2026-07-27T12:12:38.8622028+07:00 TargetStatus=CREATING
+2026-07-27T12:12:56.7688893+07:00 TargetStatus=CREATING
+2026-07-27T12:13:14.1097053+07:00 TargetStatus=CREATING
+2026-07-27T12:13:31.6492789+07:00 TargetStatus=CREATING
+2026-07-27T12:13:49.0623181+07:00 TargetStatus=CREATING
+2026-07-27T12:14:06.8110431+07:00 TargetStatus=CREATING
+2026-07-27T12:14:24.3397938+07:00 TargetStatus=CREATING
+2026-07-27T12:14:41.6907070+07:00 TargetStatus=CREATING
+2026-07-27T12:14:59.6766192+07:00 TargetStatus=CREATING
+2026-07-27T12:15:17.1113042+07:00 TargetStatus=CREATING
+2026-07-27T12:15:34.5843892+07:00 TargetStatus=CREATING
+2026-07-27T12:15:52.0407953+07:00 TargetStatus=CREATING
+2026-07-27T12:16:09.7921096+07:00 TargetStatus=CREATING
+2026-07-27T12:16:27.2137857+07:00 TargetStatus=CREATING
+2026-07-27T12:16:45.1249886+07:00 TargetStatus=CREATING
+2026-07-27T12:17:02.5444687+07:00 TargetStatus=CREATING
+2026-07-27T12:17:20.0238093+07:00 TargetStatus=CREATING
+2026-07-27T12:17:37.3928815+07:00 TargetStatus=CREATING
+2026-07-27T12:17:55.0279260+07:00 TargetStatus=CREATING
+2026-07-27T12:18:12.5939591+07:00 TargetStatus=CREATING
+2026-07-27T12:18:29.8364363+07:00 TargetStatus=CREATING
+2026-07-27T12:18:47.1510715+07:00 TargetStatus=CREATING
+2026-07-27T12:19:04.4110750+07:00 TargetStatus=ACTIVE
+
+==============================================================================
+7. RESTORED DATA INTEGRITY
+==============================================================================
+RestoredPayload=mandate20-restore-proof-20260727115433
+RestoredDeclaredHash=92b6a3a27db9b8bf0df56a2899b213e38f1a6af5fbf969d6988faf2c23bd98d7
+RestoredComputedHash=92b6a3a27db9b8bf0df56a2899b213e38f1a6af5fbf969d6988faf2c23bd98d7
+ExpectedHash=92b6a3a27db9b8bf0df56a2899b213e38f1a6af5fbf969d6988faf2c23bd98d7
+T_integrity_confirmed=2026-07-27T05:19:06.7535898Z
+ActualRTOMinutes=16.77
+EndToEndRecoveryMinutes=17.15
+RTOTargetMinutes=30
+
+==============================================================================
+8. VERIFY PRODUCTION WAS NOT OVERWRITTEN
+==============================================================================
+IsolatedTargetArn=arn:aws:dynamodb:us-east-1:493499579600:table/m20-drill-outbox-20260727115433
+IsolatedTargetStatus=ACTIVE
+IsolatedTargetKmsStatus=ENABLED
+AfterArgoSync=Synced
+AfterArgoHealth=Healthy
+After-checkout-Ready=10/10
+After-flagd-Ready=1/1
+AfterStorefrontHTTP=200
+
+==============================================================================
+9. CLOUDTRAIL RESTORE EVIDENCE
+==============================================================================
+MatchingRestoreEvents=1
+
+==============================================================================
+10. FINAL RESULT
+==============================================================================
+
+
+SourceTable                : techx-prod-tf2-checkout-outbox
+IsolatedTarget             : m20-drill-outbox-20260727115433
+MarkerId                   : m20-drill-20260727115433
+SafeTimeUtc                : 2026-07-27T04:56:21Z
+LossTimeUtc                : 2026-07-27T05:01:58.0000000Z
+ActualRpoSeconds           : 337
+RpoTargetSeconds           : 600
+PitrAvailabilityLagMinutes : 5.05
+RestoreStartUtc            : 2026-07-27T05:02:20.2580926Z
+IntegrityConfirmedUtc      : 2026-07-27T05:19:06.7535898Z
+ActualRtoMinutes           : 16.77
+EndToEndRecoveryMinutes    : 17.15
+RtoTargetMinutes           : 30
+PayloadHashMatched         : True
+SourceMarkerAbsent         : True
+ProductionOverwritten      : False
+StorefrontBeforeHttp       : 200
+StorefrontAfterHttp        : 200
+Result                     : PASS
+
+
+
+MANDATE20_DRILL=PASS
+DO_NOT_CLEANUP_BEFORE_MENTOR_SIGNOFF=m20-drill-outbox-20260727115433
+**********************
+Windows PowerShell transcript end
+End time: 20260727121925
+**********************

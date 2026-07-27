@@ -203,3 +203,4 @@ jobs:
               body
             });
 # Change trail: @hungxqt - 2026-07-20 - Bump third-party actions to Node 24 runtimes (SHA pins).
+# Change trail: @tientp - 2026-07-27 - Re-trigger required PR checks for Mandate 20 evidence review.

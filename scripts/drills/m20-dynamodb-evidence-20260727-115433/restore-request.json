@@ -1,0 +1,73 @@
+{
+  "TableDescription": {
+    "AttributeDefinitions": [
+      {
+        "AttributeName": "status",
+        "AttributeType": "S"
+      },
+      {
+        "AttributeName": "event_id",
+        "AttributeType": "S"
+      },
+      {
+        "AttributeName": "created_at",
+        "AttributeType": "N"
+      }
+    ],
+    "TableName": "m20-drill-outbox-20260727115433",
+    "KeySchema": [
+      {
+        "AttributeName": "event_id",
+        "KeyType": "HASH"
+      }
+    ],
+    "TableStatus": "CREATING",
+    "CreationDateTime": "2026-07-27T12:02:07.106000+07:00",
+    "ProvisionedThroughput": {
+      "ReadCapacityUnits": 0,
+      "WriteCapacityUnits": 0
+    },
+    "TableSizeBytes": 0,
+    "ItemCount": 0,
+    "TableArn": "arn:aws:dynamodb:us-east-1:493499579600:table/m20-drill-outbox-20260727115433",
+    "TableId": "1e2f3ec8-e6a0-45bc-bc2a-0e765f5c78b3",
+    "BillingModeSummary": {
+      "BillingMode": "PAY_PER_REQUEST"
+    },
+    "GlobalSecondaryIndexes": [
+      {
+        "IndexName": "status-created-index",
+        "KeySchema": [
+          {
+            "AttributeName": "status",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "created_at",
+            "KeyType": "RANGE"
+          }
+        ],
+        "Projection": {
+          "ProjectionType": "ALL"
+        },
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": 0,
+          "WriteCapacityUnits": 0
+        },
+        "IndexSizeBytes": 195634977,
+        "ItemCount": 667982,
+        "IndexArn": "arn:aws:dynamodb:us-east-1:493499579600:table/m20-drill-outbox-20260727115433/index/status-created-index"
+      }
+    ],
+    "RestoreSummary": {
+      "SourceTableArn": "arn:aws:dynamodb:us-east-1:493499579600:table/techx-prod-tf2-checkout-outbox",
+      "RestoreDateTime": "2026-07-27T11:56:21+07:00",
+      "RestoreInProgress": true
+    },
+    "SSEDescription": {
+      "Status": "ENABLED",
+      "SSEType": "KMS",
+      "KMSMasterKeyArn": "arn:aws:kms:us-east-1:493499579600:key/34015827-9a84-495c-8919-65bfc9ccc8c6"
+    }
+  }
+}
