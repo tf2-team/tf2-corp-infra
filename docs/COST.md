@@ -106,7 +106,7 @@ Both **development** and **production** currently use the same compute shape:
 | VPC CIDR | `10.1.0.0/16` | `10.0.0.0/16` |
 | Public subnets | 2 AZs | 2 AZs |
 | Private subnets | 2 AZs | 2 AZs |
-| NAT Gateways | **1** (`nat-1a`, shared) | **1** (`nat-1a`, shared) |
+| NAT Gateways | **2** (`nat-1a` + `nat-1b`, zonal) |
 | EKS cluster | `techx-dev` | `techx-tf2` |
 | Kubernetes version | `1.36` (tfvars) | `1.32` (tfvars) |
 | Node groups (system MNG) | `general-1a`, `general-1b` | `general-1a`, `general-1b` |
