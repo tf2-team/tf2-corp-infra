@@ -116,7 +116,7 @@ private_subnets = {
   "priv-1b" = {
     cidr_block                 = "10.0.11.0/24"
     availability_zone          = "us-east-1b"
-    nat_gateway_key            = "nat-1a"
+    nat_gateway_key            = "nat-1b"
     enable_karpenter_discovery = false
   }
   # Primary node/pod subnets (~4k IPs each; ~256× /28 prefixes per AZ).
@@ -128,13 +128,16 @@ private_subnets = {
   "priv-1b-nodes" = {
     cidr_block        = "10.0.32.0/20"
     availability_zone = "us-east-1b"
-    nat_gateway_key   = "nat-1a"
+    nat_gateway_key   = "nat-1b"
   }
 }
 
 nat_gateways = {
   "nat-1a" = {
     public_subnet_key = "pub-1a"
+  }
+  "nat-1b" = {
+    public_subnet_key = "pub-1b"
   }
 }
 
