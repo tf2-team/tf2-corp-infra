@@ -1138,6 +1138,9 @@ module "backup_protection" {
   protected_kms_key_arns = [
     module.mandate20_backup.kms_key_arn,
   ]
+  protected_state_object_arns = [
+    "arn:${data.aws_partition.current.partition}:s3:::${var.project_name}-tf-state-${data.aws_caller_identity.current.account_id}-${var.aws_region}/production/terraform.tfstate",
+  ]
   tags = var.tags
 }
 
