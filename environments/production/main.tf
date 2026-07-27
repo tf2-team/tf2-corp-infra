@@ -1135,7 +1135,10 @@ module "backup_protection" {
   name               = var.project_name
   attach_role_names  = var.backup_protection_attach_role_names
   attach_group_names = var.backup_protection_attach_group_names
-  tags               = var.tags
+  protected_kms_key_arns = [
+    module.mandate20_backup.kms_key_arn,
+  ]
+  tags = var.tags
 }
 
 # MANDATE-20 AWS Backup: locked vault, daily managed stores, hourly tagged EBS.
