@@ -274,9 +274,13 @@ CloudTrail proves that isolated PITR API calls have previously been accepted:
 
 These events prove isolated PITR initiation only. They do **not** prove a
 controlled loss, target readiness, restored-data integrity, or achieved RTO.
-The existing `scripts/drills/directive-20-restore-drill.ps1` is a starting
-utility and must not be cited as formal drill evidence until it performs the
-complete procedure in Section 7.
+The reviewed `scripts/drills/mandate-20-dynamodb-drill.ps1` implements the
+complete procedure in Section 7. Its default mode is read-only preflight;
+`-Execute` is required for the controlled marker write/delete and isolated
+restore, with two interactive confirmations and no automatic cleanup. The
+script itself is not evidence of recovery: only a completed `-Execute` run,
+recorded integrity result, measured RPO/RTO, and mentor observation count as
+formal drill evidence.
 
 The destructive-DDL detection resources are defined in Terraform but are not
 operational evidence until a production apply has completed and a controlled

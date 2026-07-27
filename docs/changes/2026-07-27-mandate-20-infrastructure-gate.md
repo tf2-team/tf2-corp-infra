@@ -19,6 +19,11 @@ or creating standby data services.
 4. Applied the reviewed bootstrap exclusive managed-policy ownership resource:
    `1 added, 0 changed, 0 destroyed`.
 5. Verified the post-bootstrap Terraform plan returned `No changes`.
+6. Replaced the unsafe legacy multi-store/auto-cleanup drill utility with
+   `scripts/drills/mandate-20-dynamodb-drill.ps1`. The formal script defaults
+   to read-only preflight, requires `-Execute` plus two confirmations for the
+   controlled loss, validates payload/hash and RPO/RTO, and never cleans up the
+   isolated target automatically.
 
 ## IAM result
 
@@ -41,6 +46,11 @@ attached to the day-to-day operator group `TF2-TEAM` and no IAM roles.
 * Valkey remained `available` with encryption at rest and in transit enabled,
   seven-day retention, and snapshot window `18:00-19:00` UTC.
 * All Argo CD applications remained `Synced` and `Healthy`.
+
+The new drill script was executed without `-Execute` under Windows PowerShell
+5.1. Preflight passed for the expected AWS account, source table status, PITR,
+Argo CD, checkout/flagd readiness, and public storefront HTTP response. No
+marker write, delete, or restore occurred during validation.
 
 ## Remaining evidence gate
 
