@@ -472,6 +472,11 @@ output "ai_model_consumer_prefixes" { value = module.ai_model_storage.consumer_m
 output "ai_model_consumer_access_contracts" { value = module.ai_model_storage.consumer_access_contracts }
 output "ai_model_s3_vpc_endpoint_id" { value = module.ai_model_storage.s3_vpc_endpoint_id }
 
+output "dynamodb_vpc_endpoint_id" {
+  value       = aws_vpc_endpoint.dynamodb.id
+  description = "Gateway endpoint that keeps checkout outbox DynamoDB traffic off NAT gateways"
+}
+
 output "external_secrets_helm_command" {
   value       = module.external_secrets.helm_command
   description = "Install ESO when external_secrets_install_helm=false"

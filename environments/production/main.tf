@@ -922,6 +922,23 @@ module "vpc" {
   eks_cluster_name = var.cluster_name
 }
 
+# Mandate 18: Checkout persists its durable outbox to DynamoDB.  A gateway
+# endpoint is free of hourly endpoint charges and associates with every
+# private route table, so this AWS-internal traffic does not traverse a NAT.
+# The egress proxy continues to enforce the approved DynamoDB destination.
+resource "aws_vpc_endpoint" "dynamodb" {
+  vpc_id            = module.vpc.vpc_id
+  service_name      = "com.amazonaws.${var.aws_region}.dynamodb"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = module.vpc.private_route_table_ids
+
+  tags = merge(var.tags, {
+    Name    = "${var.project_name}-dynamodb-gateway-endpoint"
+    Mandate = "M18"
+    Purpose = "checkout-outbox-private-aws-egress"
+  })
+}
+
 # Resolve subnet_keys → subnet IDs from VPC (one NG per AZ for balanced placement).
 locals {
   node_groups = {

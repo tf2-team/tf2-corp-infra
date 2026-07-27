@@ -2,7 +2,7 @@
 
 > **Status:** Planning estimate (configuration-based), not a live AWS invoice.  
 > **Account / Region:** `493499579600` / `us-east-1`  
-> **Last updated:** 2026-07-10  
+> **Last updated:** 2026-07-28
 > **Scope:** Full-component platform on EKS as defined by current Terraform (`techx-corp-infra`) and Helm chart (`techx-corp-chart` / `tf2-corp-chart`).
 
 This document estimates **monthly AWS spend** for running the TechX stack with **all major application and observability components enabled**, based on the checked-in environment configs.
@@ -23,17 +23,17 @@ For deployment topology and procedures, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 **Recommended budget number for a single full environment:** **~$300 / month**.  
 **Recommended budget number if both stacks stay up 24/7:** **~$600 / month**.
 
-### Cost composition (one env, mid estimate ~$280)
+### Cost composition (one env, mid estimate ~$315)
 
 | Category | Share | Approx. $/mo |
 |---|---:|---:|
 | EC2 worker nodes (2× `t3.large`) | ~43% | ~$121 |
 | EKS control plane | ~26% | ~$73 |
-| NAT Gateway (+ IPv4 + light data) | ~14% | ~$40 |
+| NAT Gateways (two AZs, IPv4, light data) | ~20% | ~$76 |
 | Application Load Balancer | ~8% | ~$22 |
 | Storage, ECR, Secrets Manager, CloudWatch, transfer | ~9% | ~$25 |
 
-Platform fixed costs (EKS + NAT + ALB) are large relative to this demo-sized workload: roughly **$128 / month** before significant application traffic.
+Platform fixed costs (EKS + two NAT gateways + ALB) are large relative to this demo-sized workload: roughly **$167 / month** before significant application traffic. The second production NAT is an intentional availability cost, not a capacity optimisation.
 
 ---
 
@@ -369,6 +369,7 @@ These figures exclude GitHub CI and any non-AWS tools.
 
 | Date | Change |
 |---|---|
+| 2026-07-28 | Production now uses two zonal NAT Gateways for AZ failure containment. The headline composition was updated to show the resulting fixed-cost increase; DynamoDB Gateway Endpoint and orphan cleanup evidence are tracked in the Mandate 18 change notes. |
 | 2026-07-10 | Initial estimate for full-component single env (~$280–320) and dual env (~$560–650) based on current tfvars and chart defaults. |
 | 2026-07-13 | Document optional Client VPN cost (off by default; association hours). |
 
