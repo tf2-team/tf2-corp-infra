@@ -1,8 +1,8 @@
 # ADR-BCP-20: Data Backup, Recovery, and Proven PITR
 
-* **Status:** Accepted - infrastructure implementation in progress; formal restore drill pending
+* **Status:** Accepted - infrastructure gate implementation complete; hourly EBS/automated Valkey evidence and formal restore drill pending
 * **Decision date:** 2026-07-21
-* **Last reviewed:** 2026-07-22
+* **Last reviewed:** 2026-07-27
 * **Author:** CDO Data and DevOps Task Force (`tientp`)
 * **Scope:** Data and reconstructable cluster state for the production Browse -> Cart -> Checkout path
 * **Out of scope:** AZ/Region failover and failover-under-load testing
@@ -34,7 +34,7 @@ standby.
 | ElastiCache Valkey | `techx-prod-tf2-cart` | Customer cart | Yes for active cart state | Daily automated snapshot | In scope |
 | Amazon MSK | `techx-prod-tf2-msk` | Event transport | No | Replay from the DynamoDB outbox; no broker snapshot commitment | In scope as transport |
 | Mem0 RDS | `techx-prod-tf2-mem0-postgres` | Shopping-copilot memory | Yes when the workload is enabled | Automated backup and AWS Backup snapshot | Currently outside the money path; still protected |
-| EKS EBS PVCs | Grafana, Prometheus, OpenSearch | Operational telemetry | No customer transaction record | Planned encrypted EBS snapshot policy | Outside money path; operational recovery scope |
+| EKS EBS PVCs | Grafana, Prometheus, OpenSearch | Operational telemetry | No customer transaction record | Encrypted EBS volumes selected for hourly AWS Backup by tag | Outside money path; operational recovery scope |
 | Orphan EBS PVCs | In-cluster Kafka, PostgreSQL, Valkey PVCs | Replaced production stores | No longer used | Final snapshot before controlled cleanup | Migration residue; must be retired |
 | GitOps / IaC | `tf2-corp-infra`, `tf2-corp-chart`, `tf2-corp-platform` | Cluster and application reconstruction | Configuration record | Git history, reviewed production overlays, Terraform remote state | In scope |
 | Secret references | Helm values, ESO resources, ASM names/ARNs | Reconnect restored stores without committing secret values | Reference metadata only | Git stores references; secret values remain out of band in ASM | In scope |
@@ -83,17 +83,23 @@ and checkout image have all been deployed and smoke-tested.
 | Active operational EBS PVCs | Hourly AWS Backup selection by `Mandate20Backup=hourly` | 7 days | <= 1 hour | <= 60 minutes | New encrypted EBS volume / isolated PVC |
 
 The hourly EBS plan selects only approved volumes carrying
-`Mandate20Backup=hourly`. Existing operational volumes were tagged and have
-completed recovery points. Production keeps the existing `gp3-encrypted`
-StorageClass unchanged and creates `gp3-encrypted-m20` for newly provisioned
-volumes. This avoids mutating immutable StorageClass/PVC fields. Existing PVCs
-must not be recreated solely to adopt the new StorageClass.
+`Mandate20Backup=hourly`. Prometheus and OpenSearch have completed hourly
+recovery points. On 2026-07-27 the active Grafana claim was found to reference
+the newer encrypted volume `vol-078bfcef3b62ce52d`, while the previously
+protected `vol-0807f3ccbbfbf3bec` had become detached. The active volume was
+tagged without restarting Grafana and an on-demand preflight recovery point
+completed. A completed scheduled hourly recovery point for that exact volume
+remains an infrastructure-gate evidence item. Production keeps the existing
+`gp3-encrypted` StorageClass unchanged and creates
+`gp3-encrypted-m20` for newly provisioned volumes. This avoids mutating
+immutable StorageClass/PVC fields. Existing PVCs must not be recreated solely
+to adopt the new StorageClass.
 
 ---
 
 ## 4. Implemented Controls and Known Gaps
 
-### 4.1 Verified Live on 2026-07-22
+### 4.1 Verified Live on 2026-07-27
 
 * Main RDS is available, encrypted with a customer-managed KMS key, deletion
   protected, and has seven days of automated backup retention.
@@ -103,46 +109,57 @@ must not be recreated solely to adopt the new StorageClass.
   KMS encryption.
 * Valkey has at-rest and in-transit encryption, a seven-day snapshot retention
   setting, and the `18:00-19:00` UTC snapshot window.
+* Manual Valkey preflight snapshot `m20-preflight-valkey-20260727-1004` was
+  completed from primary cache cluster `techx-prod-tf2-cart-001` using the
+  commerce KMS key. It proves snapshot creation but does not replace evidence of
+  the first completed automated snapshot.
 * AWS Backup vault `techx-prod-tf2-mandate20` is locked with minimum seven-day
-  and maximum 35-day retention.
+  and maximum 35-day retention and contains 361 recovery points at the time of
+  verification.
 * Completed AWS Backup recovery points exist for the main RDS, Mem0 RDS, and
   DynamoDB outbox.
+* On-demand backup job `911ae849-a6c3-4b4c-9e64-416b331bf769` for active
+  Grafana volume `vol-078bfcef3b62ce52d` completed from
+  `2026-07-27T10:06:19+07:00` to `10:07:21+07:00`, producing encrypted recovery
+  point `snap-0b9eb5165ae7f037b` in the locked Mandate 20 vault.
 * Managed policy `techx-prod-tf2-deny-destructive-backup` is attached to
   `TF2-TEAM` and denies destructive RDS, DynamoDB, ElastiCache, EBS snapshot,
   and AWS Backup actions.
+* Bootstrap exclusive attachment ownership was applied and a post-apply plan
+  returned no changes. `GitHubTerraformProdApplyRole` now retains only
+  `PowerUserAccess` as a managed policy plus its scoped Terraform IAM/state
+  inline policies. The Mandate 20 deny policy is attached only to `TF2-TEAM`.
+* Terraform state bucket versioning, SSE-KMS, public-access blocking and native
+  lockfile use are enabled. The operator deny covers deletion of historical
+  versions of the exact production state object.
+* Account-level EBS encryption by default remains enabled in `us-east-1`.
+* Production Secrets Manager recovery window is seven days and the backup KMS
+  key has annual rotation enabled.
 
 ### 4.2 Must Be Completed Before the Formal Drill
 
-* Confirm the first available Valkey snapshot and retain its evidence.
-* Verify the documented account-level EBS encryption default remains enabled in
-  `us-east-1`; node and PVC desired state already declares encryption.
-* Promote and verify the automatic `Mandate20Backup=hourly` tag on newly
-  provisioned `gp3-encrypted-m20` volumes without recreating current PVCs.
-* Keep the live EBS hourly backup plan and selection under Terraform ownership.
+* Retain the first completed automated Valkey snapshot as cadence evidence; the
+  manual preflight snapshot is already `available`.
+* Confirm the first scheduled hourly AWS Backup recovery point for active
+  Grafana volume `vol-078bfcef3b62ce52d`; its on-demand preflight recovery
+  point is already complete.
 * ~~Apply the `Mandate20Backup=hourly` selection tag to approved active volumes
   and verify a completed EBS recovery point.~~ **DONE 2026-07-22:** tagged
   enc-prometheus / enc-grafana / enc-opensearch; three EBS RPs `COMPLETED` in
   vault `techx-prod-tf2-mandate20` (snaps `snap-09f3f69baa15c4ee4`,
   `snap-0a065ccc6a43156fd`, `snap-0dac46428a6cd7adc`).
+  **FOLLOW-UP 2026-07-27:** Grafana was reprovisioned onto
+  `vol-078bfcef3b62ce52d`; the active encrypted volume is now tagged, its
+  on-demand preflight backup is complete, and it awaits its first scheduled
+  hourly recovery point.
 * Take final snapshots of orphan Kafka, PostgreSQL, and Valkey volumes, verify
   managed-store migration, and remove the orphan PVCs through an approved
   cleanup change.
-* Verify Terraform remote-state bucket versioning, encryption, locking, and a
-  documented state recovery procedure.
-* Promote and verify the explicit deny on deleting historical production
-  Terraform state versions. Current state writes and native `.tflock` deletion
-  remain allowed.
-* Promote bootstrap exclusive managed-policy ownership for
-  `GitHubTerraformProdApplyRole` so stale out-of-band backup policy attachments
-  are removed without changing its inline policies.
-* Promote the seven-day production Secrets Manager recovery window without
-  rotating values or changing secret names/ARNs.
-* Promote the operator deny on disabling, re-policying, or scheduling deletion
-  of the exact KMS key that encrypts Mandate 20 recovery points.
-* Create and verify the `orders-persisted` MSK topic with three partitions and
-  replication factor two.
-* Deploy accounting before checkout, then pass the normal outbox -> MSK -> RDS
-  -> ACK -> DynamoDB-delete smoke test.
+
+The `orders-persisted` application delivery contract remains relevant to
+general checkout reliability but is not an infrastructure blocker for the
+isolated DynamoDB drill. The drill marker uses `status=drill-hold`; the checkout
+worker queries only `status=pending`, so the marker is not published.
 
 ---
 
@@ -155,12 +172,15 @@ the ability to delete protected recovery points or disable DynamoDB PITR.
 | :--- | :---: | :---: | :---: |
 | `TF2-TEAM` day-to-day operators | Allowed by operational role | Denied | Denied where covered by policy |
 | Normal application IRSA roles | Only required application data actions | Not granted | Not granted |
-| Terraform production apply role | Infrastructure apply, subject to explicit deny | Denied | Denied where covered by policy |
-| Approved break-glass administrator | Emergency only | Allowed only under recorded approval | Allowed only under recorded approval |
+| Terraform production apply role | Approved infrastructure workflow only | Workflow-controlled; vault lock still enforces retained recovery points | Approved reviewed bootstrap/production workflow |
+| Account root / approved break-glass administrator | Emergency only | Allowed only under recorded approval | Allowed only under recorded approval |
 
-The break-glass role name, approvers, activation evidence, and post-use review
-must be recorded before ADR sign-off. Backup retention is bounded; recovery
-points are not retained indefinitely.
+The normal operator group cannot delete backups. Infrastructure changes use
+`GitHubTerraformProdApplyRole` through the protected production workflow; the
+role is not assigned to human day-to-day operation. Account root remains the
+emergency authority while a named break-glass role, approvers, activation
+evidence, and post-use review must be recorded before ADR sign-off. Backup
+retention is bounded; recovery points are not retained indefinitely.
 
 ---
 
@@ -212,9 +232,13 @@ target without changing production application routing.
 The drill starts only after:
 
 * Terraform plan/apply and Argo CD sync are healthy.
-* `orders-persisted` exists and the normal checkout persistence smoke test passes.
 * Required backup jobs have completed and the team has recorded current
   earliest/latest restorable timestamps.
+* The active Grafana volume has a completed hourly recovery point and the
+  Valkey snapshot evidence described in Section 4.2 is complete.
+* Source inspection confirms the checkout worker queries
+  `status-created-index` only for `status=pending`, keeping the
+  `status=drill-hold` marker outside normal publishing.
 * No unrelated production incident or deployment is active.
 
 ### 7.2 Controlled Loss and Restore
