@@ -1,0 +1,334 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "Deployment",
+  "metadata": {
+    "annotations": {
+      "deployment.kubernetes.io/revision": "93",
+      "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/component\":\"checkout\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"checkout\",\"app.kubernetes.io/part-of\":\"techx-corp\",\"app.kubernetes.io/version\":\"2.2.0\",\"argocd.argoproj.io/instance\":\"techx-corp\",\"helm.sh/chart\":\"techx-corp-0.48.12\",\"opentelemetry.io/name\":\"checkout\"},\"name\":\"checkout\",\"namespace\":\"techx-corp-prod\"},\"spec\":{\"minReadySeconds\":10,\"progressDeadlineSeconds\":300,\"revisionHistoryLimit\":2,\"selector\":{\"matchLabels\":{\"opentelemetry.io/name\":\"checkout\"}},\"strategy\":{\"rollingUpdate\":{\"maxSurge\":1,\"maxUnavailable\":0},\"type\":\"RollingUpdate\"},\"template\":{\"metadata\":{\"annotations\":{\"resource.opentelemetry.io/service.namespace\":\"techx-corp-prod\"},\"labels\":{\"app.kubernetes.io/component\":\"checkout\",\"app.kubernetes.io/name\":\"checkout\",\"app.kubernetes.io/part-of\":\"techx-corp\",\"app.kubernetes.io/version\":\"2.2.0\",\"opentelemetry.io/name\":\"checkout\"}},\"spec\":{\"affinity\":{\"nodeAffinity\":{\"preferredDuringSchedulingIgnoredDuringExecution\":[{\"preference\":{\"matchExpressions\":[{\"key\":\"karpenter.sh/capacity-type\",\"operator\":\"In\",\"values\":[\"spot\"]}]},\"weight\":100}]}},\"automountServiceAccountToken\":false,\"containers\":[{\"env\":[{\"name\":\"OTEL_SERVICE_NAME\",\"valueFrom\":{\"fieldRef\":{\"apiVersion\":\"v1\",\"fieldPath\":\"metadata.labels[\u0027app.kubernetes.io/component\u0027]\"}}},{\"name\":\"OTEL_COLLECTOR_NAME\",\"value\":\"otel-collector\"},{\"name\":\"OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE\",\"value\":\"cumulative\"},{\"name\":\"CHECKOUT_PORT\",\"value\":\"8080\"},{\"name\":\"CART_ADDR\",\"value\":\"cart:8080\"},{\"name\":\"CURRENCY_ADDR\",\"value\":\"currency:8080\"},{\"name\":\"EMAIL_ADDR\",\"value\":\"http://email:8080\"},{\"name\":\"PAYMENT_ADDR\",\"value\":\"payment:8080\"},{\"name\":\"PRODUCT_CATALOG_ADDR\",\"value\":\"product-catalog:8080\"},{\"name\":\"SHIPPING_ADDR\",\"value\":\"http://shipping:8080\"},{\"name\":\"KAFKA_ADDR\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"KAFKA_ADDR\",\"name\":\"techx-corp-msk\"}}},{\"name\":\"FLAGD_HOST\",\"value\":\"flagd\"},{\"name\":\"FLAGD_PORT\",\"value\":\"8013\"},{\"name\":\"OTEL_EXPORTER_OTLP_ENDPOINT\",\"value\":\"http://$(OTEL_COLLECTOR_NAME):4317\"},{\"name\":\"GOMEMLIMIT\",\"value\":\"100MiB\"},{\"name\":\"CHECKOUT_OUTBOX_TABLE\",\"value\":\"techx-prod-tf2-checkout-outbox\"},{\"name\":\"AWS_REGION\",\"value\":\"us-east-1\"},{\"name\":\"KAFKA_TLS\",\"value\":\"true\"},{\"name\":\"KAFKA_SASL_USERNAME\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"KAFKA_SASL_USERNAME\",\"name\":\"techx-corp-msk\"}}},{\"name\":\"KAFKA_SASL_PASSWORD\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"KAFKA_SASL_PASSWORD\",\"name\":\"techx-corp-msk\"}}},{\"name\":\"HTTPS_PROXY\",\"value\":\"http://egress-proxy:10000\"},{\"name\":\"https_proxy\",\"value\":\"http://egress-proxy:10000\"},{\"name\":\"NO_PROXY\",\"value\":\".svc,.svc.cluster.local,localhost,127.0.0.1,10.0.0.0/8,accounting,ad,cart,checkout,currency,email,flagd,fraud-detection,frontend,frontend-proxy,image-provider,llm,payment,product-catalog,product-reviews,quote,recommendation,shipping,shopping-copilot,otel-collector,prometheus,jaeger,grafana\"},{\"name\":\"no_proxy\",\"value\":\".svc,.svc.cluster.local,localhost,127.0.0.1,10.0.0.0/8,accounting,ad,cart,checkout,currency,email,flagd,fraud-detection,frontend,frontend-proxy,image-provider,llm,payment,product-catalog,product-reviews,quote,recommendation,shipping,shopping-copilot,otel-collector,prometheus,jaeger,grafana\"}],\"image\":\"493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/checkout@sha256:56c7aa6649914513782e7197a1fe0ba1ef6fd243435e5682cb0fca59e6b83c27\",\"imagePullPolicy\":\"IfNotPresent\",\"lifecycle\":{\"preStop\":{\"sleep\":{\"seconds\":10}}},\"livenessProbe\":{\"failureThreshold\":5,\"grpc\":{\"port\":8080},\"periodSeconds\":15,\"timeoutSeconds\":5},\"name\":\"checkout\",\"ports\":[{\"containerPort\":8080,\"name\":\"service\"}],\"readinessProbe\":{\"failureThreshold\":3,\"grpc\":{\"port\":8080},\"periodSeconds\":10,\"timeoutSeconds\":3},\"resources\":{\"limits\":{\"cpu\":\"500m\",\"memory\":\"192Mi\"},\"requests\":{\"cpu\":\"100m\",\"memory\":\"96Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":true,\"runAsGroup\":65532,\"runAsNonRoot\":true,\"runAsUser\":65532},\"volumeMounts\":null}],\"nodeSelector\":{\"workload-class\":\"spot-tolerant\"},\"securityContext\":{\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"serviceAccountName\":\"checkout\",\"terminationGracePeriodSeconds\":30,\"tolerations\":[{\"effect\":\"NoSchedule\",\"key\":\"workload-class\",\"operator\":\"Equal\",\"value\":\"spot-tolerant\"}],\"topologySpreadConstraints\":[{\"labelSelector\":{\"matchLabels\":{\"opentelemetry.io/name\":\"checkout\"}},\"matchLabelKeys\":[\"pod-template-hash\"],\"maxSkew\":1,\"topologyKey\":\"topology.kubernetes.io/zone\",\"whenUnsatisfiable\":\"ScheduleAnyway\"},{\"labelSelector\":{\"matchLabels\":{\"opentelemetry.io/name\":\"checkout\"}},\"matchLabelKeys\":[\"pod-template-hash\"],\"maxSkew\":1,\"minDomains\":2,\"topologyKey\":\"kubernetes.io/hostname\",\"whenUnsatisfiable\":\"DoNotSchedule\"}],\"volumes\":null}}}}\n"
+    },
+    "creationTimestamp": "2026-07-13T02:55:00Z",
+    "generation": 661,
+    "labels": {
+      "app.kubernetes.io/component": "checkout",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "checkout",
+      "app.kubernetes.io/part-of": "techx-corp",
+      "app.kubernetes.io/version": "2.2.0",
+      "argocd.argoproj.io/instance": "techx-corp",
+      "helm.sh/chart": "techx-corp-0.48.12",
+      "opentelemetry.io/name": "checkout"
+    },
+    "name": "checkout",
+    "namespace": "techx-corp-prod",
+    "resourceVersion": "9799279",
+    "uid": "4c0429e0-d1b0-4b32-bc9d-bc74533d3951"
+  },
+  "spec": {
+    "minReadySeconds": 10,
+    "progressDeadlineSeconds": 300,
+    "replicas": 10,
+    "revisionHistoryLimit": 2,
+    "selector": {
+      "matchLabels": {
+        "opentelemetry.io/name": "checkout"
+      }
+    },
+    "strategy": {
+      "rollingUpdate": {
+        "maxSurge": 1,
+        "maxUnavailable": 0
+      },
+      "type": "RollingUpdate"
+    },
+    "template": {
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/restartedAt": "2026-07-24T11:59:31+07:00",
+          "resource.opentelemetry.io/service.namespace": "techx-corp-prod"
+        },
+        "labels": {
+          "app.kubernetes.io/component": "checkout",
+          "app.kubernetes.io/name": "checkout",
+          "app.kubernetes.io/part-of": "techx-corp",
+          "app.kubernetes.io/version": "2.2.0",
+          "opentelemetry.io/name": "checkout"
+        }
+      },
+      "spec": {
+        "affinity": {
+          "nodeAffinity": {
+            "preferredDuringSchedulingIgnoredDuringExecution": [
+              {
+                "preference": {
+                  "matchExpressions": [
+                    {
+                      "key": "karpenter.sh/capacity-type",
+                      "operator": "In",
+                      "values": ["spot"]
+                    }
+                  ]
+                },
+                "weight": 100
+              }
+            ]
+          }
+        },
+        "automountServiceAccountToken": false,
+        "containers": [
+          {
+            "env": [
+              {
+                "name": "OTEL_SERVICE_NAME",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.labels[\u0027app.kubernetes.io/component\u0027]"
+                  }
+                }
+              },
+              {
+                "name": "OTEL_COLLECTOR_NAME",
+                "value": "otel-collector"
+              },
+              {
+                "name": "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE",
+                "value": "cumulative"
+              },
+              {
+                "name": "CHECKOUT_PORT",
+                "value": "8080"
+              },
+              {
+                "name": "CART_ADDR",
+                "value": "cart:8080"
+              },
+              {
+                "name": "CURRENCY_ADDR",
+                "value": "currency:8080"
+              },
+              {
+                "name": "EMAIL_ADDR",
+                "value": "http://email:8080"
+              },
+              {
+                "name": "PAYMENT_ADDR",
+                "value": "payment:8080"
+              },
+              {
+                "name": "PRODUCT_CATALOG_ADDR",
+                "value": "product-catalog:8080"
+              },
+              {
+                "name": "SHIPPING_ADDR",
+                "value": "http://shipping:8080"
+              },
+              {
+                "name": "KAFKA_ADDR",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "KAFKA_ADDR",
+                    "name": "techx-corp-msk"
+                  }
+                }
+              },
+              {
+                "name": "FLAGD_HOST",
+                "value": "flagd"
+              },
+              {
+                "name": "FLAGD_PORT",
+                "value": "8013"
+              },
+              {
+                "name": "OTEL_EXPORTER_OTLP_ENDPOINT",
+                "value": "http://$(OTEL_COLLECTOR_NAME):4317"
+              },
+              {
+                "name": "GOMEMLIMIT",
+                "value": "100MiB"
+              },
+              {
+                "name": "CHECKOUT_OUTBOX_TABLE",
+                "value": "techx-prod-tf2-checkout-outbox"
+              },
+              {
+                "name": "AWS_REGION",
+                "value": "us-east-1"
+              },
+              {
+                "name": "KAFKA_TLS",
+                "value": "true"
+              },
+              {
+                "name": "KAFKA_SASL_USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "KAFKA_SASL_USERNAME",
+                    "name": "techx-corp-msk"
+                  }
+                }
+              },
+              {
+                "name": "KAFKA_SASL_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "key": "KAFKA_SASL_PASSWORD",
+                    "name": "techx-corp-msk"
+                  }
+                }
+              },
+              {
+                "name": "HTTPS_PROXY",
+                "value": "http://egress-proxy:10000"
+              },
+              {
+                "name": "https_proxy",
+                "value": "http://egress-proxy:10000"
+              },
+              {
+                "name": "NO_PROXY",
+                "value": ".svc,.svc.cluster.local,localhost,127.0.0.1,10.0.0.0/8,accounting,ad,cart,checkout,currency,email,flagd,fraud-detection,frontend,frontend-proxy,image-provider,llm,payment,product-catalog,product-reviews,quote,recommendation,shipping,shopping-copilot,otel-collector,prometheus,jaeger,grafana"
+              },
+              {
+                "name": "no_proxy",
+                "value": ".svc,.svc.cluster.local,localhost,127.0.0.1,10.0.0.0/8,accounting,ad,cart,checkout,currency,email,flagd,fraud-detection,frontend,frontend-proxy,image-provider,llm,payment,product-catalog,product-reviews,quote,recommendation,shipping,shopping-copilot,otel-collector,prometheus,jaeger,grafana"
+              }
+            ],
+            "image": "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/checkout@sha256:56c7aa6649914513782e7197a1fe0ba1ef6fd243435e5682cb0fca59e6b83c27",
+            "imagePullPolicy": "IfNotPresent",
+            "lifecycle": {
+              "preStop": {
+                "sleep": {
+                  "seconds": 10
+                }
+              }
+            },
+            "livenessProbe": {
+              "failureThreshold": 5,
+              "grpc": {
+                "port": 8080,
+                "service": ""
+              },
+              "periodSeconds": 15,
+              "successThreshold": 1,
+              "timeoutSeconds": 5
+            },
+            "name": "checkout",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "name": "service",
+                "protocol": "TCP"
+              }
+            ],
+            "readinessProbe": {
+              "failureThreshold": 3,
+              "grpc": {
+                "port": 8080,
+                "service": ""
+              },
+              "periodSeconds": 10,
+              "successThreshold": 1,
+              "timeoutSeconds": 3
+            },
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "192Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "96Mi"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": ["ALL"]
+              },
+              "readOnlyRootFilesystem": true,
+              "runAsGroup": 65532,
+              "runAsNonRoot": true,
+              "runAsUser": 65532
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File"
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "nodeSelector": {
+          "workload-class": "spot-tolerant"
+        },
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "serviceAccount": "checkout",
+        "serviceAccountName": "checkout",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+          {
+            "effect": "NoSchedule",
+            "key": "workload-class",
+            "operator": "Equal",
+            "value": "spot-tolerant"
+          }
+        ],
+        "topologySpreadConstraints": [
+          {
+            "labelSelector": {
+              "matchLabels": {
+                "opentelemetry.io/name": "checkout"
+              }
+            },
+            "matchLabelKeys": ["pod-template-hash"],
+            "maxSkew": 1,
+            "topologyKey": "topology.kubernetes.io/zone",
+            "whenUnsatisfiable": "ScheduleAnyway"
+          },
+          {
+            "labelSelector": {
+              "matchLabels": {
+                "opentelemetry.io/name": "checkout"
+              }
+            },
+            "matchLabelKeys": ["pod-template-hash"],
+            "maxSkew": 1,
+            "minDomains": 2,
+            "topologyKey": "kubernetes.io/hostname",
+            "whenUnsatisfiable": "DoNotSchedule"
+          }
+        ]
+      }
+    }
+  },
+  "status": {
+    "availableReplicas": 10,
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-07-23T21:56:46Z",
+        "lastUpdateTime": "2026-07-26T15:05:22Z",
+        "message": "ReplicaSet \"checkout-58884979f5\" has successfully progressed.",
+        "reason": "NewReplicaSetAvailable",
+        "status": "True",
+        "type": "Progressing"
+      },
+      {
+        "lastTransitionTime": "2026-07-26T19:32:01Z",
+        "lastUpdateTime": "2026-07-26T19:32:01Z",
+        "message": "Deployment has minimum availability.",
+        "reason": "MinimumReplicasAvailable",
+        "status": "True",
+        "type": "Available"
+      }
+    ],
+    "observedGeneration": 661,
+    "readyReplicas": 10,
+    "replicas": 10,
+    "terminatingReplicas": 0,
+    "updatedReplicas": 10
+  }
+}

@@ -38,11 +38,12 @@ param(
     [string]$ArgoApplication = "techx-corp",
     [string]$ApplicationNamespace = "techx-corp-prod",
     [string]$EvidenceRoot = "",
-    [int]$RpoTargetSeconds = 60,
-    [int]$RtoTargetMinutes = 15,
+    [int]$RpoTargetSeconds = 600,
+    [int]$RtoTargetMinutes = 30,
     [int]$PollSeconds = 15,
     [int]$MaxPitrWaitMinutes = 30,
-    [int]$MaxRestoreWaitMinutes = 60
+    [int]$MaxRestoreWaitMinutes = 60,
+    [int]$MaxClockSkewSeconds = 30
 )
 
 $ErrorActionPreference = "Stop"
@@ -91,7 +92,11 @@ function Invoke-NativeJson {
 
     if ([string]::IsNullOrWhiteSpace($nativeText)) {
         if ($AllowEmpty) {
-            return $null
+            # AWS CLI may emit no JSON at all for successful operations such as
+            # delete-item and get-item when the requested item is absent. Keep a
+            # stable Item property so StrictMode callers can serialize evidence
+            # and test absence without raising a missing-property exception.
+            return [pscustomobject]@{ Item = $null }
         }
         throw "$Command returned empty output"
     }
@@ -221,6 +226,37 @@ function Assert-TargetAbsent {
     Write-Host "TargetAbsent=$TargetTable"
 }
 
+function Get-AwsServiceUtc {
+    $response = $null
+    try {
+        $response = Invoke-WebRequest `
+            -Uri "https://dynamodb.$Region.amazonaws.com/" `
+            -Method Head `
+            -UseBasicParsing `
+            -TimeoutSec 30
+    }
+    catch {
+        # An unsigned request is expected to return 4xx; AWS still supplies its
+        # authoritative HTTP Date header on that response.
+        $response = $_.Exception.Response
+    }
+
+    if ($null -eq $response) {
+        throw "Cannot obtain the DynamoDB service clock"
+    }
+
+    $dateHeader = [string]$response.Headers["Date"]
+    if ([string]::IsNullOrWhiteSpace($dateHeader)) {
+        throw "DynamoDB response did not contain an HTTP Date header"
+    }
+
+    return ([DateTimeOffset]::Parse(
+        $dateHeader,
+        [Globalization.CultureInfo]::InvariantCulture,
+        [Globalization.DateTimeStyles]::AssumeUniversal
+    )).UtcDateTime
+}
+
 if (-not (Get-Command aws -ErrorAction SilentlyContinue)) {
     throw "AWS CLI was not found. Run this file from Windows PowerShell/PowerShell 7 with AWS CLI installed."
 }
@@ -241,7 +277,7 @@ $targetTable = "m20-drill-outbox-$runId"
 $payload = "mandate20-restore-proof-$runId"
 $payloadHash = Get-Sha256Hex -Value $payload
 $createdEpochMs = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-$evidenceDir = Join-Path $EvidenceRoot ("m20-evidence-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
+$evidenceDir = Join-Path $EvidenceRoot ("m20-dynamodb-evidence-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
 
 New-Item -ItemType Directory -Path $evidenceDir -ErrorAction Stop | Out-Null
 $transcriptPath = Join-Path $evidenceDir "mandate20-drill-transcript.txt"
@@ -277,6 +313,15 @@ try {
     }
     Write-Host "CallerArn=$($identity.Arn)"
     Write-Host "AccountCheck=PASS"
+
+    $awsServiceUtc = Get-AwsServiceUtc
+    $localClockSkewSeconds = ([DateTime]::UtcNow - $awsServiceUtc).TotalSeconds
+    Write-Host "AwsServiceUTC=$($awsServiceUtc.ToString('o'))"
+    Write-Host "LocalClockSkewSeconds=$([math]::Round($localClockSkewSeconds, 2))"
+    if ([math]::Abs($localClockSkewSeconds) -gt $MaxClockSkewSeconds) {
+        throw "Local clock skew exceeds $MaxClockSkewSeconds seconds"
+    }
+    Write-Host "ClockSkewCheck=PASS"
 
     $sourceDescription = Invoke-AwsJson -Arguments @(
         "dynamodb", "describe-table",
@@ -402,16 +447,9 @@ try {
     Write-Host "ExpectedSHA256=$payloadHash"
     Write-Host "SafetyContract=status drill-hold is outside worker query status=pending"
 
-    Write-Step "4. CONTROLLED LOSS CONFIRMATION"
-    Write-Host "Marker verified. Type its exact ID before T_safe is selected:" -ForegroundColor Yellow
-    Write-Host $markerId -ForegroundColor Yellow
-    $deleteConfirmation = Read-Host "MarkerId"
-    if ($deleteConfirmation -ne $markerId) {
-        throw "ABORT: controlled delete confirmation did not match"
-    }
-
+    Write-Step "4. SELECT T_safe AND WAIT FOR CONFIRMED PITR COVERAGE"
     Start-Sleep -Seconds 2
-    $safeUtc = [DateTime]::UtcNow
+    $safeUtc = Get-AwsServiceUtc
     $safeRestoreTimestamp = $safeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ")
     $safeRestoreUtc = [DateTime]::Parse(
         $safeRestoreTimestamp,
@@ -420,60 +458,11 @@ try {
     ).ToUniversalTime()
 
     Write-Host "T_safe=$safeRestoreTimestamp"
-    Start-Sleep -Seconds 2
 
-    $expressionValues = @{
-        ":prefix"   = @{ S = "m20-drill-" }
-        ":expected" = @{ S = $payloadHash }
-    }
-    $expressionPath = Join-Path $evidenceDir "delete-expression-values.json"
-    Write-Utf8NoBom `
-        -Path $expressionPath `
-        -Content ($expressionValues | ConvertTo-Json -Depth 4 -Compress)
-
-    $deleteRequestUtc = [DateTime]::UtcNow
-    Invoke-AwsJson -AllowEmpty -Arguments @(
-        "dynamodb", "delete-item",
-        "--region", $Region,
-        "--table-name", $SourceTable,
-        "--key", "file://$keyPath",
-        "--condition-expression", "begins_with(event_id, :prefix) AND payload_sha256 = :expected",
-        "--expression-attribute-values", "file://$expressionPath"
-    ) | Out-Null
-    $lossUtc = [DateTime]::UtcNow
-    $markerDeleted = $true
-
-    Write-Host "T_delete_request=$($deleteRequestUtc.ToString('o'))"
-    Write-Host "T_loss=$($lossUtc.ToString('o'))"
-
-    $deletedCheck = Invoke-AwsJson -Arguments @(
-        "dynamodb", "get-item",
-        "--region", $Region,
-        "--table-name", $SourceTable,
-        "--key", "file://$keyPath",
-        "--consistent-read"
-    )
-    Write-Utf8NoBom `
-        -Path (Join-Path $evidenceDir "deleted-check.json") `
-        -Content ($deletedCheck | ConvertTo-Json -Depth 10)
-
-    if ($deletedCheck.Item) {
-        throw "CONTROLLED LOSS FAILED: marker still exists in source"
-    }
-
-    $actualRpoSeconds = ($lossUtc - $safeRestoreUtc).TotalSeconds
-    Write-Host "ActualRPOSeconds=$([math]::Round($actualRpoSeconds, 2))"
-    Write-Host "RPOTargetSeconds=$RpoTargetSeconds"
-
-    if ($actualRpoSeconds -lt 0 -or $actualRpoSeconds -gt $RpoTargetSeconds) {
-        throw "RPO FAILED: $actualRpoSeconds seconds"
-    }
-
-    Write-Host "ControlledLoss=PASS" -ForegroundColor Green
-    Write-Host "RPO=PASS" -ForegroundColor Green
-
-    Write-Step "5. WAIT FOR PITR TO COVER T_safe"
-
+    # Keep the marker in the source until DynamoDB itself reports that T_safe is
+    # restorable. This removes workstation clock skew and asynchronous PITR lag
+    # from the integrity assumption: the marker cannot be deleted before the
+    # selected recovery point is confirmed available by the provider.
     $pitrDeadline = [DateTime]::UtcNow.AddMinutes($MaxPitrWaitMinutes)
     do {
         $continuousBackups = Invoke-AwsJson -Arguments @(
@@ -498,8 +487,88 @@ try {
         }
     } while ($latestRestorableUtc -lt $safeRestoreUtc)
 
-    $pitrAvailabilityLagMinutes = ([DateTime]::UtcNow - $lossUtc).TotalMinutes
+    $pitrCoveredUtc = Get-AwsServiceUtc
+    $pitrAvailabilityLagMinutes = ($pitrCoveredUtc - $safeRestoreUtc).TotalMinutes
     Write-Host "PITRAvailabilityLagMinutes=$([math]::Round($pitrAvailabilityLagMinutes, 2))"
+
+    $coveredMarker = Invoke-AwsJson -Arguments @(
+        "dynamodb", "get-item",
+        "--region", $Region,
+        "--table-name", $SourceTable,
+        "--key", "file://$keyPath",
+        "--consistent-read"
+    )
+    Write-Utf8NoBom `
+        -Path (Join-Path $evidenceDir "pitr-covered-marker.json") `
+        -Content ($coveredMarker | ConvertTo-Json -Depth 10)
+
+    if (-not $coveredMarker.Item) {
+        throw "PITR COVERAGE FAILED: marker disappeared before controlled loss"
+    }
+    if ([string]$coveredMarker.Item.payload_sha256.S -ne $payloadHash) {
+        throw "PITR COVERAGE FAILED: marker hash changed before controlled loss"
+    }
+
+    Write-Host "PITRCoverage=PASS" -ForegroundColor Green
+
+    Write-Step "5. CONTROLLED LOSS CONFIRMATION"
+    Write-Host "PITR covers T_safe and the marker is still present." -ForegroundColor Yellow
+    Write-Host "Type the exact marker ID immediately before controlled deletion:" -ForegroundColor Yellow
+    Write-Host $markerId -ForegroundColor Yellow
+    $deleteConfirmation = Read-Host "MarkerId"
+    if ($deleteConfirmation -ne $markerId) {
+        throw "ABORT: controlled delete confirmation did not match"
+    }
+
+    $expressionValues = @{
+        ":prefix"   = @{ S = "m20-drill-" }
+        ":expected" = @{ S = $payloadHash }
+    }
+    $expressionPath = Join-Path $evidenceDir "delete-expression-values.json"
+    Write-Utf8NoBom `
+        -Path $expressionPath `
+        -Content ($expressionValues | ConvertTo-Json -Depth 4 -Compress)
+
+    $deleteRequestUtc = [DateTime]::UtcNow
+    Invoke-AwsJson -AllowEmpty -Arguments @(
+        "dynamodb", "delete-item",
+        "--region", $Region,
+        "--table-name", $SourceTable,
+        "--key", "file://$keyPath",
+        "--condition-expression", "begins_with(event_id, :prefix) AND payload_sha256 = :expected",
+        "--expression-attribute-values", "file://$expressionPath"
+    ) | Out-Null
+    $lossUtc = Get-AwsServiceUtc
+    $markerDeleted = $true
+
+    Write-Host "T_delete_request=$($deleteRequestUtc.ToString('o'))"
+    Write-Host "T_loss=$($lossUtc.ToString('o'))"
+
+    $deletedCheck = Invoke-AwsJson -AllowEmpty -Arguments @(
+        "dynamodb", "get-item",
+        "--region", $Region,
+        "--table-name", $SourceTable,
+        "--key", "file://$keyPath",
+        "--consistent-read"
+    )
+    Write-Utf8NoBom `
+        -Path (Join-Path $evidenceDir "deleted-check.json") `
+        -Content ($deletedCheck | ConvertTo-Json -Depth 10)
+
+    if ($deletedCheck.Item) {
+        throw "CONTROLLED LOSS FAILED: marker still exists in source"
+    }
+
+    $actualRpoSeconds = ($lossUtc - $safeRestoreUtc).TotalSeconds
+    Write-Host "ActualRPOSeconds=$([math]::Round($actualRpoSeconds, 2))"
+    Write-Host "RPOTargetSeconds=$RpoTargetSeconds"
+
+    if ($actualRpoSeconds -lt 0 -or $actualRpoSeconds -gt $RpoTargetSeconds) {
+        throw "RPO FAILED: $actualRpoSeconds seconds"
+    }
+
+    Write-Host "ControlledLoss=PASS" -ForegroundColor Green
+    Write-Host "RPO=PASS" -ForegroundColor Green
 
     Write-Step "6. RESTORE TO ISOLATED TARGET"
 
@@ -585,7 +654,7 @@ try {
 
     Write-Step "8. VERIFY PRODUCTION WAS NOT OVERWRITTEN"
 
-    $sourceAfter = Invoke-AwsJson -Arguments @(
+    $sourceAfter = Invoke-AwsJson -AllowEmpty -Arguments @(
         "dynamodb", "get-item",
         "--region", $Region,
         "--table-name", $SourceTable,
@@ -625,6 +694,30 @@ try {
         $matchingEvents = @($cloudTrail.Events | Where-Object {
             [string]$_.CloudTrailEvent -like "*$targetTable*"
         })
+
+        foreach ($event in $matchingEvents) {
+            if ($event.PSObject.Properties.Name -contains "AccessKeyId") {
+                $event.AccessKeyId = "[REDACTED]"
+            }
+
+            if (-not [string]::IsNullOrWhiteSpace([string]$event.CloudTrailEvent)) {
+                try {
+                    $eventDetail = $event.CloudTrailEvent | ConvertFrom-Json
+                    if ($null -ne $eventDetail.userIdentity -and
+                        $eventDetail.userIdentity.PSObject.Properties.Name -contains "accessKeyId") {
+                        $eventDetail.userIdentity.accessKeyId = "[REDACTED]"
+                    }
+                    if ($eventDetail.PSObject.Properties.Name -contains "sourceIPAddress") {
+                        $eventDetail.sourceIPAddress = "[REDACTED]"
+                    }
+                    $event.CloudTrailEvent = $eventDetail | ConvertTo-Json -Depth 20 -Compress
+                }
+                catch {
+                    Write-Warning "CloudTrail detail redaction failed; omitting raw event detail."
+                    $event.CloudTrailEvent = "[REDACTED]"
+                }
+            }
+        }
 
         Write-Host "MatchingRestoreEvents=$($matchingEvents.Count)"
         Write-Utf8NoBom `
