@@ -1,12 +1,10 @@
 name: Terraform CI
 
 on:
+  # Branch protection requires every job in this workflow on every PR.
+  # Do not path-filter this event: a docs/scripts-only PR would otherwise stay
+  # permanently pending because GitHub never creates the required contexts.
   pull_request:
-    paths:
-      - "bootstrap/**"
-      - "environments/**"
-      - "modules/**"
-      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:
