@@ -116,6 +116,10 @@ resource "aws_flow_log" "vpc" {
   traffic_type         = "ALL"
   vpc_id               = aws_vpc.this.id
 
+  # One-minute records are required to compare two bounded 15-minute load-test
+  # windows. Flow Logs are already opt-in through flow_logs_enabled.
+  max_aggregation_interval = 60
+
   # Keep the fields needed to identify a traffic pair, direction and volume.
   # The destination AZ is resolved from the related ENI/subnet during review;
   # Flow Logs do not expose a billed Cross-AZ byte counter by themselves.
