@@ -8,6 +8,11 @@ resource "aws_fis_experiment_template" "az_failover" {
   description = "Mandate 21 immutable FIS AZ failover experiment template for ${each.key}"
   role_arn    = var.role_arn
 
+  experiment_options {
+    account_targeting            = "single-account"
+    empty_target_resolution_mode = "fail"
+  }
+
   dynamic "stop_condition" {
     for_each = var.stop_alarm_arns
     content {
@@ -59,14 +64,20 @@ resource "aws_fis_experiment_template" "az_failover" {
     name           = "RDSInstance"
     resource_type  = "aws:rds:db"
     selection_mode = "ALL"
-    resource_arns  = [var.rds_db_instance_arn]
+    parameters = {
+      availabilityZoneIdentifiers = each.key
+    }
+    resource_arns = [var.rds_db_instance_arn]
   }
 
   target {
     name           = "ValkeyReplicationGroup"
     resource_type  = "aws:elasticache:replicationgroup"
     selection_mode = "ALL"
-    resource_arns  = [var.valkey_replication_group_arn]
+    parameters = {
+      availabilityZoneIdentifier = each.key
+    }
+    resource_arns = [var.valkey_replication_group_arn]
   }
 
   action {
@@ -142,4 +153,4 @@ resource "aws_fis_experiment_template" "az_failover" {
   })
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Aligned FIS targets and action IDs with AWS FIS schema specifications.
+# Change trail: @hungxqt - 2026-07-28 - Added fail-closed zonal parameters to RDS and Valkey FIS targets.

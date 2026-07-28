@@ -398,6 +398,8 @@ data "aws_iam_policy_document" "fis_prod_policy" {
       "ec2:DescribeSubnets",
       "ec2:DescribeVpcs",
       "ec2:DescribeNetworkAcls",
+      "ec2:DescribeManagedPrefixLists",
+      "ec2:GetManagedPrefixListEntries",
     ]
     resources = ["*"]
   }
@@ -408,6 +410,7 @@ data "aws_iam_policy_document" "fis_prod_policy" {
     actions = [
       "ec2:CreateNetworkAcl",
       "ec2:CreateNetworkAclEntry",
+      "ec2:CreateTags",
       "ec2:DeleteNetworkAcl",
       "ec2:DeleteNetworkAclEntry",
       "ec2:ReplaceNetworkAclAssociation",
@@ -416,23 +419,38 @@ data "aws_iam_policy_document" "fis_prod_policy" {
   }
 
   statement {
-    sid    = "AllowRDSFailoverActions"
-    effect = "Allow"
-    actions = [
-      "rds:RebootDBInstance",
-      "rds:DescribeDBInstances",
-    ]
+    sid       = "AllowRDSFailoverActions"
+    effect    = "Allow"
+    actions   = ["rds:RebootDBInstance"]
     resources = ["arn:aws:rds:${var.aws_region}:${local.account_id}:db:*"]
   }
 
   statement {
-    sid    = "AllowValkeyFailoverActions"
-    effect = "Allow"
-    actions = [
-      "elasticache:TestFailover",
-      "elasticache:DescribeReplicationGroups",
-    ]
+    sid       = "AllowRDSReadActions"
+    effect    = "Allow"
+    actions   = ["rds:DescribeDBInstances"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "AllowValkeyFailoverActions"
+    effect    = "Allow"
+    actions   = ["elasticache:InterruptClusterAzPower"]
     resources = ["arn:aws:elasticache:${var.aws_region}:${local.account_id}:replicationgroup:*"]
+  }
+
+  statement {
+    sid       = "AllowValkeyReadActions"
+    effect    = "Allow"
+    actions   = ["elasticache:DescribeReplicationGroups"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "AllowFISTargetResolutionByTags"
+    effect    = "Allow"
+    actions   = ["tag:GetResources"]
+    resources = ["*"]
   }
 
   statement {
@@ -459,6 +477,19 @@ data "aws_iam_policy_document" "fis_prod_policy" {
       "arn:aws:kms:${var.aws_region}:${local.account_id}:key/*",
     ]
   }
+
+  statement {
+    sid       = "AllowEncryptedEC2RestartGrant"
+    effect    = "Allow"
+    actions   = ["kms:CreateGrant"]
+    resources = ["arn:aws:kms:${var.aws_region}:${local.account_id}:key/*"]
+
+    condition {
+      test     = "Bool"
+      variable = "kms:GrantIsForAWSResource"
+      values   = ["true"]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "fis_prod" {
@@ -467,5 +498,4 @@ resource "aws_iam_role_policy" "fis_prod" {
   policy = data.aws_iam_policy_document.fis_prod_policy.json
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Created Mandate 21 FIS execution role techx-prod-tf2-fis-execution-role.
-
+# Change trail: @hungxqt - 2026-07-28 - Completed least-required permissions for Mandate 21 FIS actions.
