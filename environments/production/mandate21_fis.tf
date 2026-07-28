@@ -147,7 +147,7 @@ module "fis_az_failover" {
   evidence_bucket_name          = aws_s3_bucket.immutable_audit_k8s_raw.bucket
   evidence_kms_key_arn          = aws_kms_key.immutable_audit.arn
   evidence_prefix               = "mandate-21/fis/"
-  role_arn                      = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-prod-tf2-fis-execution-role"
+  role_arn                      = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-fis-execution-role"
   tags                          = var.tags
 
   stop_alarm_arns = [
