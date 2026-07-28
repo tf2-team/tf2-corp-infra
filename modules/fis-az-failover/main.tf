@@ -8,6 +8,11 @@ resource "aws_fis_experiment_template" "az_failover" {
   description = "Mandate 21 immutable FIS AZ failover experiment template for ${each.key}"
   role_arn    = var.role_arn
 
+  experiment_options {
+    account_targeting            = "single-account"
+    empty_target_resolution_mode = "fail"
+  }
+
   dynamic "stop_condition" {
     for_each = var.stop_alarm_arns
     content {
@@ -28,9 +33,6 @@ resource "aws_fis_experiment_template" "az_failover" {
     name           = "EC2Instances"
     resource_type  = "aws:ec2:instance"
     selection_mode = "ALL"
-    parameters = {
-      emptyTargetResolutionMode = "skip"
-    }
 
     resource_tag {
       key   = "kubernetes.io/cluster/${var.eks_cluster_name}"
@@ -52,9 +54,6 @@ resource "aws_fis_experiment_template" "az_failover" {
     name           = "Subnets"
     resource_type  = "aws:ec2:subnet"
     selection_mode = "ALL"
-    parameters = {
-      emptyTargetResolutionMode = "skip"
-    }
     resource_arns = [
       for sub_id in lookup(var.subnet_ids_by_zone, each.key, []) :
       "arn:${data.aws_partition.current.partition}:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:subnet/${sub_id}"
@@ -66,24 +65,25 @@ resource "aws_fis_experiment_template" "az_failover" {
     resource_type  = "aws:rds:db"
     selection_mode = "ALL"
     parameters = {
-      emptyTargetResolutionMode = "skip"
+      availabilityZoneIdentifiers = each.key
     }
-    resource_arns = [var.rds_db_instance_arn]
-
-    filter {
-      path   = "AvailabilityZone"
-      values = [each.key]
+    resource_tag {
+      key   = "Name"
+      value = var.rds_db_instance_identifier
     }
   }
 
   target {
     name           = "ValkeyReplicationGroup"
-    resource_type  = "aws:elasticache:replication-group"
+    resource_type  = "aws:elasticache:replicationgroup"
     selection_mode = "ALL"
     parameters = {
-      emptyTargetResolutionMode = "skip"
+      availabilityZoneIdentifier = each.key
     }
-    resource_arns = [var.valkey_replication_group_arn]
+    resource_tag {
+      key   = "Name"
+      value = var.valkey_replication_group_id
+    }
   }
 
   action {
@@ -138,7 +138,7 @@ resource "aws_fis_experiment_template" "az_failover" {
 
   action {
     name      = "InterruptValkey"
-    action_id = "aws:elasticache:replication-group-interrupt-az-power"
+    action_id = "aws:elasticache:replicationgroup-interrupt-az-power"
 
     target {
       key   = "ReplicationGroups"
@@ -159,4 +159,4 @@ resource "aws_fis_experiment_template" "az_failover" {
   })
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Removed IAM role creation from environment stack and referenced bootstrap role_arn.
+# Change trail: @hungxqt - 2026-07-28 - Selected zonal RDS and Valkey targets by deterministic tags without ARNs.

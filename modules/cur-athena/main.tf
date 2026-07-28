@@ -430,6 +430,46 @@ data "aws_iam_policy_document" "grafana_athena" {
     ]
     resources = [aws_kms_key.cur_athena[0].arn]
   }
+
+  # Mandate 18 live evidence: CloudWatch exposes NAT usage every minute. This
+  # is intentionally read-only and complements delayed CUR billing records.
+  statement {
+    sid = "ReadCloudWatchUsageMetrics"
+    actions = [
+      "cloudwatch:GetMetricData",
+      "cloudwatch:GetMetricStatistics",
+      "cloudwatch:ListMetrics",
+    ]
+    resources = ["*"]
+  }
+
+  dynamic "statement" {
+    for_each = var.vpc_flow_logs_enabled ? [var.vpc_flow_logs_log_group_name] : []
+
+    content {
+      sid = "QueryOptionalVpcFlowLogs"
+      actions = [
+        "logs:DescribeLogStreams",
+        "logs:GetLogEvents",
+        "logs:StartQuery",
+      ]
+      resources = [
+        "arn:${local.partition}:logs:${var.cloudwatch_region}:${local.account_id}:log-group:${statement.value}",
+        "arn:${local.partition}:logs:${var.cloudwatch_region}:${local.account_id}:log-group:${statement.value}:*",
+      ]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = var.vpc_flow_logs_enabled ? [true] : []
+
+    content {
+      # These API actions use a generated query ID rather than a Log Group ARN.
+      sid       = "ReadOptionalVpcFlowLogQueryResults"
+      actions   = ["logs:DescribeLogGroups", "logs:GetQueryResults", "logs:StopQuery"]
+      resources = ["*"]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "grafana_athena" {

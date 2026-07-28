@@ -42,6 +42,93 @@ resource "aws_vpc" "this" {
   }
 }
 
+# Mandate 18: Flow Logs are deliberately opt-in. NAT Gateway CloudWatch metrics
+# provide always-on live evidence; Flow Logs are enabled only for a bounded
+# Cross-AZ investigation because CloudWatch Logs ingestion has its own cost.
+data "aws_iam_policy_document" "flow_logs_assume" {
+  count = var.flow_logs_enabled ? 1 : 0
+
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["vpc-flow-logs.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "flow_logs" {
+  count = var.flow_logs_enabled ? 1 : 0
+
+  name               = "${var.name}-flow-logs"
+  assume_role_policy = data.aws_iam_policy_document.flow_logs_assume[0].json
+
+  tags = {
+    Name    = "${var.name}-flow-logs"
+    Purpose = "on-demand-network-cost-investigation"
+  }
+}
+
+data "aws_iam_policy_document" "flow_logs_delivery" {
+  count = var.flow_logs_enabled ? 1 : 0
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogStream",
+      "logs:DescribeLogGroups",
+      "logs:DescribeLogStreams",
+      "logs:PutLogEvents",
+    ]
+    resources = ["${aws_cloudwatch_log_group.flow_logs[0].arn}:*"]
+  }
+}
+
+resource "aws_iam_role_policy" "flow_logs_delivery" {
+  count = var.flow_logs_enabled ? 1 : 0
+
+  name   = "${var.name}-flow-logs-delivery"
+  role   = aws_iam_role.flow_logs[0].id
+  policy = data.aws_iam_policy_document.flow_logs_delivery[0].json
+}
+
+resource "aws_cloudwatch_log_group" "flow_logs" {
+  #checkov:skip=CKV_AWS_158:Short-lived diagnostic Flow Logs use the AWS-managed key to avoid creating a dedicated KMS key solely for an opt-in measurement window.
+  count = var.flow_logs_enabled ? 1 : 0
+
+  name              = "/aws/vpc/${var.name}/flow-logs"
+  retention_in_days = var.flow_logs_retention_in_days
+
+  tags = {
+    Name    = "${var.name}-flow-logs"
+    Purpose = "on-demand-network-cost-investigation"
+  }
+}
+
+resource "aws_flow_log" "vpc" {
+  count = var.flow_logs_enabled ? 1 : 0
+
+  iam_role_arn         = aws_iam_role.flow_logs[0].arn
+  log_destination      = aws_cloudwatch_log_group.flow_logs[0].arn
+  log_destination_type = "cloud-watch-logs"
+  traffic_type         = "ALL"
+  vpc_id               = aws_vpc.this.id
+
+  # Keep the fields needed to identify a traffic pair, direction and volume.
+  # The destination AZ is resolved from the related ENI/subnet during review;
+  # Flow Logs do not expose a billed Cross-AZ byte counter by themselves.
+  log_format = "$${version} $${account-id} $${interface-id} $${srcaddr} $${dstaddr} $${srcport} $${dstport} $${protocol} $${packets} $${bytes} $${start} $${end} $${action} $${log-status} $${az-id} $${flow-direction}"
+
+  tags = {
+    Name    = "${var.name}-flow-logs"
+    Purpose = "on-demand-network-cost-investigation"
+  }
+
+  depends_on = [aws_iam_role_policy.flow_logs_delivery]
+}
+
 # ──────────────────────────────────────────────
 # Internet Gateway
 # ──────────────────────────────────────────────
