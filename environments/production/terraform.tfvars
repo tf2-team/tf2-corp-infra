@@ -148,10 +148,12 @@ nat_gateways = {
 
 # ──────────────────────────────────────────────
 # EKS Configuration (aligned with development topology)
-# Critical floor only: system-* MNG (ARM On-Demand, workload-class=critical).
-# Cluster Autoscaler scales system-* within min/max; Karpenter scales app capacity.
+# Role-separated ARM On-Demand floor. Cluster Autoscaler only scales system-*
+# within min/max; the observability/application/reserve groups stay at one node.
+# Karpenter capacity, including the existing Spot NodePool, is unchanged.
 # desired_size is bootstrap floor only (Terraform ignores later ASG desired drift).
-# One managed node group per AZ so EBS volumes / pods can schedule in both zones.
+# Prometheus is AZ-bound to 1a and OpenSearch to 1b, so transition-reserve-1b
+# remains available for OpenSearch until storage is redesigned for multi-AZ HA.
 # ──────────────────────────────────────────────
 cluster_name       = "techx-tf2-prod"
 kubernetes_version = "1.36"
@@ -190,14 +192,15 @@ node_groups = {
     capacity_type  = "ON_DEMAND"
     ami_type       = "AL2023_ARM_64_STANDARD"
     disk_size      = 30
-    desired_size   = 2
+    desired_size   = 1
     min_size       = 1
-    max_size       = 4
+    max_size       = 2
     max_pods       = 110
     subnet_keys    = ["priv-1a-nodes"]
     labels = {
       role           = "critical"
       workload-class = "critical"
+      workload-tier  = "system-critical"
       env            = "production"
       az             = "us-east-1a"
     }
@@ -209,12 +212,67 @@ node_groups = {
     disk_size      = 30
     desired_size   = 1
     min_size       = 1
-    max_size       = 3
+    max_size       = 2
     max_pods       = 110
     subnet_keys    = ["priv-1b-nodes"]
     labels = {
       role           = "critical"
       workload-class = "critical"
+      workload-tier  = "system-critical"
+      env            = "production"
+      az             = "us-east-1b"
+    }
+  }
+  "observability-1a" = {
+    instance_types = ["t4g.large"]
+    capacity_type  = "ON_DEMAND"
+    ami_type       = "AL2023_ARM_64_STANDARD"
+    disk_size      = 30
+    desired_size   = 1
+    min_size       = 1
+    max_size       = 1
+    max_pods       = 110
+    subnet_keys    = ["priv-1a-nodes"]
+    labels = {
+      role           = "observability"
+      workload-class = "critical"
+      workload-tier  = "observability"
+      env            = "production"
+      az             = "us-east-1a"
+    }
+  }
+  "application-baseline-1b" = {
+    instance_types = ["t4g.large"]
+    capacity_type  = "ON_DEMAND"
+    ami_type       = "AL2023_ARM_64_STANDARD"
+    disk_size      = 30
+    desired_size   = 1
+    min_size       = 1
+    max_size       = 1
+    max_pods       = 110
+    subnet_keys    = ["priv-1b-nodes"]
+    labels = {
+      role           = "application-baseline"
+      workload-class = "critical"
+      workload-tier  = "application-baseline"
+      env            = "production"
+      az             = "us-east-1b"
+    }
+  }
+  "transition-reserve-1b" = {
+    instance_types = ["t4g.large"]
+    capacity_type  = "ON_DEMAND"
+    ami_type       = "AL2023_ARM_64_STANDARD"
+    disk_size      = 30
+    desired_size   = 1
+    min_size       = 1
+    max_size       = 1
+    max_pods       = 110
+    subnet_keys    = ["priv-1b-nodes"]
+    labels = {
+      role           = "transition-reserve"
+      workload-class = "critical"
+      workload-tier  = "transition-reserve"
       env            = "production"
       az             = "us-east-1b"
     }
