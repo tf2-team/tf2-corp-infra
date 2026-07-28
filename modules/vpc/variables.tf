@@ -49,6 +49,21 @@ variable "private_subnets" {
     enable_eks_internal_elb = optional(bool, true)
   }))
   default     = {}
+
+  validation {
+    condition = alltrue([
+      for k, v in var.private_subnets :
+      v.nat_gateway_key == null ? true : (
+        contains(keys(var.nat_gateways), v.nat_gateway_key) &&
+        try(
+          v.availability_zone == var.public_subnets[var.nat_gateways[v.nat_gateway_key].public_subnet_key].availability_zone,
+          false
+        )
+      )
+    ])
+    error_message = "Every private subnet nat_gateway_key must reference a valid NAT gateway in var.nat_gateways, and its availability_zone must match the availability_zone of the NAT gateway's public subnet."
+  }
+
   description = <<-EOT
     Bản đồ các Private Subnet cần tạo.
     nat_gateway_key trỏ tới key trong var.nat_gateways để chọn NAT Gateway làm default route.
@@ -87,6 +102,15 @@ variable "nat_gateways" {
     public_subnet_key = string # key từ var.public_subnets — subnet đặt NAT Gateway này
   }))
   default     = {}
+
+  validation {
+    condition = alltrue([
+      for k, v in var.nat_gateways :
+      contains(keys(var.public_subnets), v.public_subnet_key)
+    ])
+    error_message = "Every NAT gateway public_subnet_key must reference a valid key in var.public_subnets."
+  }
+
   description = <<-EOT
     Bản đồ các NAT Gateway cần tạo.
     Key được tham chiếu từ nat_gateway_key trong var.private_subnets.
@@ -119,4 +143,5 @@ variable "enable_karpenter_discovery_tags" {
     karpenter.sh/discovery = <eks_cluster_name> for Karpenter EC2NodeClass selectors.
   EOT
 }
-# Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.
+# Change trail: @hungxqt - 2026-07-28 - Added fail-closed cross-variable zonal NAT validation.
+

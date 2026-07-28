@@ -33,3 +33,15 @@ output "destructive_ddl_alarm_name" {
   value       = try(aws_cloudwatch_metric_alarm.destructive_ddl[0].alarm_name, null)
   description = "CloudWatch alarm that detects logged DROP TABLE and TRUNCATE TABLE statements."
 }
+
+output "db_instance_arn" {
+  value       = aws_db_instance.this.arn
+  description = "RDS PostgreSQL DB instance ARN."
+}
+
+output "db_instance_identifier" {
+  value       = aws_db_instance.this.identifier
+  description = "RDS PostgreSQL DB instance identifier."
+}
+
+# Change trail: @hungxqt - 2026-07-28 - Exported db_instance_arn and db_instance_identifier for FIS target resolution.

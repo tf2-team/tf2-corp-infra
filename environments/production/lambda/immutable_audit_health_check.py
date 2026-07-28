@@ -81,46 +81,104 @@ def _check_cloudtrail(errors):
     if trail.get("KmsKeyId") is None:
         errors.append("CloudTrail KMS encryption is not configured")
 
+def validate_cloudtrail_selectors(selectors, advanced_selectors, expected_data_arns):
+    errors = []
+    if not selectors and not advanced_selectors:
+        return ["CloudTrail event selectors are missing"]
+
+    for selector in selectors:
+        if selector.get("IncludeManagementEvents") and selector.get("ReadWriteType", "All") in ("All", "ReadOnly"):
+            errors.append("All-management-read capture detected in basic selector (cost-contract regression)")
+
+    has_management_writes = False
+    has_get_secret_value = False
+    captured_data_arns = set()
+
+    for selector in advanced_selectors:
+        field_map = {}
+        for field_selector in selector.get("FieldSelectors", []):
+            field = field_selector.get("Field")
+            field_map[field] = {
+                "equals": set(field_selector.get("Equals", [])),
+                "starts_with": set(field_selector.get("StartsWith", [])),
+                "ends_with": set(field_selector.get("EndsWith", [])),
+            }
+
+        is_mgmt = "Management" in field_map.get("eventCategory", {}).get("equals", set())
+        if is_mgmt:
+            has_readonly_false = "false" in field_map.get("readOnly", {}).get("equals", set())
+            has_secret_get = (
+                "secretsmanager.amazonaws.com" in field_map.get("eventSource", {}).get("equals", set()) and
+                "GetSecretValue" in field_map.get("eventName", {}).get("equals", set())
+            )
+
+            if has_readonly_false:
+                has_management_writes = True
+            if has_secret_get:
+                has_get_secret_value = True
+
+            if not has_readonly_false and not has_secret_get:
+                errors.append("All-management-read capture detected in advanced selector (cost-contract regression)")
+
+        is_s3_data = (
+            "Data" in field_map.get("eventCategory", {}).get("equals", set()) and
+            "AWS::S3::Object" in field_map.get("resources.type", {}).get("equals", set())
+        )
+        if is_s3_data:
+            arn_info = field_map.get("resources.ARN", {})
+            captured_data_arns.update(arn_info.get("equals", set()))
+            captured_data_arns.update(arn_info.get("starts_with", set()))
+
+    for selector in selectors:
+        for resource in selector.get("DataResources", []):
+            if resource.get("Type") == "AWS::S3::Object":
+                captured_data_arns.update(resource.get("Values", []))
+
+    if not has_management_writes:
+        errors.append("CloudTrail management write events (ManagementWrites) are not included")
+    if not has_get_secret_value:
+        errors.append("CloudTrail GetSecretValue read events (RequiredSecretReads) are not included")
+
+    missing_data_arns = set(expected_data_arns) - captured_data_arns
+    if missing_data_arns:
+        errors.append(f"CloudTrail missing S3 data event ARNs: {sorted(missing_data_arns)}")
+
+    return errors
+
+
+def _check_cloudtrail(errors):
+    trail_name = os.environ["TRAIL_NAME"]
+    status = cloudtrail.get_trail_status(Name=trail_name)
+    if not status.get("IsLogging"):
+        errors.append("CloudTrail IsLogging is false")
+
+    max_age = int(os.environ["MAX_DELIVERY_AGE_MINUTES"])
+    for key in ["LatestDeliveryTime", "LatestCloudWatchLogsDeliveryTime", "LatestDigestDeliveryTime"]:
+        if key not in status:
+            errors.append(f"CloudTrail {key} is missing")
+        elif _age_minutes(status[key]) > max_age:
+            errors.append(f"CloudTrail {key} is stale: {status[key]}")
+
+    trails = cloudtrail.describe_trails(trailNameList=[trail_name], includeShadowTrails=False)["trailList"]
+    if not trails:
+        errors.append("CloudTrail describe_trails returned no trail")
+        return
+
+    trail = trails[0]
+    if not trail.get("LogFileValidationEnabled"):
+        errors.append("CloudTrail log file validation is disabled")
+    if trail.get("CloudWatchLogsLogGroupArn") is None:
+        errors.append("CloudTrail CloudWatch Logs delivery is not configured")
+    if trail.get("KmsKeyId") is None:
+        errors.append("CloudTrail KMS encryption is not configured")
+
     selector_response = cloudtrail.get_event_selectors(TrailName=trail_name)
     selectors = selector_response.get("EventSelectors", [])
     advanced_selectors = selector_response.get("AdvancedEventSelectors", [])
-    if not selectors and not advanced_selectors:
-        errors.append("CloudTrail event selectors are missing")
-        return
 
     expected_data_arns = set(_env_json("EXPECTED_S3_DATA_EVENT_ARNS", []))
-    has_management = any(selector.get("IncludeManagementEvents") for selector in selectors)
-    has_management = has_management or any(
-        field_selector.get("Field") == "eventCategory" and "Management" in field_selector.get("Equals", [])
-        for selector in advanced_selectors
-        for field_selector in selector.get("FieldSelectors", [])
-    )
-    if not has_management:
-        errors.append("CloudTrail management events are not included")
+    errors.extend(validate_cloudtrail_selectors(selectors, advanced_selectors, expected_data_arns))
 
-    actual_data_arns = {
-        value
-        for selector in selectors
-        for resource in selector.get("DataResources", [])
-        if resource.get("Type") == "AWS::S3::Object"
-        for value in resource.get("Values", [])
-    }
-    for selector in advanced_selectors:
-        field_selectors = selector.get("FieldSelectors", [])
-        is_s3_data = any(
-            item.get("Field") == "resources.type" and "AWS::S3::Object" in item.get("Equals", [])
-            for item in field_selectors
-        )
-        if not is_s3_data:
-            continue
-        for item in field_selectors:
-            if item.get("Field") == "resources.ARN":
-                actual_data_arns.update(item.get("Equals", []))
-                actual_data_arns.update(item.get("StartsWith", []))
-
-    missing_data_arns = expected_data_arns - actual_data_arns
-    if missing_data_arns:
-        errors.append(f"CloudTrail missing S3 data event ARNs: {sorted(missing_data_arns)}")
 
 
 def _check_object_lock_bucket(errors, bucket, mode, days, label):
@@ -326,3 +384,6 @@ def handler(_event, _context):
     _put_health_metric(1)
     print(json.dumps({"status": "PASS"}))
     return {"status": "PASS"}
+
+# Change trail: @hungxqt - 2026-07-28 - Extracted pure selector validation for Mandate 21 cost gate.
+

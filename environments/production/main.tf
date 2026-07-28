@@ -485,17 +485,55 @@ resource "aws_cloudtrail" "immutable_audit" {
   enable_log_file_validation    = true
   enable_logging                = true
 
-  event_selector {
-    read_write_type           = "All"
-    include_management_events = true
+  advanced_event_selector {
+    name = "ManagementWrites"
 
-    dynamic "data_resource" {
-      for_each = local.immutable_audit_s3_data_event_object_arns
+    field_selector {
+      field  = "eventCategory"
+      equals = ["Management"]
+    }
 
-      content {
-        type   = "AWS::S3::Object"
-        values = [data_resource.value]
-      }
+    field_selector {
+      field  = "readOnly"
+      equals = ["false"]
+    }
+  }
+
+  advanced_event_selector {
+    name = "RequiredSecretReads"
+
+    field_selector {
+      field  = "eventCategory"
+      equals = ["Management"]
+    }
+
+    field_selector {
+      field  = "eventSource"
+      equals = ["secretsmanager.amazonaws.com"]
+    }
+
+    field_selector {
+      field  = "eventName"
+      equals = ["GetSecretValue"]
+    }
+  }
+
+  advanced_event_selector {
+    name = "SensitiveS3Data"
+
+    field_selector {
+      field  = "eventCategory"
+      equals = ["Data"]
+    }
+
+    field_selector {
+      field  = "resources.type"
+      equals = ["AWS::S3::Object"]
+    }
+
+    field_selector {
+      field       = "resources.ARN"
+      starts_with = tolist(local.immutable_audit_s3_data_event_object_arns)
     }
   }
 
@@ -1648,4 +1686,4 @@ resource "aws_iam_role_policy" "policy_controller" {
   policy = data.aws_iam_policy_document.policy_controller.json
 }
 
-# Change trail: @hungxqt - 2026-07-22 - Wire mandate20_backup vault and EBS hourly plan module.
+# Change trail: @hungxqt - 2026-07-28 - Optimized CloudTrail selectors for Mandate 21 cost gate.

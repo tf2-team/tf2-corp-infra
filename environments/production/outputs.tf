@@ -1059,4 +1059,30 @@ output "mem0_postgresql_security_group_id" {
   description = "Security group attached to Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-22 - Export mandate20_backup vault and plan IDs.
+output "mandate21_fis_contract" {
+  value       = module.fis_az_failover.contract
+  description = "Mandate 21 Person 1 -> Person 3 FIS runtime contract"
+}
+
+output "mandate21_fis_template_ids" {
+  value       = module.fis_az_failover.template_ids
+  description = "Mandate 21 FIS experiment template IDs by Availability Zone"
+}
+
+output "mandate21_fis_template_arns" {
+  value       = module.fis_az_failover.template_arns
+  description = "Mandate 21 FIS experiment template ARNs by Availability Zone"
+}
+
+output "mandate21_stop_alarm_arns" {
+  value = [
+    aws_cloudwatch_metric_alarm.storefront_healthy_hosts.arn,
+    aws_cloudwatch_metric_alarm.storefront_5xx_ratio.arn,
+    aws_cloudwatch_metric_alarm.durability_gap.arn,
+    aws_cloudwatch_metric_alarm.immutable_audit_control_health[0].arn,
+  ]
+  description = "Mandate 21 fail-closed CloudWatch stop alarm ARNs"
+}
+
+# Change trail: @hungxqt - 2026-07-28 - Exported mandate21_fis_contract, template IDs, ARNs, and stop alarms.
+
