@@ -1,8 +1,8 @@
 # Cost Estimate: TechX Corp Infrastructure
 
-> **Status:** Planning estimate (configuration-based), not a live AWS invoice.  
-> **Account / Region:** `493499579600` / `us-east-1`  
-> **Last updated:** 2026-07-10  
+> **Status:** Planning estimate (configuration-based), not a live AWS invoice.
+> **Account / Region:** `493499579600` / `us-east-1`
+> **Last updated:** 2026-07-10
 > **Scope:** Full-component platform on EKS as defined by current Terraform (`techx-corp-infra`) and Helm chart (`techx-corp-chart` / `tf2-corp-chart`).
 
 This document estimates **monthly AWS spend** for running the TechX stack with **all major application and observability components enabled**, based on the checked-in environment configs.
@@ -20,7 +20,7 @@ For deployment topology and procedures, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 | **Both environments** (dev + prod, 24/7, full stack each) | **~$560–650** |
 | **Both at max node capacity** (4× `t3.large` each) | **~$800–900+** |
 
-**Recommended budget number for a single full environment:** **~$300 / month**.  
+**Recommended budget number for a single full environment:** **~$300 / month**.
 **Recommended budget number if both stacks stay up 24/7:** **~$600 / month**.
 
 ### Cost composition (one env, mid estimate ~$280)
@@ -376,22 +376,49 @@ These figures exclude GitHub CI and any non-AWS tools.
 
 ---
 
-## 13. Mandate 21 Cost Gate Analysis (Weekly Run-Rate & Live Drill Forecast)
+## 13. Mandate 21 Cost Gate Analysis
 
-> **Evaluation Period:** 2026-07-20 to 2026-07-26 (Latest complete 7-day Cost Explorer actuals)  
-> **Target Gate:** `<= 300.00 USD / week`  
-> **Note:** CloudTrail selector and Lambda health check changes reverted per directive.
+> **Evaluation period:** 2026-07-21 through 2026-07-27 (`End=2026-07-28` is exclusive).
+> **Cost Explorer status:** Estimated.
+> **Target gate:** `<= 300.00 USD / 7 days` for both the normalized Cost Explorer estimate and the drill forecast.
 
-### 13.1 Line Item Breakdown
+### 13.1 Seven-day service breakdown
 
-| Line Item | Scope / Resource | Owner | Weekly Cost Delta (USD) | Evidence Source |
-|---|---|---|---:|---|
-| **7-Day Baseline Actuals** | Production Account (`493499579600`) | Infra | **$317.21** | Cost Explorer 20–26/07 actuals |
-| **NAT 1b Fixed & Data Cost** | `nat-1b` (us-east-1b) | TF2 | **+$8.76** | Included in baseline (730h NAT hourly + data) |
-| **Avoided Cross-AZ Transfer** | Private subnets `1a->nat1a`, `1b->nat1b` | TF2 | **-$4.15** | Zonal NAT route invariant |
-| **FIS Live Drill Action Minutes** | 43 FIS action-minutes (1 drill) | TF2 / Person 1 | **+$4.30** | AWS FIS pricing ($0.10 / action-minute) |
-| **Retained Directive 20 Target** | Pending CDO/mentor signoff targets | TF2 / CDO | **+$8.10** | Retained RDS & DynamoDB restore evidence |
+| AWS service | Cost (USD) |
+|---|---:|
+| EC2 - Compute | 81.65 |
+| CloudTrail | 74.75 |
+| VPC | 60.29 |
+| EC2 - Other | 44.21 |
+| MSK | 30.17 |
+| RDS | 23.71 |
+| CloudWatch | 18.32 |
+| EKS | 16.80 |
+| Other services | 27.97 |
+| **Cost Explorer total** | **377.55** |
 
-<!-- Change trail: @hungxqt - 2026-07-28 - Updated Mandate 21 cost gate analysis after CloudTrail/Lambda revert. -->
+The unrounded Cost Explorer total is `377.548091 USD`. The period already spans exactly seven days, so the normalized seven-day estimate is:
 
+```text
+normalized_7d_estimate = 377.548091 / 7 * 7 = 377.548091 USD
+```
 
+No one-time-charge exclusion or verified savings adjustment is applied. NAT charges are already represented in the service totals, so the NAT adjustment is `0.00 USD`.
+
+### 13.2 Drill forecast
+
+The conservative FIS allowance remains `4.30 USD` for one drill. It is an explicit planning allowance, not a claim that a drill was executed.
+
+```text
+drill_forecast = 377.548091 + 4.30 = 381.848091 USD
+rounded drill forecast = 381.85 USD
+```
+
+| Gate | Value | Threshold | Result |
+|---|---:|---:|---|
+| Normalized seven-day estimate | 377.55 USD | <= 300.00 USD | **FAIL** |
+| Seven-day estimate plus FIS allowance | 381.85 USD | <= 300.00 USD | **FAIL** |
+
+The Mandate 21 cost gate must remain **FAIL** until a later complete seven-day Cost Explorer window demonstrates both values at or below the threshold. Estimated data must not be relabeled as final actuals, and unverified savings must not be subtracted.
+
+<!-- Change trail: @hungxqt - 2026-07-28 - Recorded the estimated Mandate 21 cost gate and conservative forecast. -->

@@ -1060,18 +1060,35 @@ output "mem0_postgresql_security_group_id" {
 }
 
 output "mandate21_fis_contract" {
-  value       = module.fis_az_failover.contract
-  description = "Mandate 21 Person 1 -> Person 3 FIS runtime contract"
+  value = {
+    schemaVersion         = 1
+    region                = var.aws_region
+    clusterContext        = "arn:${data.aws_partition.current.partition}:eks:${var.aws_region}:${data.aws_caller_identity.current.account_id}:cluster/${var.cluster_name}"
+    namespace             = "techx-corp-prod"
+    storefrontUrl         = "https://hungtran.id.vn"
+    rdsInstanceIdentifier = module.rds_postgresql.db_instance_identifier
+    zones = {
+      "us-east-1a" = {
+        primaryInZoneTemplateId      = module.fis_az_failover.template_ids_by_variant["1a-primary-in"]
+        primaryOutsideZoneTemplateId = module.fis_az_failover.template_ids_by_variant["1a-primary-outside"]
+      }
+      "us-east-1b" = {
+        primaryInZoneTemplateId      = module.fis_az_failover.template_ids_by_variant["1b-primary-in"]
+        primaryOutsideZoneTemplateId = module.fis_az_failover.template_ids_by_variant["1b-primary-outside"]
+      }
+    }
+  }
+  description = "Mandate 21 Person 1 to Person 3 wrapper-compatible FIS runtime contract"
 }
 
 output "mandate21_fis_template_ids" {
-  value       = module.fis_az_failover.template_ids
-  description = "Mandate 21 FIS experiment template IDs by Availability Zone"
+  value       = module.fis_az_failover.template_ids_by_variant
+  description = "Mandate 21 FIS experiment template IDs by stable variant key"
 }
 
 output "mandate21_fis_template_arns" {
-  value       = module.fis_az_failover.template_arns
-  description = "Mandate 21 FIS experiment template ARNs by Availability Zone"
+  value       = module.fis_az_failover.template_arns_by_variant
+  description = "Mandate 21 FIS experiment template ARNs by stable variant key"
 }
 
 output "mandate21_stop_alarm_arns" {
@@ -1084,5 +1101,4 @@ output "mandate21_stop_alarm_arns" {
   description = "Mandate 21 fail-closed CloudWatch stop alarm ARNs"
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Exported mandate21_fis_contract, template IDs, ARNs, and stop alarms.
-
+# Change trail: @hungxqt - 2026-07-28 - Exported the wrapper-compatible four-template Mandate 21 FIS contract.

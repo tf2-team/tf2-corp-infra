@@ -26,11 +26,11 @@ Constraints shaping the change:
 
 ## After
 
-- Each RDSInstance target uses its exact Name tag, has no ARN or filter, and sets availabilityZoneIdentifiers to the template AZ.
+- Each `primary-in` RDSInstance target uses its exact Name tag, has no ARN or filter, and sets `availabilityZoneIdentifiers` to the template AZ; both `primary-outside` variants omit the RDS target and failover action completely.
 - Each ValkeyReplicationGroup target uses its exact Name tag, has no ARN, and sets the required availabilityZoneIdentifier to the template AZ.
 - Experiment options explicitly use single-account targeting and fail when any required target resolves empty.
 - The bootstrap role grants the exact ElastiCache mutation used by AWS FIS, separates discovery permissions onto wildcard resources, supports tag resolution and network ACL orchestration, and conditionally allows KMS grants for AWS resources.
-- Native tests render both AZ templates through a mock provider and verify the tag-plus-parameter target contract.
+- Native tests render all four variants through a mock provider and verify the conditional RDS and tag-plus-parameter target contracts.
 
 ## Technical Design Decisions
 
@@ -60,7 +60,7 @@ The production provider constraint was not upgraded. The standalone provider 6.5
 **Module:**
 
 - modules/fis-az-failover/main.tf — Uses tag-plus-parameter selectors for zonal RDS and Valkey targets.
-- modules/fis-az-failover/outputs.tf — Records the tag and AZ selectors while retaining resource ARNs as identity metadata.
+- modules/fis-az-failover/outputs.tf — Records the tag and AZ selectors without advertising unused ARN selector inputs.
 - modules/fis-az-failover/tests/contract.tftest.hcl — Prevents ARN-plus-parameter regressions for rendered RDS and Valkey targets.
 - modules/commerce-ha/main.tf — Adds the deterministic Name tag used to resolve the Valkey replication group.
 
@@ -84,7 +84,7 @@ None. The change is fully contained in techx-corp-infra. The bootstrap stack and
 | **Security** | Adds only action-required permissions; KMS grant creation is conditioned to AWS resources. |
 | **Reliability** | Prevents invalid templates and fails experiments when required targets resolve empty. |
 | **Cost** | No steady-state resource cost; FIS experiment execution and logging retain their existing usage costs. |
-| **Backward compatibility** | Terraform resource addresses and module inputs are unchanged; contract output retains ARN identity fields and adds tag/AZ selector metadata. |
+| **Backward compatibility** | The production handoff now uses the required wrapper schemaVersion 1 shape; internal schema 2.0 identifies four variants, and moved blocks preserve the two existing inside-template Terraform identities. |
 | **Observability** | Existing S3 FIS logging remains enabled; fail-closed target resolution makes missing-target failures explicit. |
 
 ## Validation
@@ -115,7 +115,7 @@ None. The change is fully contained in techx-corp-infra. The bootstrap stack and
 
 - Produce and review a saved bootstrap plan; operator approval required.
 - Apply bootstrap, then produce and review the production plan; operator approval required.
-- Generate an FIS target preview for each template and verify the EC2 instances, subnets, RDS DB, and Valkey nodes resolve in the expected AZ.
+- Generate skip-all target previews for all four templates; verify EC2, subnet, and Valkey targets in every preview and RDS only in the two `primary-in` templates. Query the current RDS primary again before selecting a live variant.
 - Start no experiment until alarms are OK and the owner explicitly approves the blast radius.
 
 ## Migration or Deployment Notes
@@ -145,4 +145,4 @@ No direct mutating AWS command is part of this change.
 3. Generate and review a production plan that restores the prior experiment-template definitions; apply it only with explicit approval.
 4. Do not start an experiment while rollback is in progress.
 
-<!-- Change trail: @hungxqt - 2026-07-28 - Corrected FIS data-service selectors after live API validation. -->
+<!-- Change trail: @hungxqt - 2026-07-28 - Aligned selector documentation with the four-variant RDS contract. -->

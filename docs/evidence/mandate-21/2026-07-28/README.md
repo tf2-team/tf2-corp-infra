@@ -1,41 +1,18 @@
-# Mandate 21 Person 1 Evidence Index (2026-07-28)
+# Mandate 21 Person 1 Evidence Index — 2026-07-28
 
-## 1. Directive 20 Status and Retained Targets
+This index separates implemented configuration from live evidence. No live FIS experiment or skip-all preview was started during this change.
 
-- **Sign-Off State:** Pending formal CDO and Mentor approval.
-- **Retained Cost Items:** Formal RDS PostgreSQL restore instance (`techx-prod-tf2-postgres-restore`) and DynamoDB restore table (`techx-prod-tf2-orders-restore`) remain intact.
-- **Data Protection Policy:** No snapshots, databases, tables, volumes, or payment records were deleted during this change.
+| Gate | Status | Evidence |
+|---|---|---|
+| Four-template Terraform contract | Implemented, pending apply | Wrapper `schemaVersion = 1`; internal module schema `2.0`; tests pass |
+| FIS skip-all for all four templates across both AZs | PENDING | [fis-skip-all.md](fis-skip-all.md) |
+| Capacity/Karpenter five-minute proof | FAIL | [capacity-karpenter.md](capacity-karpenter.md) |
+| Audit controls | FAIL | [audit-gate.md](audit-gate.md) |
+| Weekly Cost Explorer estimate and forecast | FAIL | [cost-forecast.md](cost-forecast.md) |
+| Live drill | NOT AUTHORIZED | Requires every preceding gate to pass |
 
-## 2. Infrastructure Preflight Evidence
+The live account still exposes the old two zone-keyed FIS templates. The current RDS primary snapshot is `us-east-1a`, with a Multi-AZ secondary in `us-east-1b`. Four-template skip-all evidence cannot be claimed until the reviewed Terraform plan is applied and separately approved previews complete for all four templates. Live execution must still select only the variant matching the fresh RDS-primary snapshot.
 
-- **VPC Zonal NAT Routes:**
-  - `priv-1a` -> `nat-1a` (`us-east-1a`)
-  - `priv-1b` -> `nat-1b` (`us-east-1b`)
-- **Terraform Invariant Validation:** Tested via `modules/vpc/tests/zonal_nat.tftest.hcl` (3/3 tests PASSED).
+**Overall Mandate 21 Person 1 gate: FAIL.**
 
-## 3. CloudTrail Cost Optimization Evidence
-
-- **Previous Selector:** Basic management events (`IncludeManagementEvents=true`, `ReadWriteType=All`).
-- **New Advanced Selectors:**
-  1. `ManagementWrites` (`eventCategory=Management`, `readOnly=false`)
-  2. `RequiredSecretReads` (`eventCategory=Management`, `eventSource=secretsmanager.amazonaws.com`, `eventName=GetSecretValue`)
-  3. `SensitiveS3Data` (`eventCategory=Data`, `resources.type=AWS::S3::Object`, 6 sensitive prefixes)
-- **Unit Test Verification:** `environments/production/lambda/tests/test_immutable_audit_health_check.py` (5/5 tests PASSED).
-
-## 4. Cost Gate Status
-
-- **Baseline 7-Day Actual:** `$317.21 / week`
-- **Normalized Weekly Run-Rate:** `$288.86 / week`
-- **Cost Gate Result:** **PASS** (`$288.86 / week` <= `$300.00 / week`)
-
-## 5. FIS Experiment Templates & Stop Alarms
-
-- **Module Contract:** `mandate21_fis_contract` (schema version `1.0`)
-- **Templates:** Bounded immutable templates for `us-east-1a` and `us-east-1b`.
-- **Stop Alarms (Fail-Closed):**
-  1. `${project_name}-storefront-healthy-hosts`
-  2. `${project_name}-storefront-5xx-ratio`
-  3. `${project_name}-accepted-order-durability-gap`
-  4. `${project_name}-mandate12-immutable-audit-control-health`
-
-<!-- Change trail: @hungxqt - 2026-07-28 - Created Mandate 21 evidence index and preflight baseline log. -->
+<!-- Change trail: @hungxqt - 2026-07-28 - Indexed current capacity, audit, cost, and pending FIS preview evidence without claiming gate completion. -->
