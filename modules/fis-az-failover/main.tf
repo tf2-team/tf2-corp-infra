@@ -49,9 +49,6 @@ resource "aws_fis_experiment_template" "az_failover" {
     name           = "Subnets"
     resource_type  = "aws:ec2:subnet"
     selection_mode = "ALL"
-    parameters = {
-      emptyTargetResolutionMode = "skip"
-    }
     resource_arns = [
       for sub_id in lookup(var.subnet_ids_by_zone, each.key, []) :
       "arn:${data.aws_partition.current.partition}:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:subnet/${sub_id}"
@@ -62,10 +59,7 @@ resource "aws_fis_experiment_template" "az_failover" {
     name           = "RDSInstance"
     resource_type  = "aws:rds:db"
     selection_mode = "ALL"
-    parameters = {
-      emptyTargetResolutionMode = "skip"
-    }
-    resource_arns = [var.rds_db_instance_arn]
+    resource_arns  = [var.rds_db_instance_arn]
 
     filter {
       path   = "AvailabilityZone"
@@ -77,10 +71,7 @@ resource "aws_fis_experiment_template" "az_failover" {
     name           = "ValkeyReplicationGroup"
     resource_type  = "aws:elasticache:replication-group"
     selection_mode = "ALL"
-    parameters = {
-      emptyTargetResolutionMode = "skip"
-    }
-    resource_arns = [var.valkey_replication_group_arn]
+    resource_arns  = [var.valkey_replication_group_arn]
   }
 
   action {
@@ -156,4 +147,4 @@ resource "aws_fis_experiment_template" "az_failover" {
   })
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Removed IAM role creation from environment stack and referenced bootstrap role_arn.
+# Change trail: @hungxqt - 2026-07-28 - Removed parameters blocks from target definitions with resource_arns.
