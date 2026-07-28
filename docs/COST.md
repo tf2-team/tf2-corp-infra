@@ -380,28 +380,18 @@ These figures exclude GitHub CI and any non-AWS tools.
 
 > **Evaluation Period:** 2026-07-20 to 2026-07-26 (Latest complete 7-day Cost Explorer actuals)  
 > **Target Gate:** `<= 300.00 USD / week`  
-> **Status:** **PASS** (`288.86 USD / week`)
+> **Note:** CloudTrail selector and Lambda health check changes reverted per directive.
 
 ### 13.1 Line Item Breakdown
 
 | Line Item | Scope / Resource | Owner | Weekly Cost Delta (USD) | Evidence Source |
 |---|---|---|---:|---|
 | **7-Day Baseline Actuals** | Production Account (`493499579600`) | Infra | **$317.21** | Cost Explorer 20–26/07 actuals |
-| **Avoided CloudTrail Management Copies** | `techx-prod-tf2-mandate12-immutable-audit` | TF2 | **-$28.50** | Advanced selector optimization (ManagementWrites + GetSecretValue) |
 | **NAT 1b Fixed & Data Cost** | `nat-1b` (us-east-1b) | TF2 | **+$8.76** | Included in baseline (730h NAT hourly + data) |
 | **Avoided Cross-AZ Transfer** | Private subnets `1a->nat1a`, `1b->nat1b` | TF2 | **-$4.15** | Zonal NAT route invariant |
 | **FIS Live Drill Action Minutes** | 43 FIS action-minutes (1 drill) | TF2 / Person 1 | **+$4.30** | AWS FIS pricing ($0.10 / action-minute) |
 | **Retained Directive 20 Target** | Pending CDO/mentor signoff targets | TF2 / CDO | **+$8.10** | Retained RDS & DynamoDB restore evidence |
 
-### 13.2 Normalized Weekly Run-Rate Formula
+<!-- Change trail: @hungxqt - 2026-07-28 - Updated Mandate 21 cost gate analysis after CloudTrail/Lambda revert. -->
 
-$$\text{normalized\_weekly} = 317.21 - 28.50 - 4.15 + 4.30 = \mathbf{288.86\text{ USD / week}}$$
-
-### 13.3 Mandate 21 Cost Gate Summary
-
-- **Baseline 7-Day Actual:** `$317.21 / week` (Exceeded gate before optimization)
-- **Forecast After CloudTrail Selector Optimization & Zonal Routes:** `$288.86 / week`
-- **Cost Gate Result:** **PASS** (`$288.86 / week` <= `$300.00 / week`)
-
-<!-- Change trail: @hungxqt - 2026-07-28 - Added Mandate 21 cost gate analysis and normalized weekly run-rate calculation. -->
 

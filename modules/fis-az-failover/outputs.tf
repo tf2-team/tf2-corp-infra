@@ -1,5 +1,5 @@
 output "role_arn" {
-  value       = aws_iam_role.fis.arn
+  value       = var.role_arn
   description = "IAM role ARN assumed by FIS for experiment actions"
 }
 

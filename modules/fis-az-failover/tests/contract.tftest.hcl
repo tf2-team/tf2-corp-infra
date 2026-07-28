@@ -22,6 +22,7 @@ run "verify_two_az_contract" {
     ]
     evidence_bucket_name = "test-evidence-bucket"
     evidence_prefix      = "mandate-21/fis/"
+    role_arn             = "arn:aws:iam::123456789012:role/test-fis-role"
   }
 
   assert {

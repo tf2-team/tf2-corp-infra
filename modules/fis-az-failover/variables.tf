@@ -77,10 +77,16 @@ variable "evidence_prefix" {
   description = "S3 key prefix for FIS evidence"
 }
 
+variable "role_arn" {
+  type        = string
+  description = "IAM role ARN assumed by FIS for experiment actions (pre-created in bootstrap)"
+}
+
 variable "tags" {
   type        = map(string)
   default     = {}
   description = "Tags applied to FIS resources"
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Defined variables for fis-az-failover module.
+# Change trail: @hungxqt - 2026-07-28 - Defined variables for fis-az-failover module including bootstrap role_arn.
+
