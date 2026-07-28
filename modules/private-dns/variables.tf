@@ -51,6 +51,7 @@ variable "service_paths" {
     feature     = "/feature/"
     flagservice = "/flagservice/"
     argocd      = "/argocd/"
+    kubecost    = "/kubecost/"
   }
   nullable = false
 
