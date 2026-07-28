@@ -60,16 +60,11 @@ resource "aws_fis_experiment_template" "az_failover" {
     resource_type  = "aws:rds:db"
     selection_mode = "ALL"
     resource_arns  = [var.rds_db_instance_arn]
-
-    filter {
-      path   = "AvailabilityZone"
-      values = [each.key]
-    }
   }
 
   target {
     name           = "ValkeyReplicationGroup"
-    resource_type  = "aws:elasticache:replication-group"
+    resource_type  = "aws:elasticache:replicationgroup"
     selection_mode = "ALL"
     resource_arns  = [var.valkey_replication_group_arn]
   }
@@ -126,7 +121,7 @@ resource "aws_fis_experiment_template" "az_failover" {
 
   action {
     name      = "InterruptValkey"
-    action_id = "aws:elasticache:replication-group-interrupt-az-power"
+    action_id = "aws:elasticache:replicationgroup-interrupt-az-power"
 
     target {
       key   = "ReplicationGroups"
@@ -147,4 +142,4 @@ resource "aws_fis_experiment_template" "az_failover" {
   })
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Removed parameters blocks from target definitions with resource_arns.
+# Change trail: @hungxqt - 2026-07-28 - Aligned FIS targets and action IDs with AWS FIS schema specifications.
