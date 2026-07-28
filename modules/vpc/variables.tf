@@ -48,7 +48,7 @@ variable "private_subnets" {
     # When false, omit kubernetes.io/role/internal-elb (still may carry cluster shared tag).
     enable_eks_internal_elb = optional(bool, true)
   }))
-  default     = {}
+  default = {}
 
   validation {
     condition = alltrue([
@@ -101,7 +101,7 @@ variable "nat_gateways" {
   type = map(object({
     public_subnet_key = string # key từ var.public_subnets — subnet đặt NAT Gateway này
   }))
-  default     = {}
+  default = {}
 
   validation {
     condition = alltrue([

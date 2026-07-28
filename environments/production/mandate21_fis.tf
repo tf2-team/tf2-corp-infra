@@ -140,8 +140,8 @@ module "fis_az_failover" {
   target_zones                  = ["us-east-1a", "us-east-1b"]
   subnet_ids_by_zone            = local.mandate21_subnet_ids_by_zone
   karpenter_controller_role_arn = module.karpenter.controller_role_arn
-  rds_db_instance_arn          = module.rds_postgresql.db_instance_arn
-  rds_db_instance_identifier   = module.rds_postgresql.db_instance_identifier
+  rds_db_instance_arn           = module.rds_postgresql.db_instance_arn
+  rds_db_instance_identifier    = module.rds_postgresql.db_instance_identifier
   valkey_replication_group_arn  = module.commerce_ha.valkey_replication_group_arn
   valkey_replication_group_id   = module.commerce_ha.valkey_replication_group_id
   evidence_bucket_name          = aws_s3_bucket.immutable_audit_k8s_raw.bucket
