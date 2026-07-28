@@ -88,6 +88,32 @@ variable "grafana_service_account_name" {
   description = "Grafana service account name"
 }
 
+variable "cloudwatch_region" {
+  type        = string
+  default     = "us-east-1"
+  nullable    = false
+  description = "Region whose CloudWatch NAT metrics and optional VPC Flow Logs Grafana may read."
+}
+
+variable "vpc_flow_logs_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Grant Grafana Logs Insights read access only while optional VPC Flow Logs are enabled."
+}
+
+variable "vpc_flow_logs_log_group_name" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional VPC Flow Logs group name. Required only when vpc_flow_logs_enabled is true."
+
+  validation {
+    condition     = !var.vpc_flow_logs_enabled || var.vpc_flow_logs_log_group_name != ""
+    error_message = "vpc_flow_logs_log_group_name is required when vpc_flow_logs_enabled is true."
+  }
+}
+
 variable "tags" {
   type        = map(string)
   default     = {}

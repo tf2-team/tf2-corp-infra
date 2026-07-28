@@ -383,6 +383,25 @@ variable "nat_gateways" {
   description = "Bản đồ các NAT Gateway"
 }
 
+variable "vpc_flow_logs_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Turn on VPC Flow Logs only during a bounded Cross-AZ/network-cost investigation."
+}
+
+variable "vpc_flow_logs_retention_in_days" {
+  type        = number
+  default     = 7
+  nullable    = false
+  description = "Retention for the optional VPC Flow Logs CloudWatch Log Group."
+
+  validation {
+    condition     = contains([1, 3, 5, 7, 14, 30], var.vpc_flow_logs_retention_in_days)
+    error_message = "vpc_flow_logs_retention_in_days must be 1, 3, 5, 7, 14, or 30."
+  }
+}
+
 # ──────────────────────────────────────────────
 # EKS Variables
 # ──────────────────────────────────────────────

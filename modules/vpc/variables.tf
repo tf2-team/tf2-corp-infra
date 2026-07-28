@@ -143,5 +143,24 @@ variable "enable_karpenter_discovery_tags" {
     karpenter.sh/discovery = <eks_cluster_name> for Karpenter EC2NodeClass selectors.
   EOT
 }
+
+variable "flow_logs_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Enable short-lived VPC Flow Logs for network and cross-AZ investigations. Keep false during normal operation to avoid continuous CloudWatch Logs ingest cost."
+}
+
+variable "flow_logs_retention_in_days" {
+  type        = number
+  default     = 7
+  nullable    = false
+  description = "CloudWatch Logs retention for optional VPC Flow Logs. Seven days is sufficient for a controlled measurement window."
+
+  validation {
+    condition     = contains([1, 3, 5, 7, 14, 30], var.flow_logs_retention_in_days)
+    error_message = "flow_logs_retention_in_days must be a supported short retention value: 1, 3, 5, 7, 14, or 30."
+  }
+}
 # Change trail: @hungxqt - 2026-07-28 - Added fail-closed cross-variable zonal NAT validation.
 

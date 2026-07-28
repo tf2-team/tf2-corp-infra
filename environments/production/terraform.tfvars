@@ -94,6 +94,11 @@ ecr_repository_overrides = {
 # ──────────────────────────────────────────────
 vpc_cidr_block = "10.0.0.0/16"
 
+# Mandate 18: diagnostic only. Enable for a bounded Cross-AZ investigation,
+# then return to false after recording the result; Flow Logs ingest is not free.
+vpc_flow_logs_enabled           = true
+vpc_flow_logs_retention_in_days = 7
+
 public_subnets = {
   "pub-1a" = {
     cidr_block        = "10.0.1.0/24"

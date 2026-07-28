@@ -66,4 +66,9 @@ output "nat_gateway_public_ips" {
   value       = { for k, v in aws_eip.nat : k => v.public_ip }
   description = "Bản đồ địa chỉ IP public của các NAT Gateway (dùng để whitelist phía ngoài)"
 }
+
+output "flow_logs_log_group_name" {
+  value       = try(aws_cloudwatch_log_group.flow_logs[0].name, null)
+  description = "CloudWatch Log Group used by optional VPC Flow Logs; null when the diagnostic switch is off"
+}
 # Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.
