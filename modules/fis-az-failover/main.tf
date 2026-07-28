@@ -2,143 +2,11 @@ data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 data "aws_region" "current" {}
 
-data "aws_iam_policy_document" "fis_assume_role" {
-  statement {
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["fis.amazonaws.com"]
-    }
-
-    actions = ["sts:AssumeRole"]
-
-    condition {
-      test     = "StringEquals"
-      variable = "aws:SourceAccount"
-      values   = [data.aws_caller_identity.current.account_id]
-    }
-
-    condition {
-      test     = "ArnLike"
-      variable = "aws:SourceArn"
-      values   = ["arn:${data.aws_partition.current.partition}:fis:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:experiment-template/*"]
-    }
-  }
-}
-
-resource "aws_iam_role" "fis" {
-  name               = "${var.name_prefix}-fis-execution-role"
-  assume_role_policy = data.aws_iam_policy_document.fis_assume_role.json
-
-  tags = merge(var.tags, {
-    Name    = "${var.name_prefix}-fis-execution-role"
-    Mandate = "MD21"
-    Purpose = "fis-execution-role"
-  })
-}
-
-data "aws_iam_policy_document" "fis_policy" {
-  statement {
-    sid    = "AllowEC2InstanceActions"
-    effect = "Allow"
-    actions = [
-      "ec2:StopInstances",
-      "ec2:StartInstances",
-      "ec2:RebootInstances",
-    ]
-    resources = [
-      "arn:${data.aws_partition.current.partition}:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:instance/*"
-    ]
-  }
-
-  statement {
-    sid    = "AllowEC2ReadActions"
-    effect = "Allow"
-    actions = [
-      "ec2:DescribeInstances",
-      "ec2:DescribeSubnets",
-      "ec2:DescribeVpcs",
-      "ec2:DescribeNetworkAcls",
-    ]
-    resources = ["*"]
-  }
-
-  statement {
-    sid    = "AllowNACLDisruptionActions"
-    effect = "Allow"
-    actions = [
-      "ec2:CreateNetworkAcl",
-      "ec2:CreateNetworkAclEntry",
-      "ec2:DeleteNetworkAcl",
-      "ec2:DeleteNetworkAclEntry",
-      "ec2:ReplaceNetworkAclAssociation",
-    ]
-    resources = [
-      "arn:${data.aws_partition.current.partition}:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:vpc/${var.vpc_id}",
-      "arn:${data.aws_partition.current.partition}:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:network-acl/*",
-      "arn:${data.aws_partition.current.partition}:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:subnet/*",
-    ]
-  }
-
-  statement {
-    sid    = "AllowRDSFailoverActions"
-    effect = "Allow"
-    actions = [
-      "rds:RebootDBInstance",
-      "rds:DescribeDBInstances",
-    ]
-    resources = [var.rds_db_instance_arn]
-  }
-
-  statement {
-    sid    = "AllowValkeyFailoverActions"
-    effect = "Allow"
-    actions = [
-      "elasticache:TestFailover",
-      "elasticache:DescribeReplicationGroups",
-    ]
-    resources = [var.valkey_replication_group_arn]
-  }
-
-  statement {
-    sid    = "AllowS3EvidenceLogging"
-    effect = "Allow"
-    actions = [
-      "s3:PutObject",
-      "s3:GetBucketLocation",
-    ]
-    resources = [
-      "arn:${data.aws_partition.current.partition}:s3:::${var.evidence_bucket_name}",
-      "arn:${data.aws_partition.current.partition}:s3:::${var.evidence_bucket_name}/${var.evidence_prefix}*",
-    ]
-  }
-
-  dynamic "statement" {
-    for_each = var.evidence_kms_key_arn != "" ? [var.evidence_kms_key_arn] : []
-    content {
-      sid    = "AllowKMSEvidenceEncryption"
-      effect = "Allow"
-      actions = [
-        "kms:GenerateDataKey*",
-        "kms:Decrypt",
-      ]
-      resources = [statement.value]
-    }
-  }
-}
-
-resource "aws_iam_role_policy" "fis" {
-  name   = "${var.name_prefix}-fis-policy"
-  role   = aws_iam_role.fis.id
-  policy = data.aws_iam_policy_document.fis_policy.json
-}
-
 resource "aws_fis_experiment_template" "az_failover" {
   for_each = toset(var.target_zones)
 
   description = "Mandate 21 immutable FIS AZ failover experiment template for ${each.key}"
-  role_arn    = aws_iam_role.fis.arn
+  role_arn    = var.role_arn
 
   dynamic "stop_condition" {
     for_each = var.stop_alarm_arns
@@ -289,8 +157,6 @@ resource "aws_fis_experiment_template" "az_failover" {
     Mandate = "MD21"
     Purpose = "az-failover-experiment"
   })
-
-  depends_on = [aws_iam_role_policy.fis]
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Implemented main.tf for two-template FIS AZ failover module.
+# Change trail: @hungxqt - 2026-07-28 - Removed IAM role creation from environment stack and referenced bootstrap role_arn.
