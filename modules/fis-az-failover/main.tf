@@ -28,9 +28,6 @@ resource "aws_fis_experiment_template" "az_failover" {
     name           = "EC2Instances"
     resource_type  = "aws:ec2:instance"
     selection_mode = "ALL"
-    parameters = {
-      emptyTargetResolutionMode = "skip"
-    }
 
     resource_tag {
       key   = "kubernetes.io/cluster/${var.eks_cluster_name}"
