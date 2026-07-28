@@ -188,6 +188,9 @@ locals {
       s3_publish_list_prefixes = [
         "${local.mem0_fastembed_prefix}/*",
       ]
+      lambda_update_function_arns = [
+        "arn:aws:lambda:${var.aws_region}:${local.account_id}:function:techx-audit-alert-router",
+      ]
     }
     development = {
       name                = var.github_actions_ecr_development.role_name
@@ -238,6 +241,7 @@ module "github_actions_ecr" {
   s3_publish_bucket_arns   = each.value.s3_publish_bucket_arns
   s3_publish_object_arns   = each.value.s3_publish_object_arns
   s3_publish_list_prefixes = each.value.s3_publish_list_prefixes
+  lambda_update_function_arns = lookup(each.value, "lambda_update_function_arns", [])
   cosign_kms_key_arn       = aws_kms_key.cosign.arn
 
   tags = merge(var.tags, {
@@ -383,11 +387,15 @@ data "aws_iam_policy_document" "fis_prod_policy" {
     actions = [
       "ec2:StopInstances",
       "ec2:StartInstances",
-      "ec2:RebootInstances",
     ]
     resources = [
       "arn:aws:ec2:${var.aws_region}:${local.account_id}:instance/*"
     ]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/kubernetes.io/cluster/techx-tf2-prod"
+      values   = ["shared"]
+    }
   }
 
   statement {
@@ -416,13 +424,18 @@ data "aws_iam_policy_document" "fis_prod_policy" {
       "ec2:ReplaceNetworkAclAssociation",
     ]
     resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestTag/managedByFIS"
+      values   = ["true"]
+    }
   }
 
   statement {
     sid       = "AllowRDSFailoverActions"
     effect    = "Allow"
     actions   = ["rds:RebootDBInstance"]
-    resources = ["arn:aws:rds:${var.aws_region}:${local.account_id}:db:*"]
+    resources = ["arn:aws:rds:${var.aws_region}:${local.account_id}:db:techx-prod-tf2-postgresql"]
   }
 
   statement {
@@ -436,7 +449,7 @@ data "aws_iam_policy_document" "fis_prod_policy" {
     sid       = "AllowValkeyFailoverActions"
     effect    = "Allow"
     actions   = ["elasticache:InterruptClusterAzPower"]
-    resources = ["arn:aws:elasticache:${var.aws_region}:${local.account_id}:replicationgroup:*"]
+    resources = ["arn:aws:elasticache:${var.aws_region}:${local.account_id}:replicationgroup:techx-prod-tf2-cart"]
   }
 
   statement {
@@ -461,8 +474,8 @@ data "aws_iam_policy_document" "fis_prod_policy" {
       "s3:GetBucketLocation",
     ]
     resources = [
-      "arn:aws:s3:::*",
-      "arn:aws:s3:::*/*",
+      "arn:aws:s3:::techx-prod-tf2-immutable-audit-${local.account_id}",
+      "arn:aws:s3:::techx-prod-tf2-immutable-audit-${local.account_id}/mandate-21/fis/*",
     ]
   }
 
@@ -483,6 +496,12 @@ data "aws_iam_policy_document" "fis_prod_policy" {
     effect    = "Allow"
     actions   = ["kms:CreateGrant"]
     resources = ["arn:aws:kms:${var.aws_region}:${local.account_id}:key/*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["ec2.${var.aws_region}.amazonaws.com"]
+    }
 
     condition {
       test     = "Bool"

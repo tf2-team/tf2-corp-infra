@@ -157,4 +157,26 @@ resource "aws_iam_role_policy" "kms_signing" {
   role   = aws_iam_role.this.id
   policy = data.aws_iam_policy_document.kms_signing[0].json
 }
-# Change trail: @hungxqt - 2026-07-19 - Grant optional S3 model publish to platform GHA ECR roles.
+
+data "aws_iam_policy_document" "lambda_update" {
+  count = length(var.lambda_update_function_arns) > 0 ? 1 : 0
+
+  statement {
+    sid    = "LambdaUpdateCode"
+    effect = "Allow"
+    actions = [
+      "lambda:GetFunction",
+      "lambda:GetFunctionConfiguration",
+      "lambda:UpdateFunctionCode",
+    ]
+    resources = var.lambda_update_function_arns
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_update" {
+  count  = length(var.lambda_update_function_arns) > 0 ? 1 : 0
+  name   = "${var.name}-lambda-update"
+  role   = aws_iam_role.this.id
+  policy = data.aws_iam_policy_document.lambda_update[0].json
+}
+# Change trail: @hungxqt - 2026-07-28 - Add Lambda function update code policy to GHA ECR module.
