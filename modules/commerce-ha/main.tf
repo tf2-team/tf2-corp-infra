@@ -86,7 +86,7 @@ resource "aws_elasticache_replication_group" "cart" {
   snapshot_window          = var.valkey_snapshot_window
   maintenance_window       = "sun:19:00-sun:20:00"
 
-  tags = var.tags
+  tags = merge(var.tags, { Name = "${var.name}-cart" })
 }
 
 resource "aws_route53_zone" "private" {
@@ -271,4 +271,4 @@ resource "aws_iam_role_policy" "accounting_outbox_reconciler" {
   policy = data.aws_iam_policy_document.accounting_outbox_reconciler.json
 }
 
-# Change trail: @hungxqt - 2026-07-20 - Parameterize Valkey snapshot retention for Mandate 20.
+# Change trail: @hungxqt - 2026-07-28 - Added a deterministic Valkey replication-group tag for FIS targeting.
