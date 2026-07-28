@@ -268,6 +268,7 @@ data "aws_iam_policy_document" "terraform_iam" {
     actions = [
       "iam:CreateServiceLinkedRole",
       "iam:DeleteServiceLinkedRole",
+      "iam:GetRole",
       "iam:GetServiceLinkedRoleDeletionStatus",
     ]
     resources = [
