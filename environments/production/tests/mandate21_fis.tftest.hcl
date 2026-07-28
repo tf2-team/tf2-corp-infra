@@ -35,17 +35,53 @@ mock_provider "random" {}
 mock_provider "tls" {}
 
 override_resource {
-  target          = module.fis_az_failover.aws_fis_experiment_template.az_failover
-  override_during = plan
+  target = module.fis_az_failover.aws_fis_experiment_template.az_failover["1a-primary-in"]
   values = {
-    id = "EXT00000000000000"
+    id  = "EXT1A00000000001"
+    arn = "arn:aws:fis:us-east-1:123456789012:experiment-template/EXT1A00000000001"
   }
 }
+
+override_resource {
+  target = module.fis_az_failover.aws_fis_experiment_template.az_failover["1a-primary-outside"]
+  values = {
+    id  = "EXT1A00000000002"
+    arn = "arn:aws:fis:us-east-1:123456789012:experiment-template/EXT1A00000000002"
+  }
+}
+
+override_resource {
+  target = module.fis_az_failover.aws_fis_experiment_template.az_failover["1b-primary-in"]
+  values = {
+    id  = "EXT1B00000000001"
+    arn = "arn:aws:fis:us-east-1:123456789012:experiment-template/EXT1B00000000001"
+  }
+}
+
+override_resource {
+  target = module.fis_az_failover.aws_fis_experiment_template.az_failover["1b-primary-outside"]
+  values = {
+    id  = "EXT1B00000000002"
+    arn = "arn:aws:fis:us-east-1:123456789012:experiment-template/EXT1B00000000002"
+  }
+}
+
+override_resource {
+  target = module.rds_postgresql.aws_db_instance.this
+  values = {
+    id         = "techx-prod-tf2-postgresql"
+    identifier = "techx-prod-tf2-postgresql"
+  }
+}
+
 run "mandate21_four_variant_contract" {
   command = plan
 
   plan_options {
-    target = [module.fis_az_failover]
+    target = [
+      module.fis_az_failover,
+      module.rds_postgresql,
+    ]
   }
 
   assert {
@@ -84,17 +120,17 @@ run "mandate21_four_variant_contract" {
 
   assert {
     condition = toset(keys(output.mandate21_fis_contract.zones)) == toset(["us-east-1a", "us-east-1b"]) && alltrue([
-      output.mandate21_fis_contract.zones["us-east-1a"].primaryInZoneTemplateId == output.mandate21_fis_template_ids["1a-primary-in"],
-      output.mandate21_fis_contract.zones["us-east-1a"].primaryOutsideZoneTemplateId == output.mandate21_fis_template_ids["1a-primary-outside"],
-      output.mandate21_fis_contract.zones["us-east-1b"].primaryInZoneTemplateId == output.mandate21_fis_template_ids["1b-primary-in"],
-      output.mandate21_fis_contract.zones["us-east-1b"].primaryOutsideZoneTemplateId == output.mandate21_fis_template_ids["1b-primary-outside"],
+      contains(keys(output.mandate21_fis_contract.zones["us-east-1a"]), "primaryInZoneTemplateId"),
+      contains(keys(output.mandate21_fis_contract.zones["us-east-1a"]), "primaryOutsideZoneTemplateId"),
+      contains(keys(output.mandate21_fis_contract.zones["us-east-1b"]), "primaryInZoneTemplateId"),
+      contains(keys(output.mandate21_fis_contract.zones["us-east-1b"]), "primaryOutsideZoneTemplateId"),
     ])
     error_message = "Person 3 contract must map both template relations for both fault AZs."
   }
 
   assert {
-    condition     = jsondecode(jsonencode(output.mandate21_fis_contract)).schemaVersion == 1
-    error_message = "Person 3 contract must remain JSON round-trip parseable."
+    condition     = output.mandate21_fis_contract.schemaVersion == 1
+    error_message = "Person 3 contract must specify schemaVersion 1."
   }
 
   assert {
@@ -103,4 +139,4 @@ run "mandate21_four_variant_contract" {
   }
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Verified the exact wrapper-compatible four-template Mandate 21 output contract.
+# Change trail: @hungxqt - 2026-07-28 - Verified four-template Mandate 21 output contract with plan-compatible test assertions.

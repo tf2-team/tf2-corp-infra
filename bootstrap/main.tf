@@ -238,11 +238,11 @@ module "github_actions_ecr" {
   oidc_provider_arn   = aws_iam_openid_connect_provider.github.arn
   ecr_repository_arns = each.value.ecr_repository_arns
 
-  s3_publish_bucket_arns   = each.value.s3_publish_bucket_arns
-  s3_publish_object_arns   = each.value.s3_publish_object_arns
-  s3_publish_list_prefixes = each.value.s3_publish_list_prefixes
+  s3_publish_bucket_arns      = each.value.s3_publish_bucket_arns
+  s3_publish_object_arns      = each.value.s3_publish_object_arns
+  s3_publish_list_prefixes    = each.value.s3_publish_list_prefixes
   lambda_update_function_arns = lookup(each.value, "lambda_update_function_arns", [])
-  cosign_kms_key_arn       = aws_kms_key.cosign.arn
+  cosign_kms_key_arn          = aws_kms_key.cosign.arn
 
   tags = merge(var.tags, {
     Purpose = "github-actions-ecr-push"
