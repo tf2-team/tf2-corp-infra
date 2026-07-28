@@ -149,11 +149,11 @@ nat_gateways = {
 # ──────────────────────────────────────────────
 # EKS Configuration (aligned with development topology)
 # Role-separated ARM On-Demand floor. Cluster Autoscaler only scales system-*
-# within min/max; the observability/application/reserve groups stay at one node.
+# within min/max; the observability/data groups stay at one node.
 # Karpenter capacity, including the existing Spot NodePool, is unchanged.
 # desired_size is bootstrap floor only (Terraform ignores later ASG desired drift).
-# Prometheus is AZ-bound to 1a and OpenSearch to 1b, so transition-reserve-1b
-# remains available for OpenSearch until storage is redesigned for multi-AZ HA.
+# Prometheus is AZ-bound to 1a and OpenSearch to 1b, so data-observability-1b
+# provides dedicated capacity for OpenSearch until storage supports multi-AZ HA.
 # ──────────────────────────────────────────────
 cluster_name       = "techx-tf2-prod"
 kubernetes_version = "1.36"
@@ -241,7 +241,7 @@ node_groups = {
       az             = "us-east-1a"
     }
   }
-  "application-baseline-1b" = {
+  "data-observability-1b" = {
     instance_types = ["t4g.large"]
     capacity_type  = "ON_DEMAND"
     ami_type       = "AL2023_ARM_64_STANDARD"
@@ -252,27 +252,9 @@ node_groups = {
     max_pods       = 110
     subnet_keys    = ["priv-1b-nodes"]
     labels = {
-      role           = "application-baseline"
+      role           = "data-observability"
       workload-class = "critical"
-      workload-tier  = "application-baseline"
-      env            = "production"
-      az             = "us-east-1b"
-    }
-  }
-  "transition-reserve-1b" = {
-    instance_types = ["t4g.large"]
-    capacity_type  = "ON_DEMAND"
-    ami_type       = "AL2023_ARM_64_STANDARD"
-    disk_size      = 30
-    desired_size   = 1
-    min_size       = 1
-    max_size       = 1
-    max_pods       = 110
-    subnet_keys    = ["priv-1b-nodes"]
-    labels = {
-      role           = "transition-reserve"
-      workload-class = "critical"
-      workload-tier  = "transition-reserve"
+      workload-tier  = "data-observability"
       env            = "production"
       az             = "us-east-1b"
     }
