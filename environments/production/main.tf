@@ -920,6 +920,9 @@ module "vpc" {
   private_subnets  = var.private_subnets
   nat_gateways     = var.nat_gateways
   eks_cluster_name = var.cluster_name
+
+  flow_logs_enabled           = var.vpc_flow_logs_enabled
+  flow_logs_retention_in_days = var.vpc_flow_logs_retention_in_days
 }
 
 # Resolve subnet_keys → subnet IDs from VPC (one NG per AZ for balanced placement).
@@ -1461,6 +1464,9 @@ module "cur_athena" {
   oidc_issuer_url              = module.eks.oidc_issuer
   grafana_namespace            = var.cur_athena_grafana_namespace
   grafana_service_account_name = var.cur_athena_grafana_service_account_name
+  cloudwatch_region            = var.aws_region
+  vpc_flow_logs_enabled        = var.vpc_flow_logs_enabled
+  vpc_flow_logs_log_group_name = "/aws/vpc/${var.project_name}-vpc/flow-logs"
   tags                         = var.tags
 }
 
