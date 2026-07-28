@@ -32,3 +32,15 @@ output "accounting_outbox_reconciler_role_arn" {
   value       = aws_iam_role.accounting_outbox_reconciler.arn
   description = "IRSA role allowing accounting to query and requeue stale published checkout events"
 }
+
+output "valkey_replication_group_arn" {
+  value       = aws_elasticache_replication_group.cart.arn
+  description = "ElastiCache Valkey replication group ARN"
+}
+
+output "valkey_replication_group_id" {
+  value       = aws_elasticache_replication_group.cart.replication_group_id
+  description = "ElastiCache Valkey replication group ID"
+}
+
+# Change trail: @hungxqt - 2026-07-28 - Exported valkey_replication_group_arn and valkey_replication_group_id for FIS target resolution.
