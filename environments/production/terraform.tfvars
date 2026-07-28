@@ -8,7 +8,14 @@ tags = {
 }
 
 # Mandate 12.1 audit tamper email alerts. Add real inboxes and confirm AWS SNS subscription emails after apply.
-immutable_audit_alert_email_endpoints = ["ctran13904@gmail.com"]
+immutable_audit_alert_email_endpoints = [
+  "ctran13904@gmail.com",
+]
+
+# Mandate 20 destructive-DDL alarm recipients. Confirm each AWS SNS email after apply.
+mandate20_alert_email_endpoints = [
+  "khanhle11342@gmail.com",
+]
 
 # Mandate 12.2 S3 data events are driven by audit_sensitive_coverage.yaml.
 # Keep this override empty unless a one-off ARN must be added without registry metadata.
@@ -50,15 +57,27 @@ immutable_audit_validation_lambda_memory_mb            = 512
 
 # Image format: REGISTRY/techx-prod-corp/SERVICE:VERSION
 # Module creates one nested ECR repo per platform service (default catalog).
-# Lifecycle matches development (keep last 5 images; buildcache keep 0).
-ecr_project_name           = "techx-prod-corp"
-ecr_naming_mode            = "nested"
-ecr_image_tag_mutability   = "IMMUTABLE"
-ecr_keep_last_n_images     = 5
+# Lifecycle matches development (keep about 5 complete multi-arch releases;
+# buildcache keep 0).
+ecr_project_name         = "techx-prod-corp"
+ecr_naming_mode          = "nested"
+ecr_image_tag_mutability = "IMMUTABLE"
+# A multi-architecture BuildKit release consumes roughly five ECR records
+# (index, platform manifests, and attestations). Keep five complete releases.
+ecr_keep_last_n_images     = 25
 ecr_keep_last_n_buildcache = 0
 ecr_scan_on_push           = false
 ecr_force_delete           = true
 ecr_repository_overrides = {
+  # Custom Linkerd CNI image refreshes the short-lived projected API token in
+  # the node-local CNI chain. Keep immutable, scanned release artifacts like
+  # the application images; it must never float at a mutable tag in production.
+  linkerd-cni = {
+    image_tag_mutability = "IMMUTABLE"
+    scan_on_push         = true
+    keep_last_n_images   = 10
+    force_delete         = false
+  }
   cosign-artifacts = {
     image_tag_mutability = "MUTABLE"
     scan_on_push         = false
@@ -74,6 +93,11 @@ ecr_repository_overrides = {
 # Legacy /24 priv-1a/1b stay for gradual drain; Karpenter discovery disabled on them.
 # ──────────────────────────────────────────────
 vpc_cidr_block = "10.0.0.0/16"
+
+# Mandate 18: diagnostic only. Enable for a bounded Cross-AZ investigation,
+# then return to false after recording the result; Flow Logs ingest is not free.
+vpc_flow_logs_enabled           = true
+vpc_flow_logs_retention_in_days = 7
 
 public_subnets = {
   "pub-1a" = {
@@ -97,7 +121,7 @@ private_subnets = {
   "priv-1b" = {
     cidr_block                 = "10.0.11.0/24"
     availability_zone          = "us-east-1b"
-    nat_gateway_key            = "nat-1a"
+    nat_gateway_key            = "nat-1b"
     enable_karpenter_discovery = false
   }
   # Primary node/pod subnets (~4k IPs each; ~256× /28 prefixes per AZ).
@@ -109,7 +133,7 @@ private_subnets = {
   "priv-1b-nodes" = {
     cidr_block        = "10.0.32.0/20"
     availability_zone = "us-east-1b"
-    nat_gateway_key   = "nat-1a"
+    nat_gateway_key   = "nat-1b"
   }
 }
 
@@ -117,14 +141,19 @@ nat_gateways = {
   "nat-1a" = {
     public_subnet_key = "pub-1a"
   }
+  "nat-1b" = {
+    public_subnet_key = "pub-1b"
+  }
 }
 
 # ──────────────────────────────────────────────
 # EKS Configuration (aligned with development topology)
-# Critical floor only: system-* MNG (ARM On-Demand, workload-class=critical).
-# Cluster Autoscaler scales system-* within min/max; Karpenter scales app capacity.
+# Role-separated ARM On-Demand floor. Cluster Autoscaler only scales system-*
+# within min/max; the observability/data groups stay at one node.
+# Karpenter capacity, including the existing Spot NodePool, is unchanged.
 # desired_size is bootstrap floor only (Terraform ignores later ASG desired drift).
-# One managed node group per AZ so EBS volumes / pods can schedule in both zones.
+# Prometheus is AZ-bound to 1a and OpenSearch to 1b, so data-observability-1b
+# provides dedicated capacity for OpenSearch until storage supports multi-AZ HA.
 # ──────────────────────────────────────────────
 cluster_name       = "techx-tf2-prod"
 kubernetes_version = "1.36"
@@ -163,14 +192,15 @@ node_groups = {
     capacity_type  = "ON_DEMAND"
     ami_type       = "AL2023_ARM_64_STANDARD"
     disk_size      = 30
-    desired_size   = 2
+    desired_size   = 1
     min_size       = 1
-    max_size       = 4
+    max_size       = 2
     max_pods       = 110
     subnet_keys    = ["priv-1a-nodes"]
     labels = {
       role           = "critical"
       workload-class = "critical"
+      workload-tier  = "system-critical"
       env            = "production"
       az             = "us-east-1a"
     }
@@ -182,12 +212,49 @@ node_groups = {
     disk_size      = 30
     desired_size   = 1
     min_size       = 1
-    max_size       = 3
+    max_size       = 2
     max_pods       = 110
     subnet_keys    = ["priv-1b-nodes"]
     labels = {
       role           = "critical"
       workload-class = "critical"
+      workload-tier  = "system-critical"
+      env            = "production"
+      az             = "us-east-1b"
+    }
+  }
+  "observability-1a" = {
+    instance_types = ["t4g.large"]
+    capacity_type  = "ON_DEMAND"
+    ami_type       = "AL2023_ARM_64_STANDARD"
+    disk_size      = 30
+    desired_size   = 1
+    min_size       = 1
+    max_size       = 1
+    max_pods       = 110
+    subnet_keys    = ["priv-1a-nodes"]
+    labels = {
+      role           = "observability"
+      workload-class = "critical"
+      workload-tier  = "observability"
+      env            = "production"
+      az             = "us-east-1a"
+    }
+  }
+  "data-observability-1b" = {
+    instance_types = ["t4g.large"]
+    capacity_type  = "ON_DEMAND"
+    ami_type       = "AL2023_ARM_64_STANDARD"
+    disk_size      = 30
+    desired_size   = 1
+    min_size       = 1
+    max_size       = 1
+    max_pods       = 110
+    subnet_keys    = ["priv-1b-nodes"]
+    labels = {
+      role           = "data-observability"
+      workload-class = "critical"
+      workload-tier  = "data-observability"
       env            = "production"
       az             = "us-east-1b"
     }
@@ -229,8 +296,9 @@ argocd_chart_repo_url = "https://github.com/tf2-team/tf2-corp-chart/tree/main"
 # Path blocking is at CloudFront (cloudfront_block_sensitive_paths below).
 storefront_alb_scheme = "internal"
 
-# Force-delete secret shells (same as development) for faster tear-down / re-bootstrap
-secrets_manager_recovery_window_in_days = 0
+# Production secrets remain recoverable after accidental deletion. This changes
+# delete behavior only; it does not rotate values or change secret ARNs.
+secrets_manager_recovery_window_in_days = 7
 
 # ──────────────────────────────────────────────
 # Karpenter (node autoscaling) — Spot preferred (same as development)
@@ -253,6 +321,9 @@ karpenter_availability_zones       = ["us-east-1a", "us-east-1b"]
 # Match MNG density + avoid 1-vCPU nodes (~8 max pods, no room for DaemonSets)
 karpenter_node_max_pods    = 110
 karpenter_min_instance_cpu = 2
+# AIOps long-run profile: reserve room for the OTel DaemonSet beside app pods.
+# t4g.medium (4GiB) is too small; t4g.large (8GiB) is the minimum.
+karpenter_min_instance_memory = 8192
 # Hard placement contract for classified stateless apps
 karpenter_node_taints = [
   {

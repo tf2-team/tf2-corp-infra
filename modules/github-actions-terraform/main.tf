@@ -126,6 +126,15 @@ resource "aws_iam_role_policy_attachment" "managed" {
   policy_arn = each.value
 }
 
+# Opt-in exclusive ownership removes stale out-of-band managed-policy
+# attachments without touching the inline state/IAM policies below.
+resource "aws_iam_role_policy_attachments_exclusive" "managed" {
+  count = var.enforce_managed_policy_exclusivity ? 1 : 0
+
+  role_name   = aws_iam_role.this.name
+  policy_arns = local.managed_policy_arns
+}
+
 # ──────────────────────────────────────────────
 # Apply-only IAM: least privilege for Terraform-managed identities
 # Replaces AWS managed IAMFullAccess (CKV2_AWS_56).
@@ -259,6 +268,7 @@ data "aws_iam_policy_document" "terraform_iam" {
     actions = [
       "iam:CreateServiceLinkedRole",
       "iam:DeleteServiceLinkedRole",
+      "iam:GetRole",
       "iam:GetServiceLinkedRoleDeletionStatus",
     ]
     resources = [

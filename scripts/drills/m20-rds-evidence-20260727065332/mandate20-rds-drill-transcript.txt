@@ -1,0 +1,161 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260727135333
+Username: TRTIEZPH\phuct
+RunAs User: TRTIEZPH\phuct
+Configuration Name: 
+Machine: TRTIEZPH (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -EncodedCommand JgAgACcARAA6AFwAVwBvAHIAawBzAHAAYQBjAGUAXABTAHQAdQBkAHkAXABBAFcAUwBcAGMAYQBwAHMAdABvAG4AZQAtAHAAaABhAHMAZQAtADMAXAB0AGYAMgAtAGMAbwByAHAALQBpAG4AZgByAGEAXABzAGMAcgBpAHAAdABzAFwAZAByAGkAbABsAHMAXABtAGEAbgBkAGEAdABlAC0AMgAwAC0AcgBkAHMALQBkAHIAaQBsAGwALgBwAHMAMQAnACAALQBFAHgAZQBjAHUAdABlACAALQBBAHAAcAByAG8AdgBhAGwAUABoAHIAYQBzAGUAIAAnAEQAUgBJAEwATAAgAFIARABTACAAdABlAGMAaAB4AC0AcAByAG8AZAAtAHQAZgAyAC0AcABvAHMAdABnAHIAZQBzAHEAbAAnACAALQBFAHYAaQBkAGUAbgBjAGUAUgBvAG8AdAAgACcARAA6AFwAVwBvAHIAawBzAHAAYQBjAGUAXABTAHQAdQBkAHkAXABBAFcAUwBcAGMAYQBwAHMAdABvAG4AZQAtAHAAaABhAHMAZQAtADMAXAB0AGYAMgAtAGMAbwByAHAALQBpAG4AZgByAGEAXABzAGMAcgBpAHAAdABzAFwAZAByAGkAbABsAHMAJwA=
+Process ID: 3092
+PSVersion: 5.1.26100.8875
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.8875
+BuildVersion: 10.0.26100.8875
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Mode=EXECUTE
+RunId=20260727065332
+SourceInstance=techx-prod-tf2-postgresql
+TargetInstance=m20-rds-drill-20260727065332
+CanaryTable=m20_canary_20260727065332
+TargetBackupRetentionDays=0
+EvidenceDirectory=D:\Workspace\Study\AWS\capstone-phase-3\tf2-corp-infra\scripts\drills\m20-rds-evidence-20260727065332
+AccountCheck=PASS
+TemporaryCredentialReference=CREATED
+StorefrontBeforeHttp=200
+RdsConnectionPreflight=PASS
+ControlledMutationApproval=PASS
+ExpectedPayloadHash=92f824e4c53a02e3d9b63d9bfae19d37c18c8f25ba6fc2a6296c445fedfce990
+MarkerCommittedUtc=2026-07-27T06:54:21.4571720Z
+LatestRestorableTime=2026-07-27T06:46:57.0000000Z
+LatestRestorableTime=2026-07-27T06:46:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:51:57.0000000Z
+LatestRestorableTime=2026-07-27T06:56:58.0000000Z
+PITRCoverage=PASS
+T_safe=2026-07-27T06:56:58.0000000Z
+T_loss=2026-07-27T07:01:29.5933946Z
+ActualRpoSeconds=272
+RPO=PASS
+T_restore_start=2026-07-27T07:01:29.6080472Z
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=creating
+TargetStatus=configuring-enhanced-monitoring
+TargetStatus=modifying
+TargetStatus=modifying
+TargetStatus=available
+RestoredPayloadHash=92f824e4c53a02e3d9b63d9bfae19d37c18c8f25ba6fc2a6296c445fedfce990
+T_integrity_confirmed=2026-07-27T07:14:36.4383750Z
+ActualRtoMinutes=13.11
+RTO=PASS
+StorefrontAfterHttp=200
+MatchingRestoreEvents=1
+
+
+Name  : SourceInstance
+Value : techx-prod-tf2-postgresql
+
+Name  : IsolatedTarget
+Value : m20-rds-drill-20260727065332
+
+Name  : CanaryTable
+Value : m20_canary_20260727065332
+
+Name  : SafeTimeUtc
+Value : 2026-07-27T06:56:58.0000000Z
+
+Name  : LossTimeUtc
+Value : 2026-07-27T07:01:29.5933946Z
+
+Name  : ActualRpoSeconds
+Value : 272
+
+Name  : RpoTargetSeconds
+Value : 300
+
+Name  : RestoreStartUtc
+Value : 2026-07-27T07:01:29.6080472Z
+
+Name  : IntegrityConfirmedUtc
+Value : 2026-07-27T07:14:36.4383750Z
+
+Name  : ActualRtoMinutes
+Value : 13.11
+
+Name  : RtoTargetMinutes
+Value : 30
+
+Name  : PayloadHashMatched
+Value : True
+
+Name  : SourceCanaryAbsent
+Value : True
+
+Name  : ProductionOverwritten
+Value : False
+
+Name  : StorefrontBeforeHttp
+Value : 200
+
+Name  : StorefrontAfterHttp
+Value : 200
+
+Name  : Result
+Value : PASS
+
+
+
+Keep isolated target for mentor inspection: m20-rds-drill-20260727065332
+MANDATE20_RDS_DRILL=PASS
+TemporaryCredentialReference=DELETED
+**********************
+Windows PowerShell transcript end
+End time: 20260727141451
+**********************

@@ -1,0 +1,11 @@
+{
+  "EventId": "3164663c-f0bf-481e-a78e-7a436dad0bf0",
+  "EventName": "RestoreTableToPointInTime",
+  "ReadOnly": "false",
+  "AccessKeyId": "[REDACTED]",
+  "EventTime": "2026-07-27T12:02:07+07:00",
+  "EventSource": "dynamodb.amazonaws.com",
+  "Username": "tran-phuc-tien",
+  "Resources": [],
+  "CloudTrailEvent": "{\"eventVersion\":\"1.11\",\"userIdentity\":{\"type\":\"IAMUser\",\"principalId\":\"AIDAXFZW57TIFHQXVGA5J\",\"arn\":\"arn:aws:iam::493499579600:user/tran-phuc-tien\",\"accountId\":\"493499579600\",\"accessKeyId\":\"[REDACTED]\",\"userName\":\"tran-phuc-tien\"},\"eventTime\":\"2026-07-27T05:02:07Z\",\"eventSource\":\"dynamodb.amazonaws.com\",\"eventName\":\"RestoreTableToPointInTime\",\"awsRegion\":\"us-east-1\",\"sourceIPAddress\":\"[REDACTED]\",\"userAgent\":\"aws-cli/2.34.27 md/awscrt#0.31.2 ua/2.1 os/windows#11 md/arch#amd64 lang/python#3.14.3 md/pyimpl#CPython m/n,Z,E,P,b cfg/retry-mode#standard md/installer#exe sid/1c90dfc54582 md/prompt#off md/command#dynamodb.restore-table-to-point-in-time\",\"requestParameters\":{\"sourceTableName\":\"techx-prod-tf2-checkout-outbox\",\"targetTableName\":\"m20-drill-outbox-20260727115433\",\"restoreDateTime\":\"2026-07-27T04:56:21Z\"},\"responseElements\":null,\"requestID\":\"0QGDM08F311K3NJLS930CP960VVV4KQNSO5AEMVJF66Q9ASUAAJG\",\"eventID\":\"3164663c-f0bf-481e-a78e-7a436dad0bf0\",\"readOnly\":false,\"resources\":[{\"accountId\":\"493499579600\",\"type\":\"AWS::DynamoDB::Table\",\"ARN\":\"arn:aws:dynamodb:us-east-1:493499579600:table/techx-prod-tf2-checkout-outbox\"},{\"accountId\":\"493499579600\",\"type\":\"AWS::DynamoDB::Table\",\"ARN\":\"arn:aws:dynamodb:us-east-1:493499579600:table/m20-drill-outbox-20260727115433\"}],\"eventType\":\"AwsApiCall\",\"apiVersion\":\"2012-08-10\",\"managementEvent\":true,\"recipientAccountId\":\"493499579600\",\"eventCategory\":\"Management\",\"tlsDetails\":{\"tlsVersion\":\"TLSv1.3\",\"cipherSuite\":\"TLS_AES_256_GCM_SHA384\",\"clientProvidedHostHeader\":\"dynamodb.us-east-1.amazonaws.com\"}}"
+}

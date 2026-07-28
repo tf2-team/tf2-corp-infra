@@ -59,6 +59,12 @@ variable "immutable_audit_alert_email_endpoints" {
   default     = []
 }
 
+variable "mandate20_alert_email_endpoints" {
+  type        = set(string)
+  default     = []
+  description = "Confirmed email-json subscribers for Mandate 20 destructive-DDL alarms."
+}
+
 variable "immutable_audit_s3_data_event_object_arns" {
   type        = set(string)
   description = "S3 object ARN scopes logged as CloudTrail data events for Mandate 12.2. Use trailing slash for all objects in a bucket, for example arn:aws:s3:::bucket-name/."
@@ -295,8 +301,8 @@ variable "ecr_naming_mode" {
 
 variable "ecr_keep_last_n_images" {
   type        = number
-  description = "Lifecycle: keep N most recent non-buildcache images per service repo (aligned with development: 5)"
-  default     = 5
+  description = "Lifecycle: keep N recent ECR records per repo; 25 retains about five multi-arch BuildKit releases including attestations"
+  default     = 25
 }
 
 variable "ecr_keep_last_n_buildcache" {
@@ -375,6 +381,25 @@ variable "nat_gateways" {
   }))
   default     = {}
   description = "Bản đồ các NAT Gateway"
+}
+
+variable "vpc_flow_logs_enabled" {
+  type        = bool
+  default     = false
+  nullable    = false
+  description = "Turn on VPC Flow Logs only during a bounded Cross-AZ/network-cost investigation."
+}
+
+variable "vpc_flow_logs_retention_in_days" {
+  type        = number
+  default     = 7
+  nullable    = false
+  description = "Retention for the optional VPC Flow Logs CloudWatch Log Group."
+
+  validation {
+    condition     = contains([1, 3, 5, 7, 14, 30], var.vpc_flow_logs_retention_in_days)
+    error_message = "vpc_flow_logs_retention_in_days must be 1, 3, 5, 7, 14, or 30."
+  }
 }
 
 # ──────────────────────────────────────────────
@@ -843,6 +868,13 @@ variable "karpenter_min_instance_cpu" {
   default     = 2
   nullable    = false
   description = "Minimum vCPU for Karpenter nodes (0 disables). Avoids 1-vCPU instances with ~8 max pods."
+}
+
+variable "karpenter_min_instance_memory" {
+  type        = number
+  default     = 0
+  nullable    = false
+  description = "Minimum memory in MiB for Karpenter nodes (0 disables). Use 8192 to require at least 8GiB for the long-running AIOps profile."
 }
 
 # ──────────────────────────────────────────────

@@ -27,8 +27,8 @@ variable "ecr_naming_mode" {
 
 variable "ecr_keep_last_n_images" {
   type        = number
-  description = "Lifecycle: keep N most recent non-buildcache images per service repo (aligned with production: 5)"
-  default     = 5
+  description = "Lifecycle: keep N recent ECR records per repo; 25 retains about five multi-arch BuildKit releases including attestations"
+  default     = 25
 }
 
 variable "ecr_keep_last_n_buildcache" {

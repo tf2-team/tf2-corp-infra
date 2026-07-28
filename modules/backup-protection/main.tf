@@ -56,10 +56,36 @@ data "aws_iam_policy_document" "deny_destructive_backup" {
     ]
     resources = ["*"]
   }
+
+  dynamic "statement" {
+    for_each = length(var.protected_kms_key_arns) > 0 ? [1] : []
+
+    content {
+      sid    = "DenyDestructiveBackupKmsActions"
+      effect = "Deny"
+      actions = [
+        "kms:DisableKey",
+        "kms:PutKeyPolicy",
+        "kms:ScheduleKeyDeletion",
+      ]
+      resources = var.protected_kms_key_arns
+    }
+  }
+
+  dynamic "statement" {
+    for_each = length(var.protected_state_object_arns) > 0 ? [1] : []
+
+    content {
+      sid       = "DenyDeleteTerraformStateVersions"
+      effect    = "Deny"
+      actions   = ["s3:DeleteObjectVersion"]
+      resources = var.protected_state_object_arns
+    }
+  }
 }
 
 resource "aws_iam_policy" "deny_destructive_backup" {
-  name        = "${var.name}-deny-destructive-backup"
+  name = "${var.name}-deny-destructive-backup"
   # Keep description stable: AWS provider forces replacement when description changes.
   description = "MANDATE-20: operators may not delete RDS/DDB/ElastiCache backups or disable DynamoDB PITR"
   policy      = data.aws_iam_policy_document.deny_destructive_backup.json

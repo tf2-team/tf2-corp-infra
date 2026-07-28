@@ -1,0 +1,21 @@
+{
+  "SourceTable": "techx-prod-tf2-checkout-outbox",
+  "IsolatedTarget": "m20-drill-outbox-20260727115433",
+  "MarkerId": "m20-drill-20260727115433",
+  "SafeTimeUtc": "2026-07-27T04:56:21Z",
+  "LossTimeUtc": "2026-07-27T05:01:58.0000000Z",
+  "ActualRpoSeconds": 337,
+  "RpoTargetSeconds": 600,
+  "PitrAvailabilityLagMinutes": 5.05,
+  "RestoreStartUtc": "2026-07-27T05:02:20.2580926Z",
+  "IntegrityConfirmedUtc": "2026-07-27T05:19:06.7535898Z",
+  "ActualRtoMinutes": 16.77,
+  "EndToEndRecoveryMinutes": 17.15,
+  "RtoTargetMinutes": 30,
+  "PayloadHashMatched": true,
+  "SourceMarkerAbsent": true,
+  "ProductionOverwritten": false,
+  "StorefrontBeforeHttp": 200,
+  "StorefrontAfterHttp": 200,
+  "Result": "PASS"
+}

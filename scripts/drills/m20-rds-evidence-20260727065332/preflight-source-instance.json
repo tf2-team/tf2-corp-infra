@@ -1,0 +1,135 @@
+{
+  "DBInstances": [
+    {
+      "DBInstanceIdentifier": "techx-prod-tf2-postgresql",
+      "DBInstanceClass": "db.t4g.small",
+      "Engine": "postgres",
+      "DBInstanceStatus": "available",
+      "MasterUsername": "postgres_admin",
+      "DBName": "otel",
+      "Endpoint": {
+        "Address": "techx-prod-tf2-postgresql.cijoii00i7pl.us-east-1.rds.amazonaws.com",
+        "Port": 5432,
+        "HostedZoneId": "Z2R2ITUGPM61AM"
+      },
+      "AllocatedStorage": 20,
+      "InstanceCreateTime": "2026-07-18T09:23:35.699000+00:00",
+      "PreferredBackupWindow": "17:00-18:00",
+      "BackupRetentionPeriod": 7,
+      "DBSecurityGroups": [],
+      "VpcSecurityGroups": [
+        {
+          "VpcSecurityGroupId": "sg-0df18e1a2c0fd362c",
+          "Status": "active"
+        }
+      ],
+      "DBParameterGroups": [
+        {
+          "DBParameterGroupName": "techx-prod-tf2-postgresql",
+          "ParameterApplyStatus": "in-sync"
+        }
+      ],
+      "AvailabilityZone": "us-east-1a",
+      "DBSubnetGroup": {
+        "DBSubnetGroupName": "techx-prod-tf2-postgresql",
+        "DBSubnetGroupDescription": "Managed by Terraform",
+        "VpcId": "vpc-0eef6ab7c99ef3bf4",
+        "SubnetGroupStatus": "Complete",
+        "Subnets": [
+          {
+            "SubnetIdentifier": "subnet-0ee04e7bc69e247a3",
+            "SubnetAvailabilityZone": {
+              "Name": "us-east-1b"
+            },
+            "SubnetOutpost": {},
+            "SubnetStatus": "Active"
+          },
+          {
+            "SubnetIdentifier": "subnet-07599236e4979c4b2",
+            "SubnetAvailabilityZone": {
+              "Name": "us-east-1a"
+            },
+            "SubnetOutpost": {},
+            "SubnetStatus": "Active"
+          }
+        ]
+      },
+      "PreferredMaintenanceWindow": "sun:18:00-sun:19:00",
+      "UpgradeRolloutOrder": "second",
+      "PendingModifiedValues": {},
+      "LatestRestorableTime": "2026-07-27T06:46:57+00:00",
+      "MultiAZ": true,
+      "EngineVersion": "16.13",
+      "AutoMinorVersionUpgrade": true,
+      "ReadReplicaDBInstanceIdentifiers": [],
+      "LicenseModel": "postgresql-license",
+      "Iops": 3000,
+      "StorageThroughput": 125,
+      "OptionGroupMemberships": [
+        {
+          "OptionGroupName": "default:postgres-16",
+          "Status": "in-sync"
+        }
+      ],
+      "SecondaryAvailabilityZone": "us-east-1b",
+      "PubliclyAccessible": false,
+      "StorageType": "gp3",
+      "DbInstancePort": 0,
+      "StorageEncrypted": true,
+      "KmsKeyId": "arn:aws:kms:us-east-1:493499579600:key/b8379930-13d9-4b17-b140-95e6319a856c",
+      "DbiResourceId": "db-SBARLDQEJZJPLPFGF6I2AAPCOA",
+      "CACertificateIdentifier": "rds-ca-rsa2048-g1",
+      "DomainMemberships": [],
+      "CopyTagsToSnapshot": true,
+      "MonitoringInterval": 0,
+      "DBInstanceArn": "arn:aws:rds:us-east-1:493499579600:db:techx-prod-tf2-postgresql",
+      "IAMDatabaseAuthenticationEnabled": true,
+      "DatabaseInsightsMode": "standard",
+      "PerformanceInsightsEnabled": true,
+      "PerformanceInsightsKMSKeyId": "arn:aws:kms:us-east-1:493499579600:key/b8379930-13d9-4b17-b140-95e6319a856c",
+      "PerformanceInsightsRetentionPeriod": 7,
+      "EnabledCloudwatchLogsExports": ["postgresql", "upgrade"],
+      "DeletionProtection": true,
+      "AssociatedRoles": [],
+      "MaxAllocatedStorage": 100,
+      "TagList": [
+        {
+          "Key": "Project",
+          "Value": "techx-platform"
+        },
+        {
+          "Key": "Environment",
+          "Value": "production"
+        },
+        {
+          "Key": "Owner",
+          "Value": "CDO-03-06"
+        },
+        {
+          "Key": "ManagedBy",
+          "Value": "Terraform"
+        },
+        {
+          "Key": "Name",
+          "Value": "techx-prod-tf2-postgresql"
+        }
+      ],
+      "CustomerOwnedIpEnabled": false,
+      "NetworkType": "IPV4",
+      "ActivityStreamStatus": "stopped",
+      "BackupTarget": "region",
+      "CertificateDetails": {
+        "CAIdentifier": "rds-ca-rsa2048-g1",
+        "ValidTill": "2027-07-18T09:21:43+00:00"
+      },
+      "MasterUserSecret": {
+        "SecretArn": "arn:aws:secretsmanager:us-east-1:493499579600:secret:rds!db-012e983a-9341-49cf-8a12-5928f016905d-xfzUX5",
+        "SecretStatus": "active",
+        "KmsKeyId": "arn:aws:kms:us-east-1:493499579600:key/57cdbc87-19f2-4972-9236-d81de89be060"
+      },
+      "DedicatedLogVolume": false,
+      "IsStorageConfigUpgradeAvailable": false,
+      "EngineLifecycleSupport": "open-source-rds-extended-support"
+    }
+  ]
+}

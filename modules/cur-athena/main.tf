@@ -16,12 +16,15 @@ locals {
   account_id       = local.create ? data.aws_caller_identity.current[0].account_id : "000000000000"
   region           = local.create ? data.aws_region.current[0].name : "us-east-1"
   partition        = local.create ? data.aws_partition.current[0].partition : "aws"
+  dns_suffix       = local.create ? data.aws_partition.current[0].dns_suffix : "amazonaws.com"
   kms_alias_name   = "alias/${var.name_prefix}-cur-athena"
   crawler_name     = coalesce(var.crawler_name, "${var.name_prefix}-cur-athena")
   oidc_issuer_path = replace(var.oidc_issuer_url, "https://", "")
   grafana_subject  = "system:serviceaccount:${var.grafana_namespace}:${var.grafana_service_account_name}"
 
-  cur_data_path = "s3://${var.cur_bucket_name}/${var.cur_s3_prefix}/${var.cur_export_name}/data/"
+  cur_data_path                     = "s3://${var.cur_bucket_name}/${var.cur_s3_prefix}/${var.cur_export_name}/data/"
+  crawler_log_group_arn             = "arn:${local.partition}:logs:${local.region}:${local.account_id}:log-group:/aws-glue/crawlers-role/${local.crawler_name}-role-${local.crawler_name}-security"
+  cloudwatch_logs_service_principal = "logs.${local.region}.${local.dns_suffix}"
 }
 
 data "aws_iam_policy_document" "cur_athena_kms" {
@@ -41,6 +44,31 @@ data "aws_iam_policy_document" "cur_athena_kms" {
 
     actions   = ["kms:*"]
     resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowCloudWatchLogsForCrawlerLogs"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = [local.cloudwatch_logs_service_principal]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:Describe*",
+      "kms:Encrypt",
+      "kms:GenerateDataKey*",
+      "kms:ReEncrypt*",
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "ArnEquals"
+      variable = "kms:EncryptionContext:aws:logs:arn"
+      values   = [local.crawler_log_group_arn]
+    }
   }
 }
 
@@ -226,7 +254,7 @@ data "aws_iam_policy_document" "glue_s3_read" {
   statement {
     sid       = "AssociateCrawlerLogKmsKey"
     actions   = ["logs:AssociateKmsKey"]
-    resources = ["arn:${local.partition}:logs:${local.region}:${local.account_id}:log-group:/aws-glue/crawlers-role/${local.crawler_name}-role-${local.crawler_name}-security"]
+    resources = [local.crawler_log_group_arn]
   }
 }
 
@@ -401,6 +429,46 @@ data "aws_iam_policy_document" "grafana_athena" {
       "kms:GenerateDataKey",
     ]
     resources = [aws_kms_key.cur_athena[0].arn]
+  }
+
+  # Mandate 18 live evidence: CloudWatch exposes NAT usage every minute. This
+  # is intentionally read-only and complements delayed CUR billing records.
+  statement {
+    sid = "ReadCloudWatchUsageMetrics"
+    actions = [
+      "cloudwatch:GetMetricData",
+      "cloudwatch:GetMetricStatistics",
+      "cloudwatch:ListMetrics",
+    ]
+    resources = ["*"]
+  }
+
+  dynamic "statement" {
+    for_each = var.vpc_flow_logs_enabled ? [var.vpc_flow_logs_log_group_name] : []
+
+    content {
+      sid = "QueryOptionalVpcFlowLogs"
+      actions = [
+        "logs:DescribeLogStreams",
+        "logs:GetLogEvents",
+        "logs:StartQuery",
+      ]
+      resources = [
+        "arn:${local.partition}:logs:${var.cloudwatch_region}:${local.account_id}:log-group:${statement.value}",
+        "arn:${local.partition}:logs:${var.cloudwatch_region}:${local.account_id}:log-group:${statement.value}:*",
+      ]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = var.vpc_flow_logs_enabled ? [true] : []
+
+    content {
+      # These API actions use a generated query ID rather than a Log Group ARN.
+      sid       = "ReadOptionalVpcFlowLogQueryResults"
+      actions   = ["logs:DescribeLogGroups", "logs:GetQueryResults", "logs:StopQuery"]
+      resources = ["*"]
+    }
   }
 }
 

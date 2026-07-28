@@ -1,0 +1,52 @@
+{
+  "EventId": "69410e93-3c50-41b2-b199-759b145e6052",
+  "EventName": "RestoreDBInstanceToPointInTime",
+  "ReadOnly": "false",
+  "AccessKeyId": "[REDACTED]",
+  "EventTime": "2026-07-27T14:01:17+07:00",
+  "EventSource": "rds.amazonaws.com",
+  "Username": "tran-phuc-tien",
+  "Resources": [
+    {
+      "ResourceType": "AWS::RDS::DBInstance",
+      "ResourceName": "techx-prod-tf2-postgresql"
+    },
+    {
+      "ResourceType": "AWS::RDS::DBInstance",
+      "ResourceName": "m20-rds-drill-20260727065332"
+    },
+    {
+      "ResourceType": "AWS::EC2::VPC",
+      "ResourceName": "vpc-0eef6ab7c99ef3bf4"
+    },
+    {
+      "ResourceType": "AWS::RDS::DBSubnetGroup",
+      "ResourceName": "techx-prod-tf2-postgresql"
+    },
+    {
+      "ResourceType": "AWS::EC2::SecurityGroup",
+      "ResourceName": "sg-0df18e1a2c0fd362c"
+    },
+    {
+      "ResourceType": "AWS::RDS::DBOptionGroup",
+      "ResourceName": "default:postgres-16"
+    },
+    {
+      "ResourceType": "AWS::EC2::Subnet",
+      "ResourceName": "subnet-07599236e4979c4b2"
+    },
+    {
+      "ResourceType": "AWS::EC2::Subnet",
+      "ResourceName": "subnet-0ee04e7bc69e247a3"
+    },
+    {
+      "ResourceType": "AWS::KMS::Key",
+      "ResourceName": "arn:aws:kms:us-east-1:493499579600:key/b8379930-13d9-4b17-b140-95e6319a856c"
+    },
+    {
+      "ResourceType": "AWS::RDS::DBParameterGroup",
+      "ResourceName": "techx-prod-tf2-postgresql"
+    }
+  ],
+  "CloudTrailEvent": "{\"eventVersion\":\"1.11\",\"userIdentity\":{\"type\":\"IAMUser\",\"principalId\":\"AIDAXFZW57TIFHQXVGA5J\",\"arn\":\"arn:aws:iam::493499579600:user/tran-phuc-tien\",\"accountId\":\"493499579600\",\"accessKeyId\":\"[REDACTED]\",\"userName\":\"tran-phuc-tien\"},\"eventTime\":\"2026-07-27T07:01:17Z\",\"eventSource\":\"rds.amazonaws.com\",\"eventName\":\"RestoreDBInstanceToPointInTime\",\"awsRegion\":\"us-east-1\",\"sourceIPAddress\":\"[REDACTED]\",\"userAgent\":\"aws-cli/2.34.27 md/awscrt#0.31.2 ua/2.1 os/windows#11 md/arch#amd64 lang/python#3.14.3 md/pyimpl#CPython m/Z,E,n,b cfg/retry-mode#standard md/installer#exe sid/1c90dfc54582 md/prompt#off md/command#rds.restore-db-instance-to-point-in-time\",\"requestParameters\":{\"sourceDBInstanceIdentifier\":\"techx-prod-tf2-postgresql\",\"targetDBInstanceIdentifier\":\"m20-rds-drill-20260727065332\",\"restoreTime\":\"2026-07-27T06:56:58Z\",\"useLatestRestorableTime\":false,\"dBInstanceClass\":\"db.t4g.small\",\"dBSubnetGroupName\":\"techx-prod-tf2-postgresql\",\"multiAZ\":false,\"publiclyAccessible\":false,\"copyTagsToSnapshot\":true,\"vpcSecurityGroupIds\":[\"sg-0df18e1a2c0fd362c\"],\"dBParameterGroupName\":\"techx-prod-tf2-postgresql\",\"backupRetentionPeriod\":0},\"responseElements\":{\"dBInstanceIdentifier\":\"m20-rds-drill-20260727065332\",\"dBInstanceClass\":\"db.t4g.small\",\"engine\":\"postgres\",\"dBInstanceStatus\":\"creating\",\"masterUsername\":\"postgres_admin\",\"dBName\":\"otel\",\"allocatedStorage\":20,\"preferredBackupWindow\":\"17:00-18:00\",\"backupRetentionPeriod\":0,\"dBSecurityGroups\":[],\"vpcSecurityGroups\":[{\"vpcSecurityGroupId\":\"sg-0df18e1a2c0fd362c\",\"status\":\"active\"}],\"dBParameterGroups\":[{\"dBParameterGroupName\":\"techx-prod-tf2-postgresql\",\"parameterApplyStatus\":\"in-sync\"}],\"dBSubnetGroup\":{\"dBSubnetGroupName\":\"techx-prod-tf2-postgresql\",\"dBSubnetGroupDescription\":\"Managed by Terraform\",\"vpcId\":\"vpc-0eef6ab7c99ef3bf4\",\"subnetGroupStatus\":\"Complete\",\"subnets\":[{\"subnetIdentifier\":\"subnet-0ee04e7bc69e247a3\",\"subnetAvailabilityZone\":{\"name\":\"us-east-1b\"},\"subnetOutpost\":{},\"subnetStatus\":\"Active\"},{\"subnetIdentifier\":\"subnet-07599236e4979c4b2\",\"subnetAvailabilityZone\":{\"name\":\"us-east-1a\"},\"subnetOutpost\":{},\"subnetStatus\":\"Active\"}]},\"preferredMaintenanceWindow\":\"sun:18:00-sun:19:00\",\"upgradeRolloutOrder\":\"second\",\"pendingModifiedValues\":{},\"multiAZ\":false,\"engineVersion\":\"16.13\",\"autoMinorVersionUpgrade\":true,\"readReplicaDBInstanceIdentifiers\":[],\"licenseModel\":\"postgresql-license\",\"iops\":3000,\"storageThroughput\":125,\"optionGroupMemberships\":[{\"optionGroupName\":\"default:postgres-16\",\"status\":\"pending-apply\"}],\"publiclyAccessible\":false,\"storageType\":\"gp3\",\"dbInstancePort\":0,\"storageEncrypted\":true,\"kmsKeyId\":\"arn:aws:kms:us-east-1:493499579600:key/b8379930-13d9-4b17-b140-95e6319a856c\",\"dbiResourceId\":\"db-YVJEPLS7VFJQG3BNZ5WTF6BCLQ\",\"cACertificateIdentifier\":\"rds-ca-rsa2048-g1\",\"domainMemberships\":[],\"copyTagsToSnapshot\":true,\"monitoringInterval\":0,\"dBInstanceArn\":\"arn:aws:rds:us-east-1:493499579600:db:m20-rds-drill-20260727065332\",\"iAMDatabaseAuthenticationEnabled\":true,\"databaseInsightsMode\":\"standard\",\"performanceInsightsEnabled\":false,\"deletionProtection\":false,\"associatedRoles\":[],\"httpEndpointEnabled\":false,\"tagList\":[{\"key\":\"Project\",\"value\":\"techx-platform\"},{\"key\":\"Environment\",\"value\":\"production\"},{\"key\":\"Owner\",\"value\":\"CDO-03-06\"},{\"key\":\"ManagedBy\",\"value\":\"Terraform\"},{\"key\":\"Name\",\"value\":\"techx-prod-tf2-postgresql\"}],\"customerOwnedIpEnabled\":false,\"networkType\":\"IPV4\",\"backupTarget\":\"region\",\"certificateDetails\":{\"cAIdentifier\":\"rds-ca-rsa2048-g1\"},\"dedicatedLogVolume\":false,\"engineLifecycleSupport\":\"open-source-rds-extended-support\",\"vPCNetworkingEnabled\":true},\"requestID\":\"b0dee468-03df-4c05-b581-9b3e09d8800f\",\"eventID\":\"69410e93-3c50-41b2-b199-759b145e6052\",\"readOnly\":false,\"eventType\":\"AwsApiCall\",\"managementEvent\":true,\"recipientAccountId\":\"493499579600\",\"eventCategory\":\"Management\",\"tlsDetails\":{\"tlsVersion\":\"TLSv1.3\",\"cipherSuite\":\"TLS_AES_128_GCM_SHA256\",\"clientProvidedHostHeader\":\"rds.us-east-1.amazonaws.com\"}}"
+}

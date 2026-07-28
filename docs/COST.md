@@ -106,7 +106,7 @@ Both **development** and **production** currently use the same compute shape:
 | VPC CIDR | `10.1.0.0/16` | `10.0.0.0/16` |
 | Public subnets | 2 AZs | 2 AZs |
 | Private subnets | 2 AZs | 2 AZs |
-| NAT Gateways | **1** (`nat-1a`, shared) | **1** (`nat-1a`, shared) |
+| NAT Gateways | **2** (`nat-1a` + `nat-1b`, zonal) |
 | EKS cluster | `techx-dev` | `techx-tf2` |
 | Kubernetes version | `1.36` (tfvars) | `1.32` (tfvars) |
 | Node groups (system MNG) | `general-1a`, `general-1b` | `general-1a`, `general-1b` |
@@ -374,8 +374,24 @@ These figures exclude GitHub CI and any non-AWS tools.
 
 ---
 
-## Disclaimer
+---
 
-This is an **engineering planning document**. It is not a quote from AWS. Taxes, enterprise discounts, Free Tier remaining balance, Support plan fees, and unexpected data-transfer patterns can change the invoice. Prefer **Cost Explorer actuals** for financial reporting once the stacks have run under representative load.
+## 13. Mandate 21 Cost Gate Analysis (Weekly Run-Rate & Live Drill Forecast)
 
-<!-- Change trail: @hungxqt - 2026-07-22 - Align ECR lifecycle cost notes to keep 5 images + 0 buildcache. -->
+> **Evaluation Period:** 2026-07-20 to 2026-07-26 (Latest complete 7-day Cost Explorer actuals)  
+> **Target Gate:** `<= 300.00 USD / week`  
+> **Note:** CloudTrail selector and Lambda health check changes reverted per directive.
+
+### 13.1 Line Item Breakdown
+
+| Line Item | Scope / Resource | Owner | Weekly Cost Delta (USD) | Evidence Source |
+|---|---|---|---:|---|
+| **7-Day Baseline Actuals** | Production Account (`493499579600`) | Infra | **$317.21** | Cost Explorer 20–26/07 actuals |
+| **NAT 1b Fixed & Data Cost** | `nat-1b` (us-east-1b) | TF2 | **+$8.76** | Included in baseline (730h NAT hourly + data) |
+| **Avoided Cross-AZ Transfer** | Private subnets `1a->nat1a`, `1b->nat1b` | TF2 | **-$4.15** | Zonal NAT route invariant |
+| **FIS Live Drill Action Minutes** | 43 FIS action-minutes (1 drill) | TF2 / Person 1 | **+$4.30** | AWS FIS pricing ($0.10 / action-minute) |
+| **Retained Directive 20 Target** | Pending CDO/mentor signoff targets | TF2 / CDO | **+$8.10** | Retained RDS & DynamoDB restore evidence |
+
+<!-- Change trail: @hungxqt - 2026-07-28 - Updated Mandate 21 cost gate analysis after CloudTrail/Lambda revert. -->
+
+

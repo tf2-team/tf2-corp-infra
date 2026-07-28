@@ -81,6 +81,15 @@ resource "aws_db_parameter_group" "this" {
     apply_method = "pending-reboot"
   }
 
+  # MANDATE-20: record schema-destructive statements in the existing
+  # CloudWatch PostgreSQL log export. DML is intentionally excluded to avoid
+  # logging normal application traffic and sensitive values.
+  parameter {
+    name         = "log_statement"
+    value        = "ddl"
+    apply_method = "immediate"
+  }
+
   tags = merge(var.tags, { Name = local.identifier })
 }
 
@@ -98,6 +107,55 @@ resource "aws_cloudwatch_log_group" "upgrade" {
   kms_key_id        = aws_kms_key.rds.arn
 
   tags = merge(var.tags, { Name = "/aws/rds/instance/${local.identifier}/upgrade" })
+}
+
+locals {
+  destructive_ddl_patterns = {
+    drop_upper     = "\"statement:\" \"DROP\" \"TABLE\""
+    drop_lower     = "\"statement:\" \"drop\" \"table\""
+    truncate_upper = "\"statement:\" \"TRUNCATE\" \"TABLE\""
+    truncate_lower = "\"statement:\" \"truncate\" \"table\""
+  }
+}
+
+resource "aws_cloudwatch_log_metric_filter" "destructive_ddl" {
+  for_each = local.destructive_ddl_patterns
+
+  name           = "${local.identifier}-destructive-ddl-${replace(each.key, "_", "-")}"
+  pattern        = each.value
+  log_group_name = aws_cloudwatch_log_group.postgresql.name
+
+  metric_transformation {
+    name          = "DestructiveDdlDetected"
+    namespace     = "TechX/Mandate20"
+    value         = "1"
+    default_value = "0"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "destructive_ddl" {
+  count = length(var.destructive_ddl_alarm_action_arns) > 0 ? 1 : 0
+
+  alarm_name          = "${local.identifier}-destructive-ddl-detected"
+  alarm_description   = "MANDATE-20: PostgreSQL logged DROP TABLE or TRUNCATE TABLE. Confirm whether this is an approved drill/change; do not start PITR automatically."
+  namespace           = "TechX/Mandate20"
+  metric_name         = "DestructiveDdlDetected"
+  statistic           = "Sum"
+  period              = 60
+  evaluation_periods  = 1
+  datapoints_to_alarm = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+
+  alarm_actions = var.destructive_ddl_alarm_action_arns
+  ok_actions    = var.destructive_ddl_alarm_action_arns
+
+  tags = merge(var.tags, {
+    Name    = "${local.identifier}-destructive-ddl-detected"
+    Mandate = "MD20"
+    Purpose = "data-loss-detection"
+  })
 }
 
 resource "aws_db_instance" "this" {

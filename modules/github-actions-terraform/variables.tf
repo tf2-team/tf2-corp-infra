@@ -88,6 +88,12 @@ variable "state_bucket_arn" {
   description = "ARN of the Terraform S3 state bucket"
 }
 
+variable "enforce_managed_policy_exclusivity" {
+  type        = bool
+  default     = false
+  description = "When true, remove unmanaged managed-policy attachments while preserving this module's declared policy set."
+}
+
 variable "state_kms_key_arn" {
   type        = string
   description = "ARN of the KMS key encrypting the state bucket"

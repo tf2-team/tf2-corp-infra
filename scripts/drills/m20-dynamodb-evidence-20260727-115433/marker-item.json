@@ -1,0 +1,9 @@
+{
+  "event_id": { "S": "m20-drill-20260727115433" },
+  "status": { "S": "drill-hold" },
+  "created_at": { "N": "1785128073183" },
+  "payload_sha256": {
+    "S": "92b6a3a27db9b8bf0df56a2899b213e38f1a6af5fbf969d6988faf2c23bd98d7"
+  },
+  "payload": { "S": "mandate20-restore-proof-20260727115433" }
+}

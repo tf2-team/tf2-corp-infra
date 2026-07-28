@@ -1,0 +1,5077 @@
+{
+  "apiVersion": "argoproj.io/v1alpha1",
+  "kind": "Application",
+  "metadata": {
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"argoproj.io/v1alpha1\",\"kind\":\"Application\",\"metadata\":{\"annotations\":{},\"labels\":{\"argocd.argoproj.io/instance\":\"root-prod\"},\"name\":\"techx-corp\",\"namespace\":\"argocd\"},\"spec\":{\"destination\":{\"namespace\":\"techx-corp-prod\",\"server\":\"https://kubernetes.default.svc\"},\"ignoreDifferences\":[{\"group\":\"\",\"jsonPointers\":[\"/spec/volumeName\"],\"kind\":\"PersistentVolumeClaim\"}],\"project\":\"techx-corp\",\"source\":{\"helm\":{\"releaseName\":\"techx-corp\",\"valueFiles\":[\"values.yaml\",\"values-public-alb.yaml\",\"values-prod.yaml\",\"service-digest/values-accounting.yaml\",\"service-digest/values-ad.yaml\",\"service-digest/values-cart.yaml\",\"service-digest/values-checkout.yaml\",\"service-digest/values-currency.yaml\",\"service-digest/values-email.yaml\",\"service-digest/values-flagd-ui.yaml\",\"service-digest/values-fraud-detection.yaml\",\"service-digest/values-frontend.yaml\",\"service-digest/values-frontend-proxy.yaml\",\"service-digest/values-image-provider.yaml\",\"service-digest/values-kafka.yaml\",\"service-digest/values-llm.yaml\",\"service-digest/values-load-generator.yaml\",\"service-digest/values-mem0.yaml\",\"service-digest/values-opensearch.yaml\",\"service-digest/values-payment.yaml\",\"service-digest/values-product-catalog.yaml\",\"service-digest/values-product-reviews.yaml\",\"service-digest/values-quote.yaml\",\"service-digest/values-recommendation.yaml\",\"service-digest/values-shipping.yaml\",\"service-digest/values-shopping-copilot.yaml\",\"values-aiops-long-run-1000.yaml\"]},\"path\":\".\",\"repoURL\":\"https://github.com/tf2-team/tf2-corp-chart.git\",\"targetRevision\":\"main\"},\"syncPolicy\":{\"automated\":{\"prune\":true,\"selfHeal\":true},\"retry\":{\"backoff\":{\"duration\":\"5s\",\"factor\":2,\"maxDuration\":\"3m\"},\"limit\":3},\"syncOptions\":[\"CreateNamespace=true\",\"RespectIgnoreDifferences=true\"]}}}\n"
+    },
+    "creationTimestamp": "2026-07-13T02:53:11Z",
+    "generation": 67035,
+    "labels": {
+      "argocd.argoproj.io/instance": "root-prod"
+    },
+    "name": "techx-corp",
+    "namespace": "argocd",
+    "resourceVersion": "10122708",
+    "uid": "e38c1e82-3616-4c35-b57e-f2cc84b406b1"
+  },
+  "spec": {
+    "destination": {
+      "namespace": "techx-corp-prod",
+      "server": "https://kubernetes.default.svc"
+    },
+    "ignoreDifferences": [
+      {
+        "group": "",
+        "jsonPointers": ["/spec/volumeName"],
+        "kind": "PersistentVolumeClaim"
+      }
+    ],
+    "project": "techx-corp",
+    "source": {
+      "helm": {
+        "releaseName": "techx-corp",
+        "valueFiles": [
+          "values.yaml",
+          "values-public-alb.yaml",
+          "values-prod.yaml",
+          "service-digest/values-accounting.yaml",
+          "service-digest/values-ad.yaml",
+          "service-digest/values-cart.yaml",
+          "service-digest/values-checkout.yaml",
+          "service-digest/values-currency.yaml",
+          "service-digest/values-email.yaml",
+          "service-digest/values-flagd-ui.yaml",
+          "service-digest/values-fraud-detection.yaml",
+          "service-digest/values-frontend.yaml",
+          "service-digest/values-frontend-proxy.yaml",
+          "service-digest/values-image-provider.yaml",
+          "service-digest/values-kafka.yaml",
+          "service-digest/values-llm.yaml",
+          "service-digest/values-load-generator.yaml",
+          "service-digest/values-mem0.yaml",
+          "service-digest/values-opensearch.yaml",
+          "service-digest/values-payment.yaml",
+          "service-digest/values-product-catalog.yaml",
+          "service-digest/values-product-reviews.yaml",
+          "service-digest/values-quote.yaml",
+          "service-digest/values-recommendation.yaml",
+          "service-digest/values-shipping.yaml",
+          "service-digest/values-shopping-copilot.yaml",
+          "values-aiops-long-run-1000.yaml"
+        ]
+      },
+      "path": ".",
+      "repoURL": "https://github.com/tf2-team/tf2-corp-chart.git",
+      "targetRevision": "main"
+    },
+    "syncPolicy": {
+      "automated": {
+        "prune": true,
+        "selfHeal": true
+      },
+      "retry": {
+        "backoff": {
+          "duration": "5s",
+          "factor": 2,
+          "maxDuration": "3m"
+        },
+        "limit": 3
+      },
+      "syncOptions": ["CreateNamespace=true", "RespectIgnoreDifferences=true"]
+    }
+  },
+  "status": {
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-07-25T05:53:13Z",
+        "message": "Application has 4 orphaned resources",
+        "type": "OrphanedResourceWarning"
+      }
+    ],
+    "controllerNamespace": "argocd",
+    "health": {
+      "lastTransitionTime": "2026-07-27T04:30:58Z",
+      "status": "Healthy"
+    },
+    "history": [
+      {
+        "deployStartedAt": "2026-07-26T06:32:38Z",
+        "deployedAt": "2026-07-26T06:38:38Z",
+        "id": 325,
+        "initiatedBy": {
+          "automated": true
+        },
+        "revision": "a52eb6616e62ea90dcebcbb35d1ffa2f3a66ad38",
+        "source": {
+          "helm": {
+            "releaseName": "techx-corp",
+            "valueFiles": [
+              "values.yaml",
+              "values-public-alb.yaml",
+              "values-prod.yaml",
+              "service-digest/values-accounting.yaml",
+              "service-digest/values-ad.yaml",
+              "service-digest/values-cart.yaml",
+              "service-digest/values-checkout.yaml",
+              "service-digest/values-currency.yaml",
+              "service-digest/values-email.yaml",
+              "service-digest/values-flagd-ui.yaml",
+              "service-digest/values-fraud-detection.yaml",
+              "service-digest/values-frontend.yaml",
+              "service-digest/values-frontend-proxy.yaml",
+              "service-digest/values-image-provider.yaml",
+              "service-digest/values-kafka.yaml",
+              "service-digest/values-llm.yaml",
+              "service-digest/values-load-generator.yaml",
+              "service-digest/values-mem0.yaml",
+              "service-digest/values-opensearch.yaml",
+              "service-digest/values-payment.yaml",
+              "service-digest/values-product-catalog.yaml",
+              "service-digest/values-product-reviews.yaml",
+              "service-digest/values-quote.yaml",
+              "service-digest/values-recommendation.yaml",
+              "service-digest/values-shipping.yaml",
+              "service-digest/values-shopping-copilot.yaml",
+              "values-aiops-long-run-1000.yaml"
+            ]
+          },
+          "path": ".",
+          "repoURL": "https://github.com/tf2-team/tf2-corp-chart.git",
+          "targetRevision": "main"
+        }
+      },
+      {
+        "deployStartedAt": "2026-07-26T07:38:11Z",
+        "deployedAt": "2026-07-26T07:45:43Z",
+        "id": 326,
+        "initiatedBy": {
+          "automated": true
+        },
+        "revision": "951c2f77f4e41b8cc26b2aa7860b671086ad2c01",
+        "source": {
+          "helm": {
+            "releaseName": "techx-corp",
+            "valueFiles": [
+              "values.yaml",
+              "values-public-alb.yaml",
+              "values-prod.yaml",
+              "service-digest/values-accounting.yaml",
+              "service-digest/values-ad.yaml",
+              "service-digest/values-cart.yaml",
+              "service-digest/values-checkout.yaml",
+              "service-digest/values-currency.yaml",
+              "service-digest/values-email.yaml",
+              "service-digest/values-flagd-ui.yaml",
+              "service-digest/values-fraud-detection.yaml",
+              "service-digest/values-frontend.yaml",
+              "service-digest/values-frontend-proxy.yaml",
+              "service-digest/values-image-provider.yaml",
+              "service-digest/values-kafka.yaml",
+              "service-digest/values-llm.yaml",
+              "service-digest/values-load-generator.yaml",
+              "service-digest/values-mem0.yaml",
+              "service-digest/values-opensearch.yaml",
+              "service-digest/values-payment.yaml",
+              "service-digest/values-product-catalog.yaml",
+              "service-digest/values-product-reviews.yaml",
+              "service-digest/values-quote.yaml",
+              "service-digest/values-recommendation.yaml",
+              "service-digest/values-shipping.yaml",
+              "service-digest/values-shopping-copilot.yaml",
+              "values-aiops-long-run-1000.yaml"
+            ]
+          },
+          "path": ".",
+          "repoURL": "https://github.com/tf2-team/tf2-corp-chart.git",
+          "targetRevision": "main"
+        }
+      },
+      {
+        "deployStartedAt": "2026-07-26T12:54:30Z",
+        "deployedAt": "2026-07-26T12:55:54Z",
+        "id": 327,
+        "initiatedBy": {
+          "automated": true
+        },
+        "revision": "f13bf363813140dde9ef0e95318bdde4151b260b",
+        "source": {
+          "helm": {
+            "releaseName": "techx-corp",
+            "valueFiles": [
+              "values.yaml",
+              "values-public-alb.yaml",
+              "values-prod.yaml",
+              "service-digest/values-accounting.yaml",
+              "service-digest/values-ad.yaml",
+              "service-digest/values-cart.yaml",
+              "service-digest/values-checkout.yaml",
+              "service-digest/values-currency.yaml",
+              "service-digest/values-email.yaml",
+              "service-digest/values-flagd-ui.yaml",
+              "service-digest/values-fraud-detection.yaml",
+              "service-digest/values-frontend.yaml",
+              "service-digest/values-frontend-proxy.yaml",
+              "service-digest/values-image-provider.yaml",
+              "service-digest/values-kafka.yaml",
+              "service-digest/values-llm.yaml",
+              "service-digest/values-load-generator.yaml",
+              "service-digest/values-mem0.yaml",
+              "service-digest/values-opensearch.yaml",
+              "service-digest/values-payment.yaml",
+              "service-digest/values-product-catalog.yaml",
+              "service-digest/values-product-reviews.yaml",
+              "service-digest/values-quote.yaml",
+              "service-digest/values-recommendation.yaml",
+              "service-digest/values-shipping.yaml",
+              "service-digest/values-shopping-copilot.yaml",
+              "values-aiops-long-run-1000.yaml"
+            ]
+          },
+          "path": ".",
+          "repoURL": "https://github.com/tf2-team/tf2-corp-chart.git",
+          "targetRevision": "main"
+        }
+      },
+      {
+        "deployStartedAt": "2026-07-26T13:11:03Z",
+        "deployedAt": "2026-07-26T13:18:23Z",
+        "id": 328,
+        "initiatedBy": {
+          "automated": true
+        },
+        "revision": "3a701c4a28831397541b3487b9cde6dd1692d8b1",
+        "source": {
+          "helm": {
+            "releaseName": "techx-corp",
+            "valueFiles": [
+              "values.yaml",
+              "values-public-alb.yaml",
+              "values-prod.yaml",
+              "service-digest/values-accounting.yaml",
+              "service-digest/values-ad.yaml",
+              "service-digest/values-cart.yaml",
+              "service-digest/values-checkout.yaml",
+              "service-digest/values-currency.yaml",
+              "service-digest/values-email.yaml",
+              "service-digest/values-flagd-ui.yaml",
+              "service-digest/values-fraud-detection.yaml",
+              "service-digest/values-frontend.yaml",
+              "service-digest/values-frontend-proxy.yaml",
+              "service-digest/values-image-provider.yaml",
+              "service-digest/values-kafka.yaml",
+              "service-digest/values-llm.yaml",
+              "service-digest/values-load-generator.yaml",
+              "service-digest/values-mem0.yaml",
+              "service-digest/values-opensearch.yaml",
+              "service-digest/values-payment.yaml",
+              "service-digest/values-product-catalog.yaml",
+              "service-digest/values-product-reviews.yaml",
+              "service-digest/values-quote.yaml",
+              "service-digest/values-recommendation.yaml",
+              "service-digest/values-shipping.yaml",
+              "service-digest/values-shopping-copilot.yaml",
+              "values-aiops-long-run-1000.yaml"
+            ]
+          },
+          "path": ".",
+          "repoURL": "https://github.com/tf2-team/tf2-corp-chart.git",
+          "targetRevision": "main"
+        }
+      },
+      {
+        "deployStartedAt": "2026-07-26T13:24:56Z",
+        "deployedAt": "2026-07-26T13:26:26Z",
+        "id": 329,
+        "initiatedBy": {
+          "automated": true
+        },
+        "revision": "d111b2deac037aed3d6a87df7a757cf87eedbaaa",
+        "source": {
+          "helm": {
+            "releaseName": "techx-corp",
+            "valueFiles": [
+              "values.yaml",
+              "values-public-alb.yaml",
+              "values-prod.yaml",
+              "service-digest/values-accounting.yaml",
+              "service-digest/values-ad.yaml",
+              "service-digest/values-cart.yaml",
+              "service-digest/values-checkout.yaml",
+              "service-digest/values-currency.yaml",
+              "service-digest/values-email.yaml",
+              "service-digest/values-flagd-ui.yaml",
+              "service-digest/values-fraud-detection.yaml",
+              "service-digest/values-frontend.yaml",
+              "service-digest/values-frontend-proxy.yaml",
+              "service-digest/values-image-provider.yaml",
+              "service-digest/values-kafka.yaml",
+              "service-digest/values-llm.yaml",
+              "service-digest/values-load-generator.yaml",
+              "service-digest/values-mem0.yaml",
+              "service-digest/values-opensearch.yaml",
+              "service-digest/values-payment.yaml",
+              "service-digest/values-product-catalog.yaml",
+              "service-digest/values-product-reviews.yaml",
+              "service-digest/values-quote.yaml",
+              "service-digest/values-recommendation.yaml",
+              "service-digest/values-shipping.yaml",
+              "service-digest/values-shopping-copilot.yaml",
+              "values-aiops-long-run-1000.yaml"
+            ]
+          },
+          "path": ".",
+          "repoURL": "https://github.com/tf2-team/tf2-corp-chart.git",
+          "targetRevision": "main"
+        }
+      },
+      {
+        "deployStartedAt": "2026-07-26T15:00:07Z",
+        "deployedAt": "2026-07-26T15:05:50Z",
+        "id": 330,
+        "initiatedBy": {
+          "automated": true
+        },
+        "revision": "b72178e9090521f42bbed5a03816fb788dafaec9",
+        "source": {
+          "helm": {
+            "releaseName": "techx-corp",
+            "valueFiles": [
+              "values.yaml",
+              "values-public-alb.yaml",
+              "values-prod.yaml",
+              "service-digest/values-accounting.yaml",
+              "service-digest/values-ad.yaml",
+              "service-digest/values-cart.yaml",
+              "service-digest/values-checkout.yaml",
+              "service-digest/values-currency.yaml",
+              "service-digest/values-email.yaml",
+              "service-digest/values-flagd-ui.yaml",
+              "service-digest/values-fraud-detection.yaml",
+              "service-digest/values-frontend.yaml",
+              "service-digest/values-frontend-proxy.yaml",
+              "service-digest/values-image-provider.yaml",
+              "service-digest/values-kafka.yaml",
+              "service-digest/values-llm.yaml",
+              "service-digest/values-load-generator.yaml",
+              "service-digest/values-mem0.yaml",
+              "service-digest/values-opensearch.yaml",
+              "service-digest/values-payment.yaml",
+              "service-digest/values-product-catalog.yaml",
+              "service-digest/values-product-reviews.yaml",
+              "service-digest/values-quote.yaml",
+              "service-digest/values-recommendation.yaml",
+              "service-digest/values-shipping.yaml",
+              "service-digest/values-shopping-copilot.yaml",
+              "values-aiops-long-run-1000.yaml"
+            ]
+          },
+          "path": ".",
+          "repoURL": "https://github.com/tf2-team/tf2-corp-chart.git",
+          "targetRevision": "main"
+        }
+      },
+      {
+        "deployStartedAt": "2026-07-27T02:48:11Z",
+        "deployedAt": "2026-07-27T02:49:17Z",
+        "id": 331,
+        "initiatedBy": {
+          "automated": true
+        },
+        "revision": "96617d692ac76b804007ff763f9c920cb767e582",
+        "source": {
+          "helm": {
+            "releaseName": "techx-corp",
+            "valueFiles": [
+              "values.yaml",
+              "values-public-alb.yaml",
+              "values-prod.yaml",
+              "service-digest/values-accounting.yaml",
+              "service-digest/values-ad.yaml",
+              "service-digest/values-cart.yaml",
+              "service-digest/values-checkout.yaml",
+              "service-digest/values-currency.yaml",
+              "service-digest/values-email.yaml",
+              "service-digest/values-flagd-ui.yaml",
+              "service-digest/values-fraud-detection.yaml",
+              "service-digest/values-frontend.yaml",
+              "service-digest/values-frontend-proxy.yaml",
+              "service-digest/values-image-provider.yaml",
+              "service-digest/values-kafka.yaml",
+              "service-digest/values-llm.yaml",
+              "service-digest/values-load-generator.yaml",
+              "service-digest/values-mem0.yaml",
+              "service-digest/values-opensearch.yaml",
+              "service-digest/values-payment.yaml",
+              "service-digest/values-product-catalog.yaml",
+              "service-digest/values-product-reviews.yaml",
+              "service-digest/values-quote.yaml",
+              "service-digest/values-recommendation.yaml",
+              "service-digest/values-shipping.yaml",
+              "service-digest/values-shopping-copilot.yaml",
+              "values-aiops-long-run-1000.yaml"
+            ]
+          },
+          "path": ".",
+          "repoURL": "https://github.com/tf2-team/tf2-corp-chart.git",
+          "targetRevision": "main"
+        }
+      },
+      {
+        "deployStartedAt": "2026-07-27T03:06:04Z",
+        "deployedAt": "2026-07-27T03:09:47Z",
+        "id": 332,
+        "initiatedBy": {
+          "automated": true
+        },
+        "revision": "a8f67abddcacf65e8dc9e4c79ce3644ea6d048de",
+        "source": {
+          "helm": {
+            "releaseName": "techx-corp",
+            "valueFiles": [
+              "values.yaml",
+              "values-public-alb.yaml",
+              "values-prod.yaml",
+              "service-digest/values-accounting.yaml",
+              "service-digest/values-ad.yaml",
+              "service-digest/values-cart.yaml",
+              "service-digest/values-checkout.yaml",
+              "service-digest/values-currency.yaml",
+              "service-digest/values-email.yaml",
+              "service-digest/values-flagd-ui.yaml",
+              "service-digest/values-fraud-detection.yaml",
+              "service-digest/values-frontend.yaml",
+              "service-digest/values-frontend-proxy.yaml",
+              "service-digest/values-image-provider.yaml",
+              "service-digest/values-kafka.yaml",
+              "service-digest/values-llm.yaml",
+              "service-digest/values-load-generator.yaml",
+              "service-digest/values-mem0.yaml",
+              "service-digest/values-opensearch.yaml",
+              "service-digest/values-payment.yaml",
+              "service-digest/values-product-catalog.yaml",
+              "service-digest/values-product-reviews.yaml",
+              "service-digest/values-quote.yaml",
+              "service-digest/values-recommendation.yaml",
+              "service-digest/values-shipping.yaml",
+              "service-digest/values-shopping-copilot.yaml",
+              "values-aiops-long-run-1000.yaml"
+            ]
+          },
+          "path": ".",
+          "repoURL": "https://github.com/tf2-team/tf2-corp-chart.git",
+          "targetRevision": "main"
+        }
+      },
+      {
+        "deployStartedAt": "2026-07-27T03:26:33Z",
+        "deployedAt": "2026-07-27T03:28:00Z",
+        "id": 333,
+        "initiatedBy": {
+          "automated": true
+        },
+        "revision": "5d5b6c2d34bf5c96ad7165c8f0d3540117f8ad65",
+        "source": {
+          "helm": {
+            "releaseName": "techx-corp",
+            "valueFiles": [
+              "values.yaml",
+              "values-public-alb.yaml",
+              "values-prod.yaml",
+              "service-digest/values-accounting.yaml",
+              "service-digest/values-ad.yaml",
+              "service-digest/values-cart.yaml",
+              "service-digest/values-checkout.yaml",
+              "service-digest/values-currency.yaml",
+              "service-digest/values-email.yaml",
+              "service-digest/values-flagd-ui.yaml",
+              "service-digest/values-fraud-detection.yaml",
+              "service-digest/values-frontend.yaml",
+              "service-digest/values-frontend-proxy.yaml",
+              "service-digest/values-image-provider.yaml",
+              "service-digest/values-kafka.yaml",
+              "service-digest/values-llm.yaml",
+              "service-digest/values-load-generator.yaml",
+              "service-digest/values-mem0.yaml",
+              "service-digest/values-opensearch.yaml",
+              "service-digest/values-payment.yaml",
+              "service-digest/values-product-catalog.yaml",
+              "service-digest/values-product-reviews.yaml",
+              "service-digest/values-quote.yaml",
+              "service-digest/values-recommendation.yaml",
+              "service-digest/values-shipping.yaml",
+              "service-digest/values-shopping-copilot.yaml",
+              "values-aiops-long-run-1000.yaml"
+            ]
+          },
+          "path": ".",
+          "repoURL": "https://github.com/tf2-team/tf2-corp-chart.git",
+          "targetRevision": "main"
+        }
+      },
+      {
+        "deployStartedAt": "2026-07-27T04:05:42Z",
+        "deployedAt": "2026-07-27T04:07:15Z",
+        "id": 334,
+        "initiatedBy": {
+          "automated": true
+        },
+        "revision": "de6144a45764b681a597d6041dedc26ca2d72a4e",
+        "source": {
+          "helm": {
+            "releaseName": "techx-corp",
+            "valueFiles": [
+              "values.yaml",
+              "values-public-alb.yaml",
+              "values-prod.yaml",
+              "service-digest/values-accounting.yaml",
+              "service-digest/values-ad.yaml",
+              "service-digest/values-cart.yaml",
+              "service-digest/values-checkout.yaml",
+              "service-digest/values-currency.yaml",
+              "service-digest/values-email.yaml",
+              "service-digest/values-flagd-ui.yaml",
+              "service-digest/values-fraud-detection.yaml",
+              "service-digest/values-frontend.yaml",
+              "service-digest/values-frontend-proxy.yaml",
+              "service-digest/values-image-provider.yaml",
+              "service-digest/values-kafka.yaml",
+              "service-digest/values-llm.yaml",
+              "service-digest/values-load-generator.yaml",
+              "service-digest/values-mem0.yaml",
+              "service-digest/values-opensearch.yaml",
+              "service-digest/values-payment.yaml",
+              "service-digest/values-product-catalog.yaml",
+              "service-digest/values-product-reviews.yaml",
+              "service-digest/values-quote.yaml",
+              "service-digest/values-recommendation.yaml",
+              "service-digest/values-shipping.yaml",
+              "service-digest/values-shopping-copilot.yaml",
+              "values-aiops-long-run-1000.yaml"
+            ]
+          },
+          "path": ".",
+          "repoURL": "https://github.com/tf2-team/tf2-corp-chart.git",
+          "targetRevision": "main"
+        }
+      }
+    ],
+    "operationState": {
+      "finishedAt": "2026-07-27T04:07:15Z",
+      "message": "successfully synced (no more tasks)",
+      "operation": {
+        "initiatedBy": {
+          "automated": true
+        },
+        "retry": {
+          "backoff": {
+            "duration": "5s",
+            "factor": 2,
+            "maxDuration": "3m"
+          },
+          "limit": 3
+        },
+        "sync": {
+          "prune": true,
+          "revision": "de6144a45764b681a597d6041dedc26ca2d72a4e",
+          "syncOptions": [
+            "CreateNamespace=true",
+            "RespectIgnoreDifferences=true"
+          ]
+        }
+      },
+      "phase": "Succeeded",
+      "startedAt": "2026-07-27T04:05:42Z",
+      "syncResult": {
+        "resources": [
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Namespace",
+            "message": "namespace/techx-corp-prod unchanged",
+            "name": "techx-corp-prod",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "egress-proxy",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/egress-proxy unchanged",
+            "name": "egress-proxy",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/egress-proxy unchanged",
+            "name": "egress-proxy",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/egress-proxy unchanged",
+            "name": "egress-proxy",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/egress-proxy unchanged",
+            "name": "egress-proxy",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/currency unchanged",
+            "name": "currency",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/email unchanged",
+            "name": "email",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/image-provider unchanged",
+            "name": "image-provider",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/checkout unchanged",
+            "name": "checkout",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/default-deny-all-ingress unchanged",
+            "name": "default-deny-all-ingress",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/egress-proxy unchanged",
+            "name": "egress-proxy",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/frontend unchanged",
+            "name": "frontend",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/flagd unchanged",
+            "name": "flagd",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/frontend-proxy unchanged",
+            "name": "frontend-proxy",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/kube-state-metrics unchanged",
+            "name": "kube-state-metrics",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/grafana unchanged",
+            "name": "grafana",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/aiops-opensearch-retention unchanged",
+            "name": "aiops-opensearch-retention",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/ad unchanged",
+            "name": "ad",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/jaeger unchanged",
+            "name": "jaeger",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/cart unchanged",
+            "name": "cart",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/allow-linkerd-mesh unchanged",
+            "name": "allow-linkerd-mesh",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/allow-to-otel-collector unchanged",
+            "name": "allow-to-otel-collector",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/allow-dns-egress unchanged",
+            "name": "allow-dns-egress",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/accounting configured",
+            "name": "accounting",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/fraud-detection configured",
+            "name": "fraud-detection",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/llm unchanged",
+            "name": "llm",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/load-generator unchanged",
+            "name": "load-generator",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/metrics-server unchanged",
+            "name": "metrics-server",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/otel-collector-egress unchanged",
+            "name": "otel-collector-egress",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/payment unchanged",
+            "name": "payment",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/product-catalog unchanged",
+            "name": "product-catalog",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/product-reviews unchanged",
+            "name": "product-reviews",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/prometheus unchanged",
+            "name": "prometheus",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/prometheus-adapter unchanged",
+            "name": "prometheus-adapter",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/quote unchanged",
+            "name": "quote",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/recommendation unchanged",
+            "name": "recommendation",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/runtime-hardening-inventory unchanged",
+            "name": "runtime-hardening-inventory",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/shipping unchanged",
+            "name": "shipping",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/shopping-copilot unchanged",
+            "name": "shopping-copilot",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/yace unchanged",
+            "name": "yace",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/load-generator-worker configured",
+            "name": "load-generator-worker",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "NetworkPolicy",
+            "message": "networkpolicy.networking.k8s.io/opensearch configured",
+            "name": "opensearch",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "ad",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "cart",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "currency",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "email",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "frontend",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "frontend-proxy",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "image-provider",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "load-generator-worker",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "payment",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "product-catalog",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "product-reviews",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "quote",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "recommendation",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "shipping",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "checkout",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "policy",
+            "hookPhase": "Succeeded",
+            "kind": "PodDisruptionBudget",
+            "message": "PodDisruptionBudget has SufficientPods",
+            "name": "shopping-copilot",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/accounting unchanged",
+            "name": "accounting",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/ad unchanged",
+            "name": "ad",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/fraud-detection unchanged",
+            "name": "fraud-detection",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/cart unchanged",
+            "name": "cart",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/currency unchanged",
+            "name": "currency",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/email unchanged",
+            "name": "email",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/checkout unchanged",
+            "name": "checkout",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/load-generator unchanged",
+            "name": "load-generator",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/load-generator-worker unchanged",
+            "name": "load-generator-worker",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/product-catalog unchanged",
+            "name": "product-catalog",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/opensearch unchanged",
+            "name": "opensearch",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/recommendation unchanged",
+            "name": "recommendation",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/otel-collector unchanged",
+            "name": "otel-collector",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/frontend unchanged",
+            "name": "frontend",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/product-reviews unchanged",
+            "name": "product-reviews",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/grafana unchanged",
+            "name": "grafana",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/jaeger unchanged",
+            "name": "jaeger",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/llm unchanged",
+            "name": "llm",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/prometheus-adapter unchanged",
+            "name": "prometheus-adapter",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/frontend-proxy unchanged",
+            "name": "frontend-proxy",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/image-provider unchanged",
+            "name": "image-provider",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/yace unchanged",
+            "name": "yace",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/quote unchanged",
+            "name": "quote",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/runtime-hardening-inventory unchanged",
+            "name": "runtime-hardening-inventory",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/shipping unchanged",
+            "name": "shipping",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/payment unchanged",
+            "name": "payment",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/shopping-copilot unchanged",
+            "name": "shopping-copilot",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/techx-corp unchanged",
+            "name": "techx-corp",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/flagd unchanged",
+            "name": "flagd",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/prometheus unchanged",
+            "name": "prometheus",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/metrics-server unchanged",
+            "name": "metrics-server",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ServiceAccount",
+            "message": "serviceaccount/techx-corp-kube-state-metrics unchanged",
+            "name": "techx-corp-kube-state-metrics",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-service-efficiency-cost unchanged",
+            "name": "grafana-dashboard-service-efficiency-cost",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/aiops-opensearch-retention unchanged",
+            "name": "aiops-opensearch-retention",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana unchanged",
+            "name": "grafana",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/flagd-config unchanged",
+            "name": "flagd-config",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-webstore-performance unchanged",
+            "name": "grafana-dashboard-webstore-performance",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-alerting unchanged",
+            "name": "grafana-alerting",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-spanmetrics-dashboard unchanged",
+            "name": "grafana-dashboard-spanmetrics-dashboard",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-config-dashboards unchanged",
+            "name": "grafana-config-dashboards",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-apm-dashboard unchanged",
+            "name": "grafana-dashboard-apm-dashboard",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-demo-dashboard unchanged",
+            "name": "grafana-dashboard-demo-dashboard",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-directive-03-maintenance-slo unchanged",
+            "name": "grafana-dashboard-directive-03-maintenance-slo",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-directive-16-latency-efficiency unchanged",
+            "name": "grafana-dashboard-directive-16-latency-efficiency",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-postgresql-dashboard unchanged",
+            "name": "grafana-dashboard-postgresql-dashboard",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-per-pod-distribution unchanged",
+            "name": "grafana-dashboard-per-pod-distribution",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/prometheus unchanged",
+            "name": "prometheus",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/otel-collector-agent unchanged",
+            "name": "otel-collector-agent",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/prometheus-adapter unchanged",
+            "name": "prometheus-adapter",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-exemplars-dashboard unchanged",
+            "name": "grafana-dashboard-exemplars-dashboard",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-finops-cur-cost-overview unchanged",
+            "name": "grafana-dashboard-finops-cur-cost-overview",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-k8s-pod-troubleshooting unchanged",
+            "name": "grafana-dashboard-k8s-pod-troubleshooting",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-linux-dashboard unchanged",
+            "name": "grafana-dashboard-linux-dashboard",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-datasources unchanged",
+            "name": "grafana-datasources",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-mandate11-time-to-detect unchanged",
+            "name": "grafana-dashboard-mandate11-time-to-detect",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/runtime-hardening-inventory unchanged",
+            "name": "runtime-hardening-inventory",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-nginx-metrics unchanged",
+            "name": "grafana-dashboard-nginx-metrics",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/user-config unchanged",
+            "name": "user-config",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/grafana-dashboard-opentelemetry-collector unchanged",
+            "name": "grafana-dashboard-opentelemetry-collector",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "ConfigMap",
+            "message": "configmap/yace-yace-config unchanged",
+            "name": "yace-yace-config",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "storage.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "StorageClass",
+            "message": "storageclass.storage.k8s.io/gp3-encrypted-m20 unchanged",
+            "name": "gp3-encrypted-m20",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "storage.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "StorageClass",
+            "message": "storageclass.storage.k8s.io/gp3-encrypted unchanged",
+            "name": "gp3-encrypted",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "PersistentVolumeClaim",
+            "message": "persistentvolumeclaim/grafana unchanged",
+            "name": "grafana",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "PersistentVolumeClaim",
+            "message": "persistentvolumeclaim/prometheus unchanged",
+            "name": "prometheus",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRole",
+            "message": "clusterrole.rbac.authorization.k8s.io/grafana-clusterrole reconciled. clusterrole.rbac.authorization.k8s.io/grafana-clusterrole unchanged",
+            "name": "grafana-clusterrole",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRole",
+            "message": "clusterrole.rbac.authorization.k8s.io/prometheus-adapter-external-metrics reconciled. clusterrole.rbac.authorization.k8s.io/prometheus-adapter-external-metrics unchanged",
+            "name": "prometheus-adapter-external-metrics",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRole",
+            "message": "clusterrole.rbac.authorization.k8s.io/system:metrics-server reconciled. clusterrole.rbac.authorization.k8s.io/system:metrics-server unchanged",
+            "name": "system:metrics-server",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRole",
+            "message": "clusterrole.rbac.authorization.k8s.io/prometheus reconciled. clusterrole.rbac.authorization.k8s.io/prometheus unchanged",
+            "name": "prometheus",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRole",
+            "message": "clusterrole.rbac.authorization.k8s.io/system:metrics-server-aggregated-reader reconciled. clusterrole.rbac.authorization.k8s.io/system:metrics-server-aggregated-reader unchanged",
+            "name": "system:metrics-server-aggregated-reader",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRole",
+            "message": "clusterrole.rbac.authorization.k8s.io/prometheus-adapter-resource-reader reconciled. clusterrole.rbac.authorization.k8s.io/prometheus-adapter-resource-reader unchanged",
+            "name": "prometheus-adapter-resource-reader",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRole",
+            "message": "clusterrole.rbac.authorization.k8s.io/otel-collector reconciled. clusterrole.rbac.authorization.k8s.io/otel-collector unchanged",
+            "name": "otel-collector",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRole",
+            "message": "clusterrole.rbac.authorization.k8s.io/techx-corp-kube-state-metrics reconciled. clusterrole.rbac.authorization.k8s.io/techx-corp-kube-state-metrics unchanged",
+            "name": "techx-corp-kube-state-metrics",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRole",
+            "message": "clusterrole.rbac.authorization.k8s.io/techx-corp-runtime-hardening-inventory reconciled. clusterrole.rbac.authorization.k8s.io/techx-corp-runtime-hardening-inventory unchanged",
+            "name": "techx-corp-runtime-hardening-inventory",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRoleBinding",
+            "message": "clusterrolebinding.rbac.authorization.k8s.io/metrics-server:system:auth-delegator reconciled. clusterrolebinding.rbac.authorization.k8s.io/metrics-server:system:auth-delegator unchanged",
+            "name": "metrics-server:system:auth-delegator",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRoleBinding",
+            "message": "clusterrolebinding.rbac.authorization.k8s.io/grafana-clusterrolebinding reconciled. clusterrolebinding.rbac.authorization.k8s.io/grafana-clusterrolebinding unchanged",
+            "name": "grafana-clusterrolebinding",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRoleBinding",
+            "message": "clusterrolebinding.rbac.authorization.k8s.io/otel-collector reconciled. clusterrolebinding.rbac.authorization.k8s.io/otel-collector unchanged",
+            "name": "otel-collector",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRoleBinding",
+            "message": "clusterrolebinding.rbac.authorization.k8s.io/techx-corp-runtime-hardening-inventory reconciled. clusterrolebinding.rbac.authorization.k8s.io/techx-corp-runtime-hardening-inventory unchanged",
+            "name": "techx-corp-runtime-hardening-inventory",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRoleBinding",
+            "message": "clusterrolebinding.rbac.authorization.k8s.io/prometheus reconciled. clusterrolebinding.rbac.authorization.k8s.io/prometheus unchanged",
+            "name": "prometheus",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRoleBinding",
+            "message": "clusterrolebinding.rbac.authorization.k8s.io/prometheus-adapter-resource-reader reconciled. clusterrolebinding.rbac.authorization.k8s.io/prometheus-adapter-resource-reader unchanged",
+            "name": "prometheus-adapter-resource-reader",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRoleBinding",
+            "message": "clusterrolebinding.rbac.authorization.k8s.io/prometheus-adapter-system-auth-delegator reconciled. clusterrolebinding.rbac.authorization.k8s.io/prometheus-adapter-system-auth-delegator unchanged",
+            "name": "prometheus-adapter-system-auth-delegator",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRoleBinding",
+            "message": "clusterrolebinding.rbac.authorization.k8s.io/system:metrics-server reconciled. clusterrolebinding.rbac.authorization.k8s.io/system:metrics-server unchanged",
+            "name": "system:metrics-server",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRoleBinding",
+            "message": "clusterrolebinding.rbac.authorization.k8s.io/prometheus-adapter-hpa-controller-external-metrics reconciled. clusterrolebinding.rbac.authorization.k8s.io/prometheus-adapter-hpa-controller-external-metrics unchanged",
+            "name": "prometheus-adapter-hpa-controller-external-metrics",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "ClusterRoleBinding",
+            "message": "clusterrolebinding.rbac.authorization.k8s.io/techx-corp-kube-state-metrics reconciled. clusterrolebinding.rbac.authorization.k8s.io/techx-corp-kube-state-metrics unchanged",
+            "name": "techx-corp-kube-state-metrics",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "Role",
+            "message": "role.rbac.authorization.k8s.io/grafana reconciled. role.rbac.authorization.k8s.io/grafana configured",
+            "name": "grafana",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "RoleBinding",
+            "message": "rolebinding.rbac.authorization.k8s.io/grafana reconciled. rolebinding.rbac.authorization.k8s.io/grafana unchanged",
+            "name": "grafana",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "RoleBinding",
+            "message": "rolebinding.rbac.authorization.k8s.io/metrics-server-auth-reader reconciled. rolebinding.rbac.authorization.k8s.io/metrics-server-auth-reader unchanged",
+            "name": "metrics-server-auth-reader",
+            "namespace": "kube-system",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "RoleBinding",
+            "message": "rolebinding.rbac.authorization.k8s.io/prometheus-adapter-auth-reader reconciled. rolebinding.rbac.authorization.k8s.io/prometheus-adapter-auth-reader unchanged",
+            "name": "prometheus-adapter-auth-reader",
+            "namespace": "kube-system",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/email unchanged",
+            "name": "email",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/opensearch unchanged",
+            "name": "opensearch",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/product-catalog unchanged",
+            "name": "product-catalog",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/otel-collector unchanged",
+            "name": "otel-collector",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/product-reviews unchanged",
+            "name": "product-reviews",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/prometheus unchanged",
+            "name": "prometheus",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/ad unchanged",
+            "name": "ad",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/cart unchanged",
+            "name": "cart",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/checkout unchanged",
+            "name": "checkout",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/currency unchanged",
+            "name": "currency",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/flagd unchanged",
+            "name": "flagd",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/image-provider unchanged",
+            "name": "image-provider",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/metrics-server unchanged",
+            "name": "metrics-server",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/grafana unchanged",
+            "name": "grafana",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/payment unchanged",
+            "name": "payment",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/yace unchanged",
+            "name": "yace",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/frontend-proxy unchanged",
+            "name": "frontend-proxy",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/shipping unchanged",
+            "name": "shipping",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/shopping-copilot unchanged",
+            "name": "shopping-copilot",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/frontend unchanged",
+            "name": "frontend",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/jaeger unchanged",
+            "name": "jaeger",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/llm unchanged",
+            "name": "llm",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/load-generator unchanged",
+            "name": "load-generator",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/quote unchanged",
+            "name": "quote",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/recommendation unchanged",
+            "name": "recommendation",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/techx-corp-kube-state-metrics unchanged",
+            "name": "techx-corp-kube-state-metrics",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "",
+            "hookPhase": "Succeeded",
+            "kind": "Service",
+            "message": "service/prometheus-adapter unchanged",
+            "name": "prometheus-adapter",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "DaemonSet",
+            "message": "daemonset.apps/otel-collector-agent configured",
+            "name": "otel-collector-agent",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/jaeger unchanged",
+            "name": "jaeger",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/load-generator unchanged",
+            "name": "load-generator",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/image-provider unchanged",
+            "name": "image-provider",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/llm configured",
+            "name": "llm",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/load-generator-worker unchanged",
+            "name": "load-generator-worker",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/payment unchanged",
+            "name": "payment",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/accounting unchanged",
+            "name": "accounting",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/ad unchanged",
+            "name": "ad",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/cart unchanged",
+            "name": "cart",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/email unchanged",
+            "name": "email",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/frontend-proxy unchanged",
+            "name": "frontend-proxy",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/fraud-detection unchanged",
+            "name": "fraud-detection",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/grafana unchanged",
+            "name": "grafana",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/frontend unchanged",
+            "name": "frontend",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/metrics-server configured",
+            "name": "metrics-server",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/product-catalog configured",
+            "name": "product-catalog",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/checkout configured",
+            "name": "checkout",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/currency configured",
+            "name": "currency",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/flagd configured",
+            "name": "flagd",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/prometheus-adapter configured",
+            "name": "prometheus-adapter",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/prometheus configured",
+            "name": "prometheus",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/product-reviews configured",
+            "name": "product-reviews",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/shipping configured",
+            "name": "shipping",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/quote unchanged",
+            "name": "quote",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/recommendation unchanged",
+            "name": "recommendation",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/yace unchanged",
+            "name": "yace",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/shopping-copilot configured",
+            "name": "shopping-copilot",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "Deployment",
+            "message": "deployment.apps/techx-corp-kube-state-metrics configured",
+            "name": "techx-corp-kube-state-metrics",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "autoscaling",
+            "hookPhase": "Succeeded",
+            "kind": "HorizontalPodAutoscaler",
+            "message": "recommended size matches current size",
+            "name": "cart",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v2"
+          },
+          {
+            "group": "autoscaling",
+            "hookPhase": "Succeeded",
+            "kind": "HorizontalPodAutoscaler",
+            "message": "recommended size matches current size",
+            "name": "checkout",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v2"
+          },
+          {
+            "group": "autoscaling",
+            "hookPhase": "Succeeded",
+            "kind": "HorizontalPodAutoscaler",
+            "message": "recommended size matches current size",
+            "name": "currency",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v2"
+          },
+          {
+            "group": "autoscaling",
+            "hookPhase": "Succeeded",
+            "kind": "HorizontalPodAutoscaler",
+            "message": "recommended size matches current size",
+            "name": "frontend-proxy",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v2"
+          },
+          {
+            "group": "autoscaling",
+            "hookPhase": "Succeeded",
+            "kind": "HorizontalPodAutoscaler",
+            "message": "recommended size matches current size",
+            "name": "product-catalog",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v2"
+          },
+          {
+            "group": "autoscaling",
+            "hookPhase": "Succeeded",
+            "kind": "HorizontalPodAutoscaler",
+            "message": "recommended size matches current size",
+            "name": "quote",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v2"
+          },
+          {
+            "group": "autoscaling",
+            "hookPhase": "Succeeded",
+            "kind": "HorizontalPodAutoscaler",
+            "message": "recommended size matches current size",
+            "name": "recommendation",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v2"
+          },
+          {
+            "group": "autoscaling",
+            "hookPhase": "Succeeded",
+            "kind": "HorizontalPodAutoscaler",
+            "message": "recommended size matches current size",
+            "name": "shipping",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v2"
+          },
+          {
+            "group": "autoscaling",
+            "hookPhase": "Succeeded",
+            "kind": "HorizontalPodAutoscaler",
+            "message": "recent recommendations were higher than current one, applying the highest recent recommendation",
+            "name": "frontend",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v2"
+          },
+          {
+            "group": "autoscaling",
+            "hookPhase": "Succeeded",
+            "kind": "HorizontalPodAutoscaler",
+            "message": "recommended size matches current size",
+            "name": "product-reviews",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v2"
+          },
+          {
+            "group": "apps",
+            "hookPhase": "Succeeded",
+            "kind": "StatefulSet",
+            "message": "partitioned roll out complete: 1 new pods have been updated...",
+            "name": "opensearch",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "batch",
+            "hookPhase": "Succeeded",
+            "kind": "CronJob",
+            "message": "cronjob.batch/aiops-opensearch-retention unchanged",
+            "name": "aiops-opensearch-retention",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "batch",
+            "hookPhase": "Succeeded",
+            "kind": "CronJob",
+            "message": "cronjob.batch/runtime-hardening-inventory unchanged",
+            "name": "runtime-hardening-inventory",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "Ingress",
+            "message": "ingress.networking.k8s.io/frontend-proxy-public unchanged",
+            "name": "frontend-proxy-public",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apiregistration.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "APIService",
+            "message": "Passed: all checks passed",
+            "name": "v1beta1.external.metrics.k8s.io",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "apiregistration.k8s.io",
+            "hookPhase": "Succeeded",
+            "kind": "APIService",
+            "message": "Passed: all checks passed",
+            "name": "v1beta1.metrics.k8s.io",
+            "namespace": "techx-corp-prod",
+            "status": "Synced",
+            "syncPhase": "Sync",
+            "version": "v1"
+          },
+          {
+            "group": "batch",
+            "hookPhase": "Succeeded",
+            "hookType": "PostSync",
+            "kind": "Job",
+            "message": "Reached expected number of succeeded pods",
+            "name": "aiops-opensearch-retention-bootstrap",
+            "namespace": "techx-corp-prod",
+            "syncPhase": "PostSync",
+            "version": "v1"
+          }
+        ],
+        "revision": "de6144a45764b681a597d6041dedc26ca2d72a4e",
+        "source": {
+          "helm": {
+            "releaseName": "techx-corp",
+            "valueFiles": [
+              "values.yaml",
+              "values-public-alb.yaml",
+              "values-prod.yaml",
+              "service-digest/values-accounting.yaml",
+              "service-digest/values-ad.yaml",
+              "service-digest/values-cart.yaml",
+              "service-digest/values-checkout.yaml",
+              "service-digest/values-currency.yaml",
+              "service-digest/values-email.yaml",
+              "service-digest/values-flagd-ui.yaml",
+              "service-digest/values-fraud-detection.yaml",
+              "service-digest/values-frontend.yaml",
+              "service-digest/values-frontend-proxy.yaml",
+              "service-digest/values-image-provider.yaml",
+              "service-digest/values-kafka.yaml",
+              "service-digest/values-llm.yaml",
+              "service-digest/values-load-generator.yaml",
+              "service-digest/values-mem0.yaml",
+              "service-digest/values-opensearch.yaml",
+              "service-digest/values-payment.yaml",
+              "service-digest/values-product-catalog.yaml",
+              "service-digest/values-product-reviews.yaml",
+              "service-digest/values-quote.yaml",
+              "service-digest/values-recommendation.yaml",
+              "service-digest/values-shipping.yaml",
+              "service-digest/values-shopping-copilot.yaml",
+              "values-aiops-long-run-1000.yaml"
+            ]
+          },
+          "path": ".",
+          "repoURL": "https://github.com/tf2-team/tf2-corp-chart.git",
+          "targetRevision": "main"
+        }
+      }
+    },
+    "reconciledAt": "2026-07-27T04:53:43Z",
+    "resources": [
+      {
+        "kind": "ConfigMap",
+        "name": "aiops-opensearch-retention",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "egress-proxy",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "syncWave": -1,
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "flagd-config",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-alerting",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-config-dashboards",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-apm-dashboard",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-demo-dashboard",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-directive-03-maintenance-slo",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-directive-16-latency-efficiency",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-exemplars-dashboard",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-finops-cur-cost-overview",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-k8s-pod-troubleshooting",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-linux-dashboard",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-mandate11-time-to-detect",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-nginx-metrics",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-opentelemetry-collector",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-per-pod-distribution",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-postgresql-dashboard",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-service-efficiency-cost",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-spanmetrics-dashboard",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-dashboard-webstore-performance",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "grafana-datasources",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "otel-collector-agent",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "prometheus",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "prometheus-adapter",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "runtime-hardening-inventory",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "user-config",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ConfigMap",
+        "name": "yace-yace-config",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "Namespace",
+        "name": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "PersistentVolumeClaim",
+        "name": "grafana",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "PersistentVolumeClaim",
+        "name": "prometheus",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "ad",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "cart",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "checkout",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "currency",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "egress-proxy",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "syncWave": -1,
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "email",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "flagd",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "frontend",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "frontend-proxy",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "grafana",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "image-provider",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "jaeger",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "llm",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "load-generator",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "metrics-server",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "opensearch",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "otel-collector",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "payment",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "product-catalog",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "product-reviews",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "prometheus",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "prometheus-adapter",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "quote",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "recommendation",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "shipping",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "shopping-copilot",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "techx-corp-kube-state-metrics",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Service",
+        "name": "yace",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "accounting",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "ad",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "cart",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "checkout",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "currency",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "egress-proxy",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "syncWave": -1,
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "email",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "flagd",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "fraud-detection",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "frontend",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "frontend-proxy",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "grafana",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "image-provider",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "jaeger",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "llm",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "load-generator",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "load-generator-worker",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "metrics-server",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "opensearch",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "otel-collector",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "payment",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "product-catalog",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "product-reviews",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "prometheus",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "prometheus-adapter",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "quote",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "recommendation",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "runtime-hardening-inventory",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "shipping",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "shopping-copilot",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "techx-corp",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "techx-corp-kube-state-metrics",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "kind": "ServiceAccount",
+        "name": "yace",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apiregistration.k8s.io",
+        "health": {
+          "message": "Passed: all checks passed",
+          "status": "Healthy"
+        },
+        "kind": "APIService",
+        "name": "v1beta1.external.metrics.k8s.io",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apiregistration.k8s.io",
+        "health": {
+          "message": "Passed: all checks passed",
+          "status": "Healthy"
+        },
+        "kind": "APIService",
+        "name": "v1beta1.metrics.k8s.io",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "DaemonSet",
+        "name": "otel-collector-agent",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "accounting",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "ad",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "cart",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "checkout",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "currency",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "egress-proxy",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "syncWave": -1,
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "email",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "flagd",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "fraud-detection",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "frontend",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "frontend-proxy",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "grafana",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "image-provider",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "jaeger",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "llm",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "load-generator",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "load-generator-worker",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "metrics-server",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "payment",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "product-catalog",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "product-reviews",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "prometheus",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "prometheus-adapter",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "quote",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "recommendation",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "shipping",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "shopping-copilot",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "techx-corp-kube-state-metrics",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Deployment",
+        "name": "yace",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "apps",
+        "health": {
+          "message": "partitioned roll out complete: 1 new pods have been updated...",
+          "status": "Healthy"
+        },
+        "kind": "StatefulSet",
+        "name": "opensearch",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "autoscaling",
+        "health": {
+          "message": "recommended size matches current size",
+          "status": "Healthy"
+        },
+        "kind": "HorizontalPodAutoscaler",
+        "name": "cart",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v2"
+      },
+      {
+        "group": "autoscaling",
+        "health": {
+          "message": "recommended size matches current size",
+          "status": "Healthy"
+        },
+        "kind": "HorizontalPodAutoscaler",
+        "name": "checkout",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v2"
+      },
+      {
+        "group": "autoscaling",
+        "health": {
+          "message": "recommended size matches current size",
+          "status": "Healthy"
+        },
+        "kind": "HorizontalPodAutoscaler",
+        "name": "currency",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v2"
+      },
+      {
+        "group": "autoscaling",
+        "health": {
+          "message": "recommended size matches current size",
+          "status": "Healthy"
+        },
+        "kind": "HorizontalPodAutoscaler",
+        "name": "frontend",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v2"
+      },
+      {
+        "group": "autoscaling",
+        "health": {
+          "message": "recommended size matches current size",
+          "status": "Healthy"
+        },
+        "kind": "HorizontalPodAutoscaler",
+        "name": "frontend-proxy",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v2"
+      },
+      {
+        "group": "autoscaling",
+        "health": {
+          "message": "recommended size matches current size",
+          "status": "Healthy"
+        },
+        "kind": "HorizontalPodAutoscaler",
+        "name": "product-catalog",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v2"
+      },
+      {
+        "group": "autoscaling",
+        "health": {
+          "message": "recommended size matches current size",
+          "status": "Healthy"
+        },
+        "kind": "HorizontalPodAutoscaler",
+        "name": "product-reviews",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v2"
+      },
+      {
+        "group": "autoscaling",
+        "health": {
+          "message": "recommended size matches current size",
+          "status": "Healthy"
+        },
+        "kind": "HorizontalPodAutoscaler",
+        "name": "quote",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v2"
+      },
+      {
+        "group": "autoscaling",
+        "health": {
+          "message": "recommended size matches current size",
+          "status": "Healthy"
+        },
+        "kind": "HorizontalPodAutoscaler",
+        "name": "recommendation",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v2"
+      },
+      {
+        "group": "autoscaling",
+        "health": {
+          "message": "recommended size matches current size",
+          "status": "Healthy"
+        },
+        "kind": "HorizontalPodAutoscaler",
+        "name": "shipping",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v2"
+      },
+      {
+        "group": "batch",
+        "kind": "CronJob",
+        "name": "aiops-opensearch-retention",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "batch",
+        "kind": "CronJob",
+        "name": "runtime-hardening-inventory",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "health": {
+          "status": "Healthy"
+        },
+        "kind": "Ingress",
+        "name": "frontend-proxy-public",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "accounting",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "ad",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "aiops-opensearch-retention",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "allow-dns-egress",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "allow-linkerd-mesh",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "allow-to-otel-collector",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "cart",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "checkout",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "currency",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "default-deny-all-ingress",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "egress-proxy",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "email",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "flagd",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "fraud-detection",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "frontend",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "frontend-proxy",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "grafana",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "image-provider",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "jaeger",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "kube-state-metrics",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "llm",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "load-generator",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "load-generator-worker",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "metrics-server",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "opensearch",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "otel-collector-egress",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "payment",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "product-catalog",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "product-reviews",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "prometheus",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "prometheus-adapter",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "quote",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "recommendation",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "runtime-hardening-inventory",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "shipping",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "shopping-copilot",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "networking.k8s.io",
+        "kind": "NetworkPolicy",
+        "name": "yace",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "ad",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "cart",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "checkout",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "currency",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "egress-proxy",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "syncWave": -1,
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "email",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "frontend",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "frontend-proxy",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "image-provider",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "load-generator-worker",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "payment",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "product-catalog",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "product-reviews",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "quote",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "recommendation",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "shipping",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "policy",
+        "health": {
+          "message": "PodDisruptionBudget has SufficientPods",
+          "status": "Healthy"
+        },
+        "kind": "PodDisruptionBudget",
+        "name": "shopping-copilot",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "grafana-clusterrole",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "otel-collector",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "prometheus",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "prometheus-adapter-external-metrics",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "prometheus-adapter-resource-reader",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "system:metrics-server",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "system:metrics-server-aggregated-reader",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "techx-corp-kube-state-metrics",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "techx-corp-runtime-hardening-inventory",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRoleBinding",
+        "name": "grafana-clusterrolebinding",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRoleBinding",
+        "name": "metrics-server:system:auth-delegator",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRoleBinding",
+        "name": "otel-collector",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRoleBinding",
+        "name": "prometheus",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRoleBinding",
+        "name": "prometheus-adapter-hpa-controller-external-metrics",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRoleBinding",
+        "name": "prometheus-adapter-resource-reader",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRoleBinding",
+        "name": "prometheus-adapter-system-auth-delegator",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRoleBinding",
+        "name": "system:metrics-server",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRoleBinding",
+        "name": "techx-corp-kube-state-metrics",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "ClusterRoleBinding",
+        "name": "techx-corp-runtime-hardening-inventory",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "grafana",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "RoleBinding",
+        "name": "metrics-server-auth-reader",
+        "namespace": "kube-system",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "RoleBinding",
+        "name": "prometheus-adapter-auth-reader",
+        "namespace": "kube-system",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "rbac.authorization.k8s.io",
+        "kind": "RoleBinding",
+        "name": "grafana",
+        "namespace": "techx-corp-prod",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "storage.k8s.io",
+        "kind": "StorageClass",
+        "name": "gp3-encrypted",
+        "status": "Synced",
+        "version": "v1"
+      },
+      {
+        "group": "storage.k8s.io",
+        "kind": "StorageClass",
+        "name": "gp3-encrypted-m20",
+        "status": "Synced",
+        "version": "v1"
+      }
+    ],
+    "sourceHydrator": {},
+    "sourceType": "Helm",
+    "summary": {
+      "externalURLs": [
+        "http://internal-k8s-techxcor-frontend-ae4ef3a99c-646743387.us-east-1.elb.amazonaws.com/"
+      ],
+      "images": [
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/accounting@sha256:2120bd0c4244f9768042fae69093c28c33f515baa7c4b181291db55fbb6cc7bd",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/ad@sha256:c8a86a6537dfc43e36a501c4ac303446c3ad272f4d93fd1bf26e1335fd68bcec",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/cart@sha256:a9b8551b4d02f5c70630d10acea6e3ccd7672340aee18010a8a4eb74f1404b92",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/checkout@sha256:56c7aa6649914513782e7197a1fe0ba1ef6fd243435e5682cb0fca59e6b83c27",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/currency@sha256:ebb17c69b82853e153d22673b8c11665e4fc900f7a7fc951bac0a2d65a45c488",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/email@sha256:249fe5f2bae8000ded5f8c349a3eca54ffbe2b50de3701a5164065b43a5d82a3",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/flagd-ui@sha256:0f8f19f5580bcdba4056cafeb1b3b8693d573084223d614706b3841774cae7bd",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/fraud-detection@sha256:1c78d03436a02d5a23c1536f56b55572aac52d52a625a7f772a2a385b7888812",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/frontend-proxy@sha256:b85bec27152a781e809544aa3c5946c9704ac567fbe59233995d526c47c65b5a",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/frontend@sha256:cb59fc30d4a6019b9843e8db29e56c1c789974b34b282816401d4b6395c25ae3",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/image-provider@sha256:a64e13213db22b47d92a8471666421c2aa67821e7254349c26ba8a9bdf9a5957",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/llm@sha256:ebf05a84f904b3af1daa9fc6cb52d78192a43fb8a3bf499a59ac8e7706c1e29e",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/load-generator@sha256:8ad157efa2bc8fcfce313a0067ca9f993860d3b6e710576e6e9d0d78b5f2cc24",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/opensearch@sha256:b8b1ffc68694743b832b01cc2728a0132e8327075160709e043f004029a13edd",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/payment@sha256:3d9bbc517ce35186eda40f3cbe138f5b3d2ec2997b1a31f7500febb695deb60d",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/product-catalog@sha256:03030f075600310dcd9e363ab2c73f8920ba578485b6c588d99ac417d96fb485",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/product-reviews@sha256:41fa82557e31fc09d3aecc80c13e11042aeaffa9994d24206e356d3667944303",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/quote@sha256:747c40341003aebe927d06a3876f8cd9477d8a1f948a6de119bdc3171ee71fca",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/recommendation@sha256:55f28f88192a8c40d8702d9eac3cbb67ec11dc82248cd2ed813d7ac68abb359d",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/shipping@sha256:c93d219007ffb22e43ba4edab863b76990e3d0ddfe34ef042778353a9f1ca699",
+        "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/shopping-copilot@sha256:0b4054b5406d68042547b07e73c795a3324e7a35561ef4e2a08aaa150bc23d79",
+        "busybox:1.37.0",
+        "cr.l5d.io/linkerd/proxy-init:v2.2.3",
+        "cr.l5d.io/linkerd/proxy:edge-26.7.2",
+        "cr.l5d.io/linkerd/proxy:stable-2.14.10",
+        "docker.io/grafana/grafana:13.0.1",
+        "envoyproxy/envoy@sha256:a7a56545102f7a682e0cafea2c9b8448af1b09ebb710eab688dfb931e3ec7ff6",
+        "ghcr.io/open-feature/flagd:v0.15.0",
+        "jaegertracing/jaeger:2.17.0",
+        "otel/opentelemetry-collector-contrib:0.151.0",
+        "public.ecr.aws/aws-cli/aws-cli:2.27.49",
+        "public.ecr.aws/docker/library/python:3.13.5-alpine3.22",
+        "quay.io/kiwigrid/k8s-sidecar:2.7.1",
+        "quay.io/prometheus-operator/prometheus-config-reloader:v0.91.0",
+        "quay.io/prometheus/prometheus:v3.11.3",
+        "quay.io/prometheuscommunity/yet-another-cloudwatch-exporter@sha256:404791bf0b2f6efc0773f1cb65f314e6205cac3521064ce1b9d640f5bb268cfb",
+        "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.18.0",
+        "registry.k8s.io/metrics-server/metrics-server:v0.8.1",
+        "registry.k8s.io/prometheus-adapter/prometheus-adapter:v0.12.0"
+      ]
+    },
+    "sync": {
+      "comparedTo": {
+        "destination": {
+          "namespace": "techx-corp-prod",
+          "server": "https://kubernetes.default.svc"
+        },
+        "ignoreDifferences": [
+          {
+            "jsonPointers": ["/spec/volumeName"],
+            "kind": "PersistentVolumeClaim"
+          }
+        ],
+        "source": {
+          "helm": {
+            "releaseName": "techx-corp",
+            "valueFiles": [
+              "values.yaml",
+              "values-public-alb.yaml",
+              "values-prod.yaml",
+              "service-digest/values-accounting.yaml",
+              "service-digest/values-ad.yaml",
+              "service-digest/values-cart.yaml",
+              "service-digest/values-checkout.yaml",
+              "service-digest/values-currency.yaml",
+              "service-digest/values-email.yaml",
+              "service-digest/values-flagd-ui.yaml",
+              "service-digest/values-fraud-detection.yaml",
+              "service-digest/values-frontend.yaml",
+              "service-digest/values-frontend-proxy.yaml",
+              "service-digest/values-image-provider.yaml",
+              "service-digest/values-kafka.yaml",
+              "service-digest/values-llm.yaml",
+              "service-digest/values-load-generator.yaml",
+              "service-digest/values-mem0.yaml",
+              "service-digest/values-opensearch.yaml",
+              "service-digest/values-payment.yaml",
+              "service-digest/values-product-catalog.yaml",
+              "service-digest/values-product-reviews.yaml",
+              "service-digest/values-quote.yaml",
+              "service-digest/values-recommendation.yaml",
+              "service-digest/values-shipping.yaml",
+              "service-digest/values-shopping-copilot.yaml",
+              "values-aiops-long-run-1000.yaml"
+            ]
+          },
+          "path": ".",
+          "repoURL": "https://github.com/tf2-team/tf2-corp-chart.git",
+          "targetRevision": "main"
+        }
+      },
+      "revision": "de6144a45764b681a597d6041dedc26ca2d72a4e",
+      "status": "Synced"
+    }
+  }
+}

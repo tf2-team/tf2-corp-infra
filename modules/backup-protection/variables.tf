@@ -15,6 +15,18 @@ variable "attach_group_names" {
   description = "IAM group names that receive the deny-destructive-backup policy (day-to-day operators with shared group permissions)."
 }
 
+variable "protected_kms_key_arns" {
+  type        = list(string)
+  default     = []
+  description = "Exact backup KMS key ARNs that day-to-day operators must not disable, schedule for deletion, or re-policy."
+}
+
+variable "protected_state_object_arns" {
+  type        = list(string)
+  default     = []
+  description = "Exact Terraform state object ARNs whose historical versions day-to-day operators must not delete."
+}
+
 variable "tags" {
   type        = map(string)
   default     = {}

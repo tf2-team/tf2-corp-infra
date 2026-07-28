@@ -683,6 +683,7 @@ data "aws_iam_policy_document" "immutable_audit_alert_sns_kms" {
     ]
     resources = ["*"]
   }
+
 }
 
 resource "aws_kms_key" "immutable_audit_alert_sns" {
@@ -1034,6 +1035,9 @@ module "vpc" {
   private_subnets  = var.private_subnets
   nat_gateways     = var.nat_gateways
   eks_cluster_name = var.cluster_name
+
+  flow_logs_enabled           = var.vpc_flow_logs_enabled
+  flow_logs_retention_in_days = var.vpc_flow_logs_retention_in_days
 }
 
 # Resolve subnet_keys → subnet IDs from VPC (one NG per AZ for balanced placement).
@@ -1170,6 +1174,17 @@ module "external_secrets" {
   tags                        = var.tags
 }
 
+module "yace_cloudwatch" {
+  source = "../../modules/cloudwatch-exporter"
+
+  name                 = var.project_name
+  oidc_provider_arn    = module.eks.oidc_provider_arn
+  oidc_issuer_url      = module.eks.oidc_issuer
+  namespace            = "techx-corp-prod"
+  service_account_name = "yace"
+  tags                 = var.tags
+}
+
 module "ai_model_storage" {
   source = "../../modules/ai-model-storage"
 
@@ -1238,7 +1253,13 @@ module "backup_protection" {
   name               = var.project_name
   attach_role_names  = var.backup_protection_attach_role_names
   attach_group_names = var.backup_protection_attach_group_names
-  tags               = var.tags
+  protected_kms_key_arns = [
+    module.mandate20_backup.kms_key_arn,
+  ]
+  protected_state_object_arns = [
+    "arn:${data.aws_partition.current.partition}:s3:::techx-tf-state-${data.aws_caller_identity.current.account_id}-${var.aws_region}/production/terraform.tfstate",
+  ]
+  tags = var.tags
 }
 
 # MANDATE-20 AWS Backup: locked vault, daily managed stores, hourly tagged EBS.
@@ -1258,23 +1279,86 @@ module "mandate20_backup" {
   ]
 }
 
+# MANDATE-20 destructive-DDL notifications use a dedicated SNS topic instead
+# of the Mandate 12 encrypted audit topic. The organization SCP deliberately
+# denies kms:PutKeyPolicy to the production apply role, so CloudWatch cannot be
+# added to that existing key policy. Alarm payloads contain status metadata only
+# (no SQL payload, credentials, or customer data).
+resource "aws_sns_topic" "mandate20_data_loss_alerts" {
+  #checkov:skip=CKV_AWS_26:CloudWatch alarm metadata is non-sensitive; leaving this dedicated topic unencrypted avoids bypassing the organization KMS policy SCP.
+  name = "${var.project_name}-mandate20-data-loss-alerts"
+
+  tags = merge(var.tags, {
+    Name    = "${var.project_name}-mandate20-data-loss-alerts"
+    Mandate = "MD20"
+    Purpose = "data-loss-detection"
+  })
+}
+
+resource "aws_sns_topic_policy" "mandate20_data_loss_alerts" {
+  arn = aws_sns_topic.mandate20_data_loss_alerts.arn
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowAccountOwnerManageTopic"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action = [
+          "SNS:GetTopicAttributes",
+          "SNS:ListSubscriptionsByTopic",
+          "SNS:Publish",
+          "SNS:Subscribe",
+        ]
+        Resource = aws_sns_topic.mandate20_data_loss_alerts.arn
+      },
+      {
+        Sid    = "AllowSameAccountCloudWatchAlarmsPublish"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudwatch.amazonaws.com"
+        }
+        Action   = "SNS:Publish"
+        Resource = aws_sns_topic.mandate20_data_loss_alerts.arn
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_sns_topic_subscription" "mandate20_data_loss_email" {
+  for_each = var.mandate20_alert_email_endpoints
+
+  topic_arn = aws_sns_topic.mandate20_data_loss_alerts.arn
+  protocol  = "email-json"
+  endpoint  = each.value
+}
+
 # DIRECTIVE #8: managed PostgreSQL replaces the in-cluster StatefulSet. RDS
 # owns the master password; application users are loaded during migration.
 module "rds_postgresql" {
   source = "../../modules/rds-postgresql"
 
-  name                         = var.project_name
-  vpc_id                       = module.vpc.vpc_id
-  subnet_ids                   = [module.vpc.private_subnet_ids["priv-1a-nodes"], module.vpc.private_subnet_ids["priv-1b-nodes"]]
-  eks_client_security_group_id = module.eks.cluster_security_group_id
-  engine_version               = var.rds_postgresql_engine_version
-  instance_class               = var.rds_postgresql_instance_class
-  database_name                = var.rds_postgresql_database_name
-  allocated_storage            = var.rds_postgresql_allocated_storage
-  max_allocated_storage        = var.rds_postgresql_max_allocated_storage
-  multi_az                     = var.rds_postgresql_multi_az
-  backup_retention_period      = var.rds_postgresql_backup_retention_days
-  tags                         = var.tags
+  name                              = var.project_name
+  vpc_id                            = module.vpc.vpc_id
+  subnet_ids                        = [module.vpc.private_subnet_ids["priv-1a-nodes"], module.vpc.private_subnet_ids["priv-1b-nodes"]]
+  eks_client_security_group_id      = module.eks.cluster_security_group_id
+  engine_version                    = var.rds_postgresql_engine_version
+  instance_class                    = var.rds_postgresql_instance_class
+  database_name                     = var.rds_postgresql_database_name
+  allocated_storage                 = var.rds_postgresql_allocated_storage
+  max_allocated_storage             = var.rds_postgresql_max_allocated_storage
+  multi_az                          = var.rds_postgresql_multi_az
+  backup_retention_period           = var.rds_postgresql_backup_retention_days
+  destructive_ddl_alarm_action_arns = [aws_sns_topic.mandate20_data_loss_alerts.arn]
+  tags                              = var.tags
 }
 
 # DIRECTIVE #8: Amazon MSK cluster replacement for in-cluster Kafka broker
@@ -1290,6 +1374,19 @@ module "msk" {
   ebs_volume_size              = var.msk_ebs_volume_size
   vpc_cidr_block               = module.vpc.vpc_cidr_block
   tags                         = var.tags
+}
+
+module "msk_orders_persisted_topic" {
+  source = "../../modules/msk-topic-bootstrap"
+
+  namespace          = "techx-corp-prod"
+  secret_name        = "techx-corp-msk"
+  topic_name         = "orders-persisted"
+  partitions         = 3
+  replication_factor = 2
+  vpc_cidr_block     = module.vpc.vpc_cidr_block
+
+  depends_on = [module.msk]
 }
 
 # ──────────────────────────────────────────────
@@ -1324,6 +1421,7 @@ module "karpenter" {
   availability_zones       = var.karpenter_availability_zones
   node_max_pods            = var.karpenter_node_max_pods
   min_instance_cpu         = var.karpenter_min_instance_cpu
+  min_instance_memory      = var.karpenter_min_instance_memory
   tags                     = var.tags
 }
 
@@ -1481,6 +1579,9 @@ module "cur_athena" {
   oidc_issuer_url              = module.eks.oidc_issuer
   grafana_namespace            = var.cur_athena_grafana_namespace
   grafana_service_account_name = var.cur_athena_grafana_service_account_name
+  cloudwatch_region            = var.aws_region
+  vpc_flow_logs_enabled        = var.vpc_flow_logs_enabled
+  vpc_flow_logs_log_group_name = "/aws/vpc/${var.project_name}-vpc/flow-logs"
   tags                         = var.tags
 }
 
@@ -1626,6 +1727,13 @@ resource "aws_iam_role" "policy_controller" {
 
 data "aws_iam_policy_document" "policy_controller" {
   statement {
+    sid       = "EcrAuthToken"
+    effect    = "Allow"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+
+  statement {
     sid    = "EcrRead"
     effect = "Allow"
     actions = [
@@ -1637,7 +1745,7 @@ data "aws_iam_policy_document" "policy_controller" {
       "ecr:ListImages"
     ]
     resources = [
-      "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/techx-corp/*"
+      "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/techx-prod-corp/*"
     ]
   }
 

@@ -7,6 +7,11 @@ output "immutable_audit_bucket_name" {
   description = "Production S3 Object Lock bucket receiving the dedicated immutable CloudTrail audit trail"
 }
 
+output "yace_cloudwatch_role_arn" {
+  value       = module.yace_cloudwatch.role_arn
+  description = "IRSA role ARN for the production YACE CloudWatch exporter"
+}
+
 output "immutable_audit_bucket_arn" {
   value       = aws_s3_bucket.immutable_audit.arn
   description = "ARN of the production immutable CloudTrail audit bucket"
@@ -61,6 +66,16 @@ output "immutable_audit_tamper_event_rule_names" {
 output "immutable_audit_tamper_alert_topic_arn" {
   value       = aws_sns_topic.immutable_audit_tamper_alerts.arn
   description = "SNS topic that receives Mandate 12.1 immutable audit tamper alerts and forwards them to confirmed email subscribers"
+}
+
+output "mandate20_rds_destructive_ddl_alarm_name" {
+  value       = module.rds_postgresql.destructive_ddl_alarm_name
+  description = "MANDATE-20 CloudWatch alarm for logged destructive PostgreSQL DDL."
+}
+
+output "mandate20_data_loss_alert_topic_arn" {
+  value       = aws_sns_topic.mandate20_data_loss_alerts.arn
+  description = "Dedicated SNS topic for MANDATE-20 destructive-DDL alarms."
 }
 
 output "immutable_audit_s3_data_event_object_arns" {
@@ -1044,4 +1059,30 @@ output "mem0_postgresql_security_group_id" {
   description = "Security group attached to Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-22 - Export mandate20_backup vault and plan IDs.
+output "mandate21_fis_contract" {
+  value       = module.fis_az_failover.contract
+  description = "Mandate 21 Person 1 -> Person 3 FIS runtime contract"
+}
+
+output "mandate21_fis_template_ids" {
+  value       = module.fis_az_failover.template_ids
+  description = "Mandate 21 FIS experiment template IDs by Availability Zone"
+}
+
+output "mandate21_fis_template_arns" {
+  value       = module.fis_az_failover.template_arns
+  description = "Mandate 21 FIS experiment template ARNs by Availability Zone"
+}
+
+output "mandate21_stop_alarm_arns" {
+  value = [
+    aws_cloudwatch_metric_alarm.storefront_healthy_hosts.arn,
+    aws_cloudwatch_metric_alarm.storefront_5xx_ratio.arn,
+    aws_cloudwatch_metric_alarm.durability_gap.arn,
+    aws_cloudwatch_metric_alarm.immutable_audit_control_health[0].arn,
+  ]
+  description = "Mandate 21 fail-closed CloudWatch stop alarm ARNs"
+}
+
+# Change trail: @hungxqt - 2026-07-28 - Exported mandate21_fis_contract, template IDs, ARNs, and stop alarms.
+

@@ -1,0 +1,1330 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "77",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/component\":\"cart\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"cart\",\"app.kubernetes.io/part-of\":\"techx-corp\",\"app.kubernetes.io/version\":\"2.2.0\",\"argocd.argoproj.io/instance\":\"techx-corp\",\"helm.sh/chart\":\"techx-corp-0.48.12\",\"opentelemetry.io/name\":\"cart\"},\"name\":\"cart\",\"namespace\":\"techx-corp-prod\"},\"spec\":{\"minReadySeconds\":10,\"progressDeadlineSeconds\":300,\"revisionHistoryLimit\":2,\"selector\":{\"matchLabels\":{\"opentelemetry.io/name\":\"cart\"}},\"strategy\":{\"rollingUpdate\":{\"maxSurge\":0,\"maxUnavailable\":1},\"type\":\"RollingUpdate\"},\"template\":{\"metadata\":{\"annotations\":{\"config.linkerd.io/skip-outbound-ports\":\"6379,10000,9901\",\"resource.opentelemetry.io/service.namespace\":\"techx-corp-prod\"},\"labels\":{\"app.kubernetes.io/component\":\"cart\",\"app.kubernetes.io/name\":\"cart\",\"app.kubernetes.io/part-of\":\"techx-corp\",\"app.kubernetes.io/version\":\"2.2.0\",\"opentelemetry.io/name\":\"cart\"}},\"spec\":{\"affinity\":{\"nodeAffinity\":{\"preferredDuringSchedulingIgnoredDuringExecution\":[{\"preference\":{\"matchExpressions\":[{\"key\":\"karpenter.sh/capacity-type\",\"operator\":\"In\",\"values\":[\"spot\"]}]},\"weight\":100}]}},\"automountServiceAccountToken\":false,\"containers\":[{\"env\":[{\"name\":\"OTEL_SERVICE_NAME\",\"valueFrom\":{\"fieldRef\":{\"apiVersion\":\"v1\",\"fieldPath\":\"metadata.labels['app.kubernetes.io/component']\"}}},{\"name\":\"OTEL_COLLECTOR_NAME\",\"value\":\"otel-collector\"},{\"name\":\"OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE\",\"value\":\"cumulative\"},{\"name\":\"CART_PORT\",\"value\":\"8080\"},{\"name\":\"ASPNETCORE_URLS\",\"value\":\"http://*:$(CART_PORT)\"},{\"name\":\"VALKEY_ADDR\",\"value\":\"valkey-cart.techx.internal:6379\"},{\"name\":\"FLAGD_HOST\",\"value\":\"flagd\"},{\"name\":\"FLAGD_PORT\",\"value\":\"8013\"},{\"name\":\"OTEL_EXPORTER_OTLP_ENDPOINT\",\"value\":\"http://$(OTEL_COLLECTOR_NAME):4317\"},{\"name\":\"VALKEY_TLS\",\"value\":\"true\"},{\"name\":\"VALKEY_TLS_HOST\",\"value\":\"master.techx-prod-tf2-cart.2bnsjq.use1.cache.amazonaws.com\"},{\"name\":\"VALKEY_PASSWORD\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"VALKEY_PASSWORD\",\"name\":\"techx-corp-valkey-cart\"}}}],\"image\":\"493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/cart@sha256:a9b8551b4d02f5c70630d10acea6e3ccd7672340aee18010a8a4eb74f1404b92\",\"imagePullPolicy\":\"IfNotPresent\",\"lifecycle\":{\"preStop\":{\"sleep\":{\"seconds\":10}}},\"livenessProbe\":{\"failureThreshold\":5,\"periodSeconds\":15,\"tcpSocket\":{\"port\":8080},\"timeoutSeconds\":5},\"name\":\"cart\",\"ports\":[{\"containerPort\":8080,\"name\":\"service\"}],\"readinessProbe\":{\"failureThreshold\":3,\"grpc\":{\"port\":8080},\"periodSeconds\":10,\"timeoutSeconds\":3},\"resources\":{\"limits\":{\"cpu\":\"500m\",\"memory\":\"384Mi\"},\"requests\":{\"cpu\":\"75m\",\"memory\":\"192Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":true,\"runAsNonRoot\":true},\"volumeMounts\":[{\"mountPath\":\"/tmp\",\"name\":\"tmp-dir\"}]}],\"initContainers\":[{\"command\":[\"sh\",\"-c\",\"until nc -z -v -w5 valkey-cart.techx.internal 6379; do echo waiting for managed Valkey; sleep 2; done;\"],\"image\":\"busybox:1.37.0\",\"name\":\"wait-for-managed-valkey\",\"resources\":{\"limits\":{\"cpu\":\"100m\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"10m\",\"memory\":\"16Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":true,\"runAsGroup\":10001,\"runAsNonRoot\":true,\"runAsUser\":10001}}],\"nodeSelector\":{\"workload-class\":\"spot-tolerant\"},\"securityContext\":{\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"serviceAccountName\":\"cart\",\"terminationGracePeriodSeconds\":30,\"tolerations\":[{\"effect\":\"NoSchedule\",\"key\":\"workload-class\",\"operator\":\"Equal\",\"value\":\"spot-tolerant\"}],\"topologySpreadConstraints\":[{\"labelSelector\":{\"matchLabels\":{\"opentelemetry.io/name\":\"cart\"}},\"matchLabelKeys\":[\"pod-template-hash\"],\"maxSkew\":1,\"topologyKey\":\"topology.kubernetes.io/zone\",\"whenUnsatisfiable\":\"ScheduleAnyway\"},{\"labelSelector\":{\"matchLabels\":{\"opentelemetry.io/name\":\"cart\"}},\"matchLabelKeys\":[\"pod-template-hash\"],\"maxSkew\":1,\"topologyKey\":\"kubernetes.io/hostname\",\"whenUnsatisfiable\":\"ScheduleAnyway\"}],\"volumes\":[{\"emptyDir\":{},\"name\":\"tmp-dir\"}]}}}}\n"
+        },
+        "creationTimestamp": "2026-07-13T02:55:01Z",
+        "generation": 1211,
+        "labels": {
+          "app.kubernetes.io/component": "cart",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "cart",
+          "app.kubernetes.io/part-of": "techx-corp",
+          "app.kubernetes.io/version": "2.2.0",
+          "argocd.argoproj.io/instance": "techx-corp",
+          "helm.sh/chart": "techx-corp-0.48.12",
+          "opentelemetry.io/name": "cart"
+        },
+        "name": "cart",
+        "namespace": "techx-corp-prod",
+        "resourceVersion": "10142085",
+        "uid": "dc6466a7-86ff-467a-bc61-ba7615a52f43"
+      },
+      "spec": {
+        "minReadySeconds": 10,
+        "progressDeadlineSeconds": 300,
+        "replicas": 16,
+        "revisionHistoryLimit": 2,
+        "selector": {
+          "matchLabels": {
+            "opentelemetry.io/name": "cart"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": 0,
+            "maxUnavailable": 1
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "config.linkerd.io/skip-outbound-ports": "6379,10000,9901",
+              "kubectl.kubernetes.io/restartedAt": "2026-07-24T04:49:53+07:00",
+              "resource.opentelemetry.io/service.namespace": "techx-corp-prod"
+            },
+            "labels": {
+              "app.kubernetes.io/component": "cart",
+              "app.kubernetes.io/name": "cart",
+              "app.kubernetes.io/part-of": "techx-corp",
+              "app.kubernetes.io/version": "2.2.0",
+              "opentelemetry.io/name": "cart"
+            }
+          },
+          "spec": {
+            "affinity": {
+              "nodeAffinity": {
+                "preferredDuringSchedulingIgnoredDuringExecution": [
+                  {
+                    "preference": {
+                      "matchExpressions": [
+                        {
+                          "key": "karpenter.sh/capacity-type",
+                          "operator": "In",
+                          "values": ["spot"]
+                        }
+                      ]
+                    },
+                    "weight": 100
+                  }
+                ]
+              }
+            },
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.labels['app.kubernetes.io/component']"
+                      }
+                    }
+                  },
+                  {
+                    "name": "OTEL_COLLECTOR_NAME",
+                    "value": "otel-collector"
+                  },
+                  {
+                    "name": "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE",
+                    "value": "cumulative"
+                  },
+                  {
+                    "name": "CART_PORT",
+                    "value": "8080"
+                  },
+                  {
+                    "name": "ASPNETCORE_URLS",
+                    "value": "http://*:$(CART_PORT)"
+                  },
+                  {
+                    "name": "VALKEY_ADDR",
+                    "value": "valkey-cart.techx.internal:6379"
+                  },
+                  {
+                    "name": "FLAGD_HOST",
+                    "value": "flagd"
+                  },
+                  {
+                    "name": "FLAGD_PORT",
+                    "value": "8013"
+                  },
+                  {
+                    "name": "OTEL_EXPORTER_OTLP_ENDPOINT",
+                    "value": "http://$(OTEL_COLLECTOR_NAME):4317"
+                  },
+                  {
+                    "name": "VALKEY_TLS",
+                    "value": "true"
+                  },
+                  {
+                    "name": "VALKEY_TLS_HOST",
+                    "value": "master.techx-prod-tf2-cart.2bnsjq.use1.cache.amazonaws.com"
+                  },
+                  {
+                    "name": "VALKEY_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "VALKEY_PASSWORD",
+                        "name": "techx-corp-valkey-cart"
+                      }
+                    }
+                  }
+                ],
+                "image": "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/cart@sha256:a9b8551b4d02f5c70630d10acea6e3ccd7672340aee18010a8a4eb74f1404b92",
+                "imagePullPolicy": "IfNotPresent",
+                "lifecycle": {
+                  "preStop": {
+                    "sleep": {
+                      "seconds": 10
+                    }
+                  }
+                },
+                "livenessProbe": {
+                  "failureThreshold": 5,
+                  "periodSeconds": 15,
+                  "successThreshold": 1,
+                  "tcpSocket": {
+                    "port": 8080
+                  },
+                  "timeoutSeconds": 5
+                },
+                "name": "cart",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "name": "service",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "grpc": {
+                    "port": 8080,
+                    "service": ""
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 3
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "384Mi"
+                  },
+                  "requests": {
+                    "cpu": "75m",
+                    "memory": "192Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": ["ALL"]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsNonRoot": true
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp-dir"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "initContainers": [
+              {
+                "command": [
+                  "sh",
+                  "-c",
+                  "until nc -z -v -w5 valkey-cart.techx.internal 6379; do echo waiting for managed Valkey; sleep 2; done;"
+                ],
+                "image": "busybox:1.37.0",
+                "imagePullPolicy": "Always",
+                "name": "wait-for-managed-valkey",
+                "resources": {
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  },
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "16Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": ["ALL"]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsGroup": 10001,
+                  "runAsNonRoot": true,
+                  "runAsUser": 10001
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "nodeSelector": {
+              "workload-class": "spot-tolerant"
+            },
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "cart",
+            "serviceAccountName": "cart",
+            "terminationGracePeriodSeconds": 30,
+            "tolerations": [
+              {
+                "effect": "NoSchedule",
+                "key": "workload-class",
+                "operator": "Equal",
+                "value": "spot-tolerant"
+              }
+            ],
+            "topologySpreadConstraints": [
+              {
+                "labelSelector": {
+                  "matchLabels": {
+                    "opentelemetry.io/name": "cart"
+                  }
+                },
+                "matchLabelKeys": ["pod-template-hash"],
+                "maxSkew": 1,
+                "topologyKey": "topology.kubernetes.io/zone",
+                "whenUnsatisfiable": "ScheduleAnyway"
+              },
+              {
+                "labelSelector": {
+                  "matchLabels": {
+                    "opentelemetry.io/name": "cart"
+                  }
+                },
+                "matchLabelKeys": ["pod-template-hash"],
+                "maxSkew": 1,
+                "topologyKey": "kubernetes.io/hostname",
+                "whenUnsatisfiable": "ScheduleAnyway"
+              }
+            ],
+            "volumes": [
+              {
+                "emptyDir": {},
+                "name": "tmp-dir"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 16,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-07-26T07:38:50Z",
+            "lastUpdateTime": "2026-07-26T07:45:17Z",
+            "message": "ReplicaSet \"cart-66bc999679\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          },
+          {
+            "lastTransitionTime": "2026-07-27T05:14:17Z",
+            "lastUpdateTime": "2026-07-27T05:14:17Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          }
+        ],
+        "observedGeneration": 1211,
+        "readyReplicas": 16,
+        "replicas": 16,
+        "terminatingReplicas": 0,
+        "updatedReplicas": 16
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "93",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/component\":\"checkout\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"checkout\",\"app.kubernetes.io/part-of\":\"techx-corp\",\"app.kubernetes.io/version\":\"2.2.0\",\"argocd.argoproj.io/instance\":\"techx-corp\",\"helm.sh/chart\":\"techx-corp-0.48.12\",\"opentelemetry.io/name\":\"checkout\"},\"name\":\"checkout\",\"namespace\":\"techx-corp-prod\"},\"spec\":{\"minReadySeconds\":10,\"progressDeadlineSeconds\":300,\"revisionHistoryLimit\":2,\"selector\":{\"matchLabels\":{\"opentelemetry.io/name\":\"checkout\"}},\"strategy\":{\"rollingUpdate\":{\"maxSurge\":1,\"maxUnavailable\":0},\"type\":\"RollingUpdate\"},\"template\":{\"metadata\":{\"annotations\":{\"resource.opentelemetry.io/service.namespace\":\"techx-corp-prod\"},\"labels\":{\"app.kubernetes.io/component\":\"checkout\",\"app.kubernetes.io/name\":\"checkout\",\"app.kubernetes.io/part-of\":\"techx-corp\",\"app.kubernetes.io/version\":\"2.2.0\",\"opentelemetry.io/name\":\"checkout\"}},\"spec\":{\"affinity\":{\"nodeAffinity\":{\"preferredDuringSchedulingIgnoredDuringExecution\":[{\"preference\":{\"matchExpressions\":[{\"key\":\"karpenter.sh/capacity-type\",\"operator\":\"In\",\"values\":[\"spot\"]}]},\"weight\":100}]}},\"automountServiceAccountToken\":false,\"containers\":[{\"env\":[{\"name\":\"OTEL_SERVICE_NAME\",\"valueFrom\":{\"fieldRef\":{\"apiVersion\":\"v1\",\"fieldPath\":\"metadata.labels['app.kubernetes.io/component']\"}}},{\"name\":\"OTEL_COLLECTOR_NAME\",\"value\":\"otel-collector\"},{\"name\":\"OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE\",\"value\":\"cumulative\"},{\"name\":\"CHECKOUT_PORT\",\"value\":\"8080\"},{\"name\":\"CART_ADDR\",\"value\":\"cart:8080\"},{\"name\":\"CURRENCY_ADDR\",\"value\":\"currency:8080\"},{\"name\":\"EMAIL_ADDR\",\"value\":\"http://email:8080\"},{\"name\":\"PAYMENT_ADDR\",\"value\":\"payment:8080\"},{\"name\":\"PRODUCT_CATALOG_ADDR\",\"value\":\"product-catalog:8080\"},{\"name\":\"SHIPPING_ADDR\",\"value\":\"http://shipping:8080\"},{\"name\":\"KAFKA_ADDR\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"KAFKA_ADDR\",\"name\":\"techx-corp-msk\"}}},{\"name\":\"FLAGD_HOST\",\"value\":\"flagd\"},{\"name\":\"FLAGD_PORT\",\"value\":\"8013\"},{\"name\":\"OTEL_EXPORTER_OTLP_ENDPOINT\",\"value\":\"http://$(OTEL_COLLECTOR_NAME):4317\"},{\"name\":\"GOMEMLIMIT\",\"value\":\"100MiB\"},{\"name\":\"CHECKOUT_OUTBOX_TABLE\",\"value\":\"techx-prod-tf2-checkout-outbox\"},{\"name\":\"AWS_REGION\",\"value\":\"us-east-1\"},{\"name\":\"KAFKA_TLS\",\"value\":\"true\"},{\"name\":\"KAFKA_SASL_USERNAME\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"KAFKA_SASL_USERNAME\",\"name\":\"techx-corp-msk\"}}},{\"name\":\"KAFKA_SASL_PASSWORD\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"KAFKA_SASL_PASSWORD\",\"name\":\"techx-corp-msk\"}}},{\"name\":\"HTTPS_PROXY\",\"value\":\"http://egress-proxy:10000\"},{\"name\":\"https_proxy\",\"value\":\"http://egress-proxy:10000\"},{\"name\":\"NO_PROXY\",\"value\":\".svc,.svc.cluster.local,localhost,127.0.0.1,10.0.0.0/8,accounting,ad,cart,checkout,currency,email,flagd,fraud-detection,frontend,frontend-proxy,image-provider,llm,payment,product-catalog,product-reviews,quote,recommendation,shipping,shopping-copilot,otel-collector,prometheus,jaeger,grafana\"},{\"name\":\"no_proxy\",\"value\":\".svc,.svc.cluster.local,localhost,127.0.0.1,10.0.0.0/8,accounting,ad,cart,checkout,currency,email,flagd,fraud-detection,frontend,frontend-proxy,image-provider,llm,payment,product-catalog,product-reviews,quote,recommendation,shipping,shopping-copilot,otel-collector,prometheus,jaeger,grafana\"}],\"image\":\"493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/checkout@sha256:56c7aa6649914513782e7197a1fe0ba1ef6fd243435e5682cb0fca59e6b83c27\",\"imagePullPolicy\":\"IfNotPresent\",\"lifecycle\":{\"preStop\":{\"sleep\":{\"seconds\":10}}},\"livenessProbe\":{\"failureThreshold\":5,\"grpc\":{\"port\":8080},\"periodSeconds\":15,\"timeoutSeconds\":5},\"name\":\"checkout\",\"ports\":[{\"containerPort\":8080,\"name\":\"service\"}],\"readinessProbe\":{\"failureThreshold\":3,\"grpc\":{\"port\":8080},\"periodSeconds\":10,\"timeoutSeconds\":3},\"resources\":{\"limits\":{\"cpu\":\"500m\",\"memory\":\"192Mi\"},\"requests\":{\"cpu\":\"100m\",\"memory\":\"96Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":true,\"runAsGroup\":65532,\"runAsNonRoot\":true,\"runAsUser\":65532},\"volumeMounts\":null}],\"nodeSelector\":{\"workload-class\":\"spot-tolerant\"},\"securityContext\":{\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"serviceAccountName\":\"checkout\",\"terminationGracePeriodSeconds\":30,\"tolerations\":[{\"effect\":\"NoSchedule\",\"key\":\"workload-class\",\"operator\":\"Equal\",\"value\":\"spot-tolerant\"}],\"topologySpreadConstraints\":[{\"labelSelector\":{\"matchLabels\":{\"opentelemetry.io/name\":\"checkout\"}},\"matchLabelKeys\":[\"pod-template-hash\"],\"maxSkew\":1,\"topologyKey\":\"topology.kubernetes.io/zone\",\"whenUnsatisfiable\":\"ScheduleAnyway\"},{\"labelSelector\":{\"matchLabels\":{\"opentelemetry.io/name\":\"checkout\"}},\"matchLabelKeys\":[\"pod-template-hash\"],\"maxSkew\":1,\"minDomains\":2,\"topologyKey\":\"kubernetes.io/hostname\",\"whenUnsatisfiable\":\"DoNotSchedule\"}],\"volumes\":null}}}}\n"
+        },
+        "creationTimestamp": "2026-07-13T02:55:00Z",
+        "generation": 661,
+        "labels": {
+          "app.kubernetes.io/component": "checkout",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "checkout",
+          "app.kubernetes.io/part-of": "techx-corp",
+          "app.kubernetes.io/version": "2.2.0",
+          "argocd.argoproj.io/instance": "techx-corp",
+          "helm.sh/chart": "techx-corp-0.48.12",
+          "opentelemetry.io/name": "checkout"
+        },
+        "name": "checkout",
+        "namespace": "techx-corp-prod",
+        "resourceVersion": "10143051",
+        "uid": "4c0429e0-d1b0-4b32-bc9d-bc74533d3951"
+      },
+      "spec": {
+        "minReadySeconds": 10,
+        "progressDeadlineSeconds": 300,
+        "replicas": 10,
+        "revisionHistoryLimit": 2,
+        "selector": {
+          "matchLabels": {
+            "opentelemetry.io/name": "checkout"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubectl.kubernetes.io/restartedAt": "2026-07-24T11:59:31+07:00",
+              "resource.opentelemetry.io/service.namespace": "techx-corp-prod"
+            },
+            "labels": {
+              "app.kubernetes.io/component": "checkout",
+              "app.kubernetes.io/name": "checkout",
+              "app.kubernetes.io/part-of": "techx-corp",
+              "app.kubernetes.io/version": "2.2.0",
+              "opentelemetry.io/name": "checkout"
+            }
+          },
+          "spec": {
+            "affinity": {
+              "nodeAffinity": {
+                "preferredDuringSchedulingIgnoredDuringExecution": [
+                  {
+                    "preference": {
+                      "matchExpressions": [
+                        {
+                          "key": "karpenter.sh/capacity-type",
+                          "operator": "In",
+                          "values": ["spot"]
+                        }
+                      ]
+                    },
+                    "weight": 100
+                  }
+                ]
+              }
+            },
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.labels['app.kubernetes.io/component']"
+                      }
+                    }
+                  },
+                  {
+                    "name": "OTEL_COLLECTOR_NAME",
+                    "value": "otel-collector"
+                  },
+                  {
+                    "name": "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE",
+                    "value": "cumulative"
+                  },
+                  {
+                    "name": "CHECKOUT_PORT",
+                    "value": "8080"
+                  },
+                  {
+                    "name": "CART_ADDR",
+                    "value": "cart:8080"
+                  },
+                  {
+                    "name": "CURRENCY_ADDR",
+                    "value": "currency:8080"
+                  },
+                  {
+                    "name": "EMAIL_ADDR",
+                    "value": "http://email:8080"
+                  },
+                  {
+                    "name": "PAYMENT_ADDR",
+                    "value": "payment:8080"
+                  },
+                  {
+                    "name": "PRODUCT_CATALOG_ADDR",
+                    "value": "product-catalog:8080"
+                  },
+                  {
+                    "name": "SHIPPING_ADDR",
+                    "value": "http://shipping:8080"
+                  },
+                  {
+                    "name": "KAFKA_ADDR",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "KAFKA_ADDR",
+                        "name": "techx-corp-msk"
+                      }
+                    }
+                  },
+                  {
+                    "name": "FLAGD_HOST",
+                    "value": "flagd"
+                  },
+                  {
+                    "name": "FLAGD_PORT",
+                    "value": "8013"
+                  },
+                  {
+                    "name": "OTEL_EXPORTER_OTLP_ENDPOINT",
+                    "value": "http://$(OTEL_COLLECTOR_NAME):4317"
+                  },
+                  {
+                    "name": "GOMEMLIMIT",
+                    "value": "100MiB"
+                  },
+                  {
+                    "name": "CHECKOUT_OUTBOX_TABLE",
+                    "value": "techx-prod-tf2-checkout-outbox"
+                  },
+                  {
+                    "name": "AWS_REGION",
+                    "value": "us-east-1"
+                  },
+                  {
+                    "name": "KAFKA_TLS",
+                    "value": "true"
+                  },
+                  {
+                    "name": "KAFKA_SASL_USERNAME",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "KAFKA_SASL_USERNAME",
+                        "name": "techx-corp-msk"
+                      }
+                    }
+                  },
+                  {
+                    "name": "KAFKA_SASL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "KAFKA_SASL_PASSWORD",
+                        "name": "techx-corp-msk"
+                      }
+                    }
+                  },
+                  {
+                    "name": "HTTPS_PROXY",
+                    "value": "http://egress-proxy:10000"
+                  },
+                  {
+                    "name": "https_proxy",
+                    "value": "http://egress-proxy:10000"
+                  },
+                  {
+                    "name": "NO_PROXY",
+                    "value": ".svc,.svc.cluster.local,localhost,127.0.0.1,10.0.0.0/8,accounting,ad,cart,checkout,currency,email,flagd,fraud-detection,frontend,frontend-proxy,image-provider,llm,payment,product-catalog,product-reviews,quote,recommendation,shipping,shopping-copilot,otel-collector,prometheus,jaeger,grafana"
+                  },
+                  {
+                    "name": "no_proxy",
+                    "value": ".svc,.svc.cluster.local,localhost,127.0.0.1,10.0.0.0/8,accounting,ad,cart,checkout,currency,email,flagd,fraud-detection,frontend,frontend-proxy,image-provider,llm,payment,product-catalog,product-reviews,quote,recommendation,shipping,shopping-copilot,otel-collector,prometheus,jaeger,grafana"
+                  }
+                ],
+                "image": "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/checkout@sha256:56c7aa6649914513782e7197a1fe0ba1ef6fd243435e5682cb0fca59e6b83c27",
+                "imagePullPolicy": "IfNotPresent",
+                "lifecycle": {
+                  "preStop": {
+                    "sleep": {
+                      "seconds": 10
+                    }
+                  }
+                },
+                "livenessProbe": {
+                  "failureThreshold": 5,
+                  "grpc": {
+                    "port": 8080,
+                    "service": ""
+                  },
+                  "periodSeconds": 15,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 5
+                },
+                "name": "checkout",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "name": "service",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "grpc": {
+                    "port": 8080,
+                    "service": ""
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 3
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "500m",
+                    "memory": "192Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "96Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": ["ALL"]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsGroup": 65532,
+                  "runAsNonRoot": true,
+                  "runAsUser": 65532
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File"
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "nodeSelector": {
+              "workload-class": "spot-tolerant"
+            },
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "checkout",
+            "serviceAccountName": "checkout",
+            "terminationGracePeriodSeconds": 30,
+            "tolerations": [
+              {
+                "effect": "NoSchedule",
+                "key": "workload-class",
+                "operator": "Equal",
+                "value": "spot-tolerant"
+              }
+            ],
+            "topologySpreadConstraints": [
+              {
+                "labelSelector": {
+                  "matchLabels": {
+                    "opentelemetry.io/name": "checkout"
+                  }
+                },
+                "matchLabelKeys": ["pod-template-hash"],
+                "maxSkew": 1,
+                "topologyKey": "topology.kubernetes.io/zone",
+                "whenUnsatisfiable": "ScheduleAnyway"
+              },
+              {
+                "labelSelector": {
+                  "matchLabels": {
+                    "opentelemetry.io/name": "checkout"
+                  }
+                },
+                "matchLabelKeys": ["pod-template-hash"],
+                "maxSkew": 1,
+                "minDomains": 2,
+                "topologyKey": "kubernetes.io/hostname",
+                "whenUnsatisfiable": "DoNotSchedule"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 10,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-07-23T21:56:46Z",
+            "lastUpdateTime": "2026-07-26T15:05:22Z",
+            "message": "ReplicaSet \"checkout-58884979f5\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          },
+          {
+            "lastTransitionTime": "2026-07-27T05:15:07Z",
+            "lastUpdateTime": "2026-07-27T05:15:07Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          }
+        ],
+        "observedGeneration": 661,
+        "readyReplicas": 10,
+        "replicas": 10,
+        "terminatingReplicas": 0,
+        "updatedReplicas": 10
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "79",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/component\":\"accounting\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"accounting\",\"app.kubernetes.io/part-of\":\"techx-corp\",\"app.kubernetes.io/version\":\"2.2.0\",\"argocd.argoproj.io/instance\":\"techx-corp\",\"helm.sh/chart\":\"techx-corp-0.48.12\",\"opentelemetry.io/name\":\"accounting\"},\"name\":\"accounting\",\"namespace\":\"techx-corp-prod\"},\"spec\":{\"minReadySeconds\":10,\"progressDeadlineSeconds\":300,\"replicas\":1,\"revisionHistoryLimit\":2,\"selector\":{\"matchLabels\":{\"opentelemetry.io/name\":\"accounting\"}},\"strategy\":{\"rollingUpdate\":{\"maxSurge\":1,\"maxUnavailable\":0},\"type\":\"RollingUpdate\"},\"template\":{\"metadata\":{\"annotations\":{\"resource.opentelemetry.io/service.namespace\":\"techx-corp-prod\"},\"labels\":{\"app.kubernetes.io/component\":\"accounting\",\"app.kubernetes.io/name\":\"accounting\",\"app.kubernetes.io/part-of\":\"techx-corp\",\"app.kubernetes.io/version\":\"2.2.0\",\"opentelemetry.io/name\":\"accounting\"}},\"spec\":{\"affinity\":{\"nodeAffinity\":{\"preferredDuringSchedulingIgnoredDuringExecution\":[{\"preference\":{\"matchExpressions\":[{\"key\":\"karpenter.sh/capacity-type\",\"operator\":\"In\",\"values\":[\"spot\"]}]},\"weight\":100}]}},\"automountServiceAccountToken\":false,\"containers\":[{\"env\":[{\"name\":\"OTEL_SERVICE_NAME\",\"valueFrom\":{\"fieldRef\":{\"apiVersion\":\"v1\",\"fieldPath\":\"metadata.labels['app.kubernetes.io/component']\"}}},{\"name\":\"OTEL_COLLECTOR_NAME\",\"value\":\"otel-collector\"},{\"name\":\"OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE\",\"value\":\"cumulative\"},{\"name\":\"KAFKA_ADDR\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"KAFKA_ADDR\",\"name\":\"techx-corp-msk\"}}},{\"name\":\"OTEL_EXPORTER_OTLP_ENDPOINT\",\"value\":\"http://$(OTEL_COLLECTOR_NAME):4318\"},{\"name\":\"DB_CONNECTION_STRING\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"accounting-db-connection-string\",\"name\":\"techx-corp-postgresql-app\"}}},{\"name\":\"OTEL_DOTNET_AUTO_TRACES_ENTITYFRAMEWORKCORE_INSTRUMENTATION_ENABLED\",\"value\":\"false\"},{\"name\":\"CHECKOUT_OUTBOX_TABLE\",\"value\":\"techx-prod-tf2-checkout-outbox\"},{\"name\":\"OUTBOX_RECONCILE_INTERVAL_SECONDS\",\"value\":\"300\"},{\"name\":\"OUTBOX_PUBLISHED_STALE_SECONDS\",\"value\":\"900\"},{\"name\":\"KAFKA_TLS\",\"value\":\"true\"},{\"name\":\"KAFKA_SASL_USERNAME\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"KAFKA_SASL_USERNAME\",\"name\":\"techx-corp-msk\"}}},{\"name\":\"KAFKA_SASL_PASSWORD\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"KAFKA_SASL_PASSWORD\",\"name\":\"techx-corp-msk\"}}}],\"image\":\"493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/accounting@sha256:2120bd0c4244f9768042fae69093c28c33f515baa7c4b181291db55fbb6cc7bd\",\"imagePullPolicy\":\"IfNotPresent\",\"lifecycle\":{\"preStop\":{\"sleep\":{\"seconds\":10}}},\"name\":\"accounting\",\"resources\":{\"limits\":{\"cpu\":\"100m\",\"memory\":\"384Mi\"},\"requests\":{\"cpu\":\"20m\",\"memory\":\"256Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":true,\"runAsGroup\":10001,\"runAsNonRoot\":true,\"runAsUser\":10001},\"volumeMounts\":[{\"mountPath\":\"/tmp\",\"name\":\"tmp-dir\"},{\"mountPath\":\"/var/log/opentelemetry/dotnet\",\"name\":\"otel-log-dir\"}]}],\"nodeSelector\":{\"workload-class\":\"spot-tolerant\"},\"securityContext\":{\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"serviceAccountName\":\"accounting\",\"terminationGracePeriodSeconds\":30,\"tolerations\":[{\"effect\":\"NoSchedule\",\"key\":\"workload-class\",\"operator\":\"Equal\",\"value\":\"spot-tolerant\"}],\"topologySpreadConstraints\":[{\"labelSelector\":{\"matchLabels\":{\"opentelemetry.io/name\":\"accounting\"}},\"matchLabelKeys\":[\"pod-template-hash\"],\"maxSkew\":1,\"topologyKey\":\"topology.kubernetes.io/zone\",\"whenUnsatisfiable\":\"ScheduleAnyway\"},{\"labelSelector\":{\"matchLabels\":{\"opentelemetry.io/name\":\"accounting\"}},\"matchLabelKeys\":[\"pod-template-hash\"],\"maxSkew\":1,\"minDomains\":2,\"topologyKey\":\"kubernetes.io/hostname\",\"whenUnsatisfiable\":\"DoNotSchedule\"}],\"volumes\":[{\"emptyDir\":{},\"name\":\"tmp-dir\"},{\"emptyDir\":{},\"name\":\"otel-log-dir\"}]}}}}\n"
+        },
+        "creationTimestamp": "2026-07-13T02:55:00Z",
+        "generation": 110,
+        "labels": {
+          "app.kubernetes.io/component": "accounting",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "accounting",
+          "app.kubernetes.io/part-of": "techx-corp",
+          "app.kubernetes.io/version": "2.2.0",
+          "argocd.argoproj.io/instance": "techx-corp",
+          "helm.sh/chart": "techx-corp-0.48.12",
+          "opentelemetry.io/name": "accounting"
+        },
+        "name": "accounting",
+        "namespace": "techx-corp-prod",
+        "resourceVersion": "9797460",
+        "uid": "ede2d220-6e30-4957-a197-67fd3a2eab18"
+      },
+      "spec": {
+        "minReadySeconds": 10,
+        "progressDeadlineSeconds": 300,
+        "replicas": 1,
+        "revisionHistoryLimit": 2,
+        "selector": {
+          "matchLabels": {
+            "opentelemetry.io/name": "accounting"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubectl.kubernetes.io/restartedAt": "2026-07-24T04:49:53+07:00",
+              "resource.opentelemetry.io/service.namespace": "techx-corp-prod"
+            },
+            "labels": {
+              "app.kubernetes.io/component": "accounting",
+              "app.kubernetes.io/name": "accounting",
+              "app.kubernetes.io/part-of": "techx-corp",
+              "app.kubernetes.io/version": "2.2.0",
+              "opentelemetry.io/name": "accounting"
+            }
+          },
+          "spec": {
+            "affinity": {
+              "nodeAffinity": {
+                "preferredDuringSchedulingIgnoredDuringExecution": [
+                  {
+                    "preference": {
+                      "matchExpressions": [
+                        {
+                          "key": "karpenter.sh/capacity-type",
+                          "operator": "In",
+                          "values": ["spot"]
+                        }
+                      ]
+                    },
+                    "weight": 100
+                  }
+                ]
+              }
+            },
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.labels['app.kubernetes.io/component']"
+                      }
+                    }
+                  },
+                  {
+                    "name": "OTEL_COLLECTOR_NAME",
+                    "value": "otel-collector"
+                  },
+                  {
+                    "name": "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE",
+                    "value": "cumulative"
+                  },
+                  {
+                    "name": "KAFKA_ADDR",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "KAFKA_ADDR",
+                        "name": "techx-corp-msk"
+                      }
+                    }
+                  },
+                  {
+                    "name": "OTEL_EXPORTER_OTLP_ENDPOINT",
+                    "value": "http://$(OTEL_COLLECTOR_NAME):4318"
+                  },
+                  {
+                    "name": "DB_CONNECTION_STRING",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "accounting-db-connection-string",
+                        "name": "techx-corp-postgresql-app"
+                      }
+                    }
+                  },
+                  {
+                    "name": "OTEL_DOTNET_AUTO_TRACES_ENTITYFRAMEWORKCORE_INSTRUMENTATION_ENABLED",
+                    "value": "false"
+                  },
+                  {
+                    "name": "CHECKOUT_OUTBOX_TABLE",
+                    "value": "techx-prod-tf2-checkout-outbox"
+                  },
+                  {
+                    "name": "OUTBOX_RECONCILE_INTERVAL_SECONDS",
+                    "value": "300"
+                  },
+                  {
+                    "name": "OUTBOX_PUBLISHED_STALE_SECONDS",
+                    "value": "900"
+                  },
+                  {
+                    "name": "KAFKA_TLS",
+                    "value": "true"
+                  },
+                  {
+                    "name": "KAFKA_SASL_USERNAME",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "KAFKA_SASL_USERNAME",
+                        "name": "techx-corp-msk"
+                      }
+                    }
+                  },
+                  {
+                    "name": "KAFKA_SASL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "KAFKA_SASL_PASSWORD",
+                        "name": "techx-corp-msk"
+                      }
+                    }
+                  }
+                ],
+                "image": "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/accounting@sha256:2120bd0c4244f9768042fae69093c28c33f515baa7c4b181291db55fbb6cc7bd",
+                "imagePullPolicy": "IfNotPresent",
+                "lifecycle": {
+                  "preStop": {
+                    "sleep": {
+                      "seconds": 10
+                    }
+                  }
+                },
+                "name": "accounting",
+                "resources": {
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "384Mi"
+                  },
+                  "requests": {
+                    "cpu": "20m",
+                    "memory": "256Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": ["ALL"]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsGroup": 10001,
+                  "runAsNonRoot": true,
+                  "runAsUser": 10001
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp-dir"
+                  },
+                  {
+                    "mountPath": "/var/log/opentelemetry/dotnet",
+                    "name": "otel-log-dir"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "nodeSelector": {
+              "workload-class": "spot-tolerant"
+            },
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "accounting",
+            "serviceAccountName": "accounting",
+            "terminationGracePeriodSeconds": 30,
+            "tolerations": [
+              {
+                "effect": "NoSchedule",
+                "key": "workload-class",
+                "operator": "Equal",
+                "value": "spot-tolerant"
+              }
+            ],
+            "topologySpreadConstraints": [
+              {
+                "labelSelector": {
+                  "matchLabels": {
+                    "opentelemetry.io/name": "accounting"
+                  }
+                },
+                "matchLabelKeys": ["pod-template-hash"],
+                "maxSkew": 1,
+                "topologyKey": "topology.kubernetes.io/zone",
+                "whenUnsatisfiable": "ScheduleAnyway"
+              },
+              {
+                "labelSelector": {
+                  "matchLabels": {
+                    "opentelemetry.io/name": "accounting"
+                  }
+                },
+                "matchLabelKeys": ["pod-template-hash"],
+                "maxSkew": 1,
+                "minDomains": 2,
+                "topologyKey": "kubernetes.io/hostname",
+                "whenUnsatisfiable": "DoNotSchedule"
+              }
+            ],
+            "volumes": [
+              {
+                "emptyDir": {},
+                "name": "tmp-dir"
+              },
+              {
+                "emptyDir": {},
+                "name": "otel-log-dir"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-07-23T21:56:47Z",
+            "lastUpdateTime": "2026-07-24T15:31:47Z",
+            "message": "ReplicaSet \"accounting-bcf78f59b\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          },
+          {
+            "lastTransitionTime": "2026-07-26T19:31:06Z",
+            "lastUpdateTime": "2026-07-26T19:31:06Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          }
+        ],
+        "observedGeneration": 110,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "terminatingReplicas": 0,
+        "updatedReplicas": 1
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "85",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/component\":\"flagd\",\"app.kubernetes.io/managed-by\":\"Helm\",\"app.kubernetes.io/name\":\"flagd\",\"app.kubernetes.io/part-of\":\"techx-corp\",\"app.kubernetes.io/version\":\"2.2.0\",\"argocd.argoproj.io/instance\":\"techx-corp\",\"helm.sh/chart\":\"techx-corp-0.48.12\",\"opentelemetry.io/name\":\"flagd\"},\"name\":\"flagd\",\"namespace\":\"techx-corp-prod\"},\"spec\":{\"minReadySeconds\":10,\"progressDeadlineSeconds\":300,\"replicas\":1,\"revisionHistoryLimit\":2,\"selector\":{\"matchLabels\":{\"opentelemetry.io/name\":\"flagd\"}},\"strategy\":{\"rollingUpdate\":{\"maxSurge\":1,\"maxUnavailable\":0},\"type\":\"RollingUpdate\"},\"template\":{\"metadata\":{\"annotations\":{\"resource.opentelemetry.io/service.namespace\":\"techx-corp-prod\"},\"labels\":{\"app.kubernetes.io/component\":\"flagd\",\"app.kubernetes.io/name\":\"flagd\",\"app.kubernetes.io/part-of\":\"techx-corp\",\"app.kubernetes.io/version\":\"2.2.0\",\"opentelemetry.io/name\":\"flagd\"}},\"spec\":{\"automountServiceAccountToken\":false,\"containers\":[{\"command\":[\"/flagd-build\",\"start\",\"--port\",\"8013\",\"--ofrep-port\",\"8016\",\"--sources\",\"[{\\\"uri\\\":\\\"/etc/flagd/demo.flagd.json\\\",\\\"provider\\\":\\\"file\\\"},{\\\"uri\\\":\\\"https://122.248.223.194.sslip.io/flags.json\\\",\\\"provider\\\":\\\"http\\\",\\\"authHeader\\\":\\\"Bearer $(FLAGD_SYNC_TOKEN)\\\"}]\"],\"env\":[{\"name\":\"OTEL_SERVICE_NAME\",\"valueFrom\":{\"fieldRef\":{\"apiVersion\":\"v1\",\"fieldPath\":\"metadata.labels['app.kubernetes.io/component']\"}}},{\"name\":\"OTEL_COLLECTOR_NAME\",\"value\":\"otel-collector\"},{\"name\":\"OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE\",\"value\":\"cumulative\"},{\"name\":\"FLAGD_METRICS_EXPORTER\",\"value\":\"otel\"},{\"name\":\"FLAGD_OTEL_COLLECTOR_URI\",\"value\":\"$(OTEL_COLLECTOR_NAME):4317\"},{\"name\":\"GOMEMLIMIT\",\"value\":\"100MiB\"},{\"name\":\"FLAGD_SYNC_TOKEN\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"FLAGD_SYNC_TOKEN\",\"name\":\"techx-corp-flagd-ui\"}}}],\"image\":\"ghcr.io/open-feature/flagd:v0.15.0\",\"imagePullPolicy\":\"IfNotPresent\",\"lifecycle\":{\"preStop\":{\"sleep\":{\"seconds\":10}}},\"livenessProbe\":{\"failureThreshold\":3,\"periodSeconds\":20,\"tcpSocket\":{\"port\":8013},\"timeoutSeconds\":3},\"name\":\"flagd\",\"ports\":[{\"containerPort\":8013,\"name\":\"rpc\"},{\"containerPort\":8016,\"name\":\"ofrep\"}],\"readinessProbe\":{\"failureThreshold\":3,\"periodSeconds\":10,\"tcpSocket\":{\"port\":8013},\"timeoutSeconds\":2},\"resources\":{\"limits\":{\"cpu\":\"100m\",\"memory\":\"128Mi\"},\"requests\":{\"cpu\":\"10m\",\"memory\":\"64Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":true,\"runAsNonRoot\":true},\"volumeMounts\":[{\"mountPath\":\"/etc/flagd\",\"name\":\"config-rw\"},{\"mountPath\":\"/tmp\",\"name\":\"tmp-dir\"}]},{\"command\":[\"/app/bin/flagd_ui\",\"start\"],\"env\":[{\"name\":\"OTEL_SERVICE_NAME\",\"valueFrom\":{\"fieldRef\":{\"apiVersion\":\"v1\",\"fieldPath\":\"metadata.labels['app.kubernetes.io/component']\"}}},{\"name\":\"OTEL_COLLECTOR_NAME\",\"value\":\"otel-collector\"},{\"name\":\"OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE\",\"value\":\"cumulative\"},{\"name\":\"FLAGD_METRICS_EXPORTER\",\"value\":\"otel\"},{\"name\":\"OTEL_EXPORTER_OTLP_ENDPOINT\",\"value\":\"http://$(OTEL_COLLECTOR_NAME):4318\"},{\"name\":\"FLAGD_UI_PORT\",\"value\":\"4000\"},{\"name\":\"SECRET_KEY_BASE\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"SECRET_KEY_BASE\",\"name\":\"techx-corp-flagd-ui\"}}},{\"name\":\"PHX_HOST\",\"value\":\"localhost\"},{\"name\":\"PHX_SERVER\",\"value\":\"true\"}],\"image\":\"493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/flagd-ui@sha256:0f8f19f5580bcdba4056cafeb1b3b8693d573084223d614706b3841774cae7bd\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"flagd-ui\",\"ports\":[{\"containerPort\":4000,\"name\":\"service\"}],\"resources\":{\"limits\":{\"cpu\":\"20m\",\"memory\":\"192Mi\"},\"requests\":{\"cpu\":\"5m\",\"memory\":\"144Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":true,\"runAsGroup\":10001,\"runAsNonRoot\":true,\"runAsUser\":10001},\"volumeMounts\":[{\"mountPath\":\"/app/data\",\"name\":\"config-rw\"},{\"mountPath\":\"/tmp\",\"name\":\"tmp-dir\"}]}],\"initContainers\":[{\"command\":[\"sh\",\"-c\",\"cp /config-ro/demo.flagd.json /config-rw/demo.flagd.json \\u0026\\u0026 cat /config-rw/demo.flagd.json\"],\"image\":\"busybox:1.37.0\",\"name\":\"init-config\",\"resources\":{\"limits\":{\"cpu\":\"100m\",\"memory\":\"64Mi\"},\"requests\":{\"cpu\":\"10m\",\"memory\":\"16Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":true,\"runAsGroup\":10001,\"runAsNonRoot\":true,\"runAsUser\":10001},\"volumeMounts\":[{\"mountPath\":\"/config-ro\",\"name\":\"config-ro\"},{\"mountPath\":\"/config-rw\",\"name\":\"config-rw\"}]}],\"nodeSelector\":{\"workload-class\":\"critical\"},\"securityContext\":{\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"serviceAccountName\":\"flagd\",\"terminationGracePeriodSeconds\":30,\"volumes\":[{\"emptyDir\":{},\"name\":\"config-rw\"},{\"emptyDir\":{},\"name\":\"tmp-dir\"},{\"configMap\":{\"name\":\"flagd-config\"},\"name\":\"config-ro\"}]}}}}\n"
+        },
+        "creationTimestamp": "2026-07-13T02:55:00Z",
+        "generation": 112,
+        "labels": {
+          "app.kubernetes.io/component": "flagd",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "flagd",
+          "app.kubernetes.io/part-of": "techx-corp",
+          "app.kubernetes.io/version": "2.2.0",
+          "argocd.argoproj.io/instance": "techx-corp",
+          "helm.sh/chart": "techx-corp-0.48.12",
+          "opentelemetry.io/name": "flagd"
+        },
+        "name": "flagd",
+        "namespace": "techx-corp-prod",
+        "resourceVersion": "10096136",
+        "uid": "dffbbd77-9c87-4fdd-8145-e5bbbfd527dd"
+      },
+      "spec": {
+        "minReadySeconds": 10,
+        "progressDeadlineSeconds": 300,
+        "replicas": 1,
+        "revisionHistoryLimit": 2,
+        "selector": {
+          "matchLabels": {
+            "opentelemetry.io/name": "flagd"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubectl.kubernetes.io/restartedAt": "2026-07-26T19:29:09+07:00",
+              "resource.opentelemetry.io/service.namespace": "techx-corp-prod"
+            },
+            "labels": {
+              "app.kubernetes.io/component": "flagd",
+              "app.kubernetes.io/name": "flagd",
+              "app.kubernetes.io/part-of": "techx-corp",
+              "app.kubernetes.io/version": "2.2.0",
+              "opentelemetry.io/name": "flagd"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "command": [
+                  "/flagd-build",
+                  "start",
+                  "--port",
+                  "8013",
+                  "--ofrep-port",
+                  "8016",
+                  "--sources",
+                  "[{\"uri\":\"/etc/flagd/demo.flagd.json\",\"provider\":\"file\"},{\"uri\":\"https://122.248.223.194.sslip.io/flags.json\",\"provider\":\"http\",\"authHeader\":\"Bearer $(FLAGD_SYNC_TOKEN)\"}]"
+                ],
+                "env": [
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.labels['app.kubernetes.io/component']"
+                      }
+                    }
+                  },
+                  {
+                    "name": "OTEL_COLLECTOR_NAME",
+                    "value": "otel-collector"
+                  },
+                  {
+                    "name": "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE",
+                    "value": "cumulative"
+                  },
+                  {
+                    "name": "FLAGD_METRICS_EXPORTER",
+                    "value": "otel"
+                  },
+                  {
+                    "name": "FLAGD_OTEL_COLLECTOR_URI",
+                    "value": "$(OTEL_COLLECTOR_NAME):4317"
+                  },
+                  {
+                    "name": "GOMEMLIMIT",
+                    "value": "100MiB"
+                  },
+                  {
+                    "name": "FLAGD_SYNC_TOKEN",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "FLAGD_SYNC_TOKEN",
+                        "name": "techx-corp-flagd-ui"
+                      }
+                    }
+                  }
+                ],
+                "image": "ghcr.io/open-feature/flagd:v0.15.0",
+                "imagePullPolicy": "IfNotPresent",
+                "lifecycle": {
+                  "preStop": {
+                    "sleep": {
+                      "seconds": 10
+                    }
+                  }
+                },
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "periodSeconds": 20,
+                  "successThreshold": 1,
+                  "tcpSocket": {
+                    "port": 8013
+                  },
+                  "timeoutSeconds": 3
+                },
+                "name": "flagd",
+                "ports": [
+                  {
+                    "containerPort": 8013,
+                    "name": "rpc",
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 8016,
+                    "name": "ofrep",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "tcpSocket": {
+                    "port": 8013
+                  },
+                  "timeoutSeconds": 2
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  },
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "64Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": ["ALL"]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsNonRoot": true
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/etc/flagd",
+                    "name": "config-rw"
+                  },
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp-dir"
+                  }
+                ]
+              },
+              {
+                "command": ["/app/bin/flagd_ui", "start"],
+                "env": [
+                  {
+                    "name": "OTEL_SERVICE_NAME",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.labels['app.kubernetes.io/component']"
+                      }
+                    }
+                  },
+                  {
+                    "name": "OTEL_COLLECTOR_NAME",
+                    "value": "otel-collector"
+                  },
+                  {
+                    "name": "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE",
+                    "value": "cumulative"
+                  },
+                  {
+                    "name": "FLAGD_METRICS_EXPORTER",
+                    "value": "otel"
+                  },
+                  {
+                    "name": "OTEL_EXPORTER_OTLP_ENDPOINT",
+                    "value": "http://$(OTEL_COLLECTOR_NAME):4318"
+                  },
+                  {
+                    "name": "FLAGD_UI_PORT",
+                    "value": "4000"
+                  },
+                  {
+                    "name": "SECRET_KEY_BASE",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "SECRET_KEY_BASE",
+                        "name": "techx-corp-flagd-ui"
+                      }
+                    }
+                  },
+                  {
+                    "name": "PHX_HOST",
+                    "value": "localhost"
+                  },
+                  {
+                    "name": "PHX_SERVER",
+                    "value": "true"
+                  }
+                ],
+                "image": "493499579600.dkr.ecr.us-east-1.amazonaws.com/techx-prod-corp/flagd-ui@sha256:0f8f19f5580bcdba4056cafeb1b3b8693d573084223d614706b3841774cae7bd",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "flagd-ui",
+                "ports": [
+                  {
+                    "containerPort": 4000,
+                    "name": "service",
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "20m",
+                    "memory": "192Mi"
+                  },
+                  "requests": {
+                    "cpu": "5m",
+                    "memory": "144Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": ["ALL"]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsGroup": 10001,
+                  "runAsNonRoot": true,
+                  "runAsUser": 10001
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/app/data",
+                    "name": "config-rw"
+                  },
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp-dir"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "initContainers": [
+              {
+                "command": [
+                  "sh",
+                  "-c",
+                  "cp /config-ro/demo.flagd.json /config-rw/demo.flagd.json \u0026\u0026 cat /config-rw/demo.flagd.json"
+                ],
+                "image": "busybox:1.37.0",
+                "imagePullPolicy": "Always",
+                "name": "init-config",
+                "resources": {
+                  "limits": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  },
+                  "requests": {
+                    "cpu": "10m",
+                    "memory": "16Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": ["ALL"]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsGroup": 10001,
+                  "runAsNonRoot": true,
+                  "runAsUser": 10001
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/config-ro",
+                    "name": "config-ro"
+                  },
+                  {
+                    "mountPath": "/config-rw",
+                    "name": "config-rw"
+                  }
+                ]
+              }
+            ],
+            "nodeSelector": {
+              "workload-class": "critical"
+            },
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "flagd",
+            "serviceAccountName": "flagd",
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "emptyDir": {},
+                "name": "config-rw"
+              },
+              {
+                "emptyDir": {},
+                "name": "tmp-dir"
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "flagd-config"
+                },
+                "name": "config-ro"
+              }
+            ]
+          }
+        }
+      },
+      "status": {
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-07-22T09:57:32Z",
+            "lastUpdateTime": "2026-07-22T09:57:32Z",
+            "message": "Deployment has minimum availability.",
+            "reason": "MinimumReplicasAvailable",
+            "status": "True",
+            "type": "Available"
+          },
+          {
+            "lastTransitionTime": "2026-07-23T22:45:40Z",
+            "lastUpdateTime": "2026-07-27T04:06:46Z",
+            "message": "ReplicaSet \"flagd-7d44bd8cc7\" has successfully progressed.",
+            "reason": "NewReplicaSetAvailable",
+            "status": "True",
+            "type": "Progressing"
+          }
+        ],
+        "observedGeneration": 112,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "terminatingReplicas": 0,
+        "updatedReplicas": 1
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}
