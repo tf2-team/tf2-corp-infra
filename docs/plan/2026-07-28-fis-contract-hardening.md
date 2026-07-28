@@ -4,7 +4,7 @@
 
 **Goal:** Make the Mandate 21 AWS FIS templates valid at creation time and executable with the intended per-AZ targets and least-required service permissions.
 
-**Architecture:** Keep one experiment template per Availability Zone and retain explicit RDS, subnet, and Valkey ARNs. Use target parameters for RDS and ElastiCache AZ scoping, reserve filters for the tag-selected EC2 target, and keep action parameters on their actions. Keep the experiment role in bootstrap and grant only permissions required by the configured actions.
+**Architecture:** Keep one experiment template per Availability Zone. Retain explicit subnet ARNs, use exact Name tags plus target parameters for RDS and Valkey AZ scoping, reserve filters for the tag-selected EC2 target, and keep action parameters on their actions. Keep the experiment role in bootstrap and grant only permissions required by the configured actions.
 
 **Tech Stack:** Terraform 1.15.x, HashiCorp AWS provider 5.100.0 in production, AWS provider 6.56.0 in standalone module tests, AWS Fault Injection Service, and native Terraform tests.
 
@@ -17,20 +17,22 @@
 - Modify: modules/fis-az-failover/tests/contract.tftest.hcl
 
 - [x] Add a mock AWS provider with deterministic account, partition, and Region data.
-- [x] Assert that RDS targets have no filters and use the template AZ through availabilityZoneIdentifiers.
-- [x] Assert that Valkey targets use aws:elasticache:replicationgroup and the required availabilityZoneIdentifier.
-- [x] Run the test before implementation and confirm both assertions fail with parameters = null.
+- [x] Assert that RDS targets have no ARNs or filters, use the exact Name tag, and use the template AZ through availabilityZoneIdentifiers.
+- [x] Assert that Valkey targets have no ARNs, use the exact Name tag, and use the required availabilityZoneIdentifier.
+- [x] Run the test before implementation and confirm both assertions fail because ARNs are present and resource tags are absent.
 
 ### Task 2: Correct the FIS module
 
 **Files:**
 
 - Modify: modules/fis-az-failover/main.tf
+- Modify: modules/fis-az-failover/outputs.tf
+- Modify: modules/commerce-ha/main.tf
 
 - [x] Configure single-account, fail-closed experiment options.
-- [x] Add the per-template RDS availabilityZoneIdentifiers target parameter without reintroducing an ARN/filter conflict.
-- [x] Add the required Valkey availabilityZoneIdentifier target parameter.
-- [x] Retain forceFailover and duration as action parameters.
+- [x] Replace the RDS ARN selector with its exact Name tag and retain the per-template availabilityZoneIdentifiers parameter.
+- [x] Replace the Valkey ARN selector with its exact Name tag and retain the required availabilityZoneIdentifier parameter.
+- [x] Add the deterministic Name tag to the Terraform-managed Valkey replication group and retain forceFailover and duration as action parameters.
 
 ### Task 3: Correct the bootstrap experiment role
 
@@ -70,4 +72,4 @@ terraform validate -no-color
 tflint --format=compact
 ~~~
 
-<!-- Change trail: @hungxqt - 2026-07-28 - Documented the completed FIS contract-hardening implementation and rollout gates. -->
+<!-- Change trail: @hungxqt - 2026-07-28 - Corrected the FIS selector plan from ARN-based to tag-based targeting. -->

@@ -67,7 +67,10 @@ resource "aws_fis_experiment_template" "az_failover" {
     parameters = {
       availabilityZoneIdentifiers = each.key
     }
-    resource_arns = [var.rds_db_instance_arn]
+    resource_tag {
+      key   = "Name"
+      value = var.rds_db_instance_identifier
+    }
   }
 
   target {
@@ -77,7 +80,10 @@ resource "aws_fis_experiment_template" "az_failover" {
     parameters = {
       availabilityZoneIdentifier = each.key
     }
-    resource_arns = [var.valkey_replication_group_arn]
+    resource_tag {
+      key   = "Name"
+      value = var.valkey_replication_group_id
+    }
   }
 
   action {
@@ -153,4 +159,4 @@ resource "aws_fis_experiment_template" "az_failover" {
   })
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Added fail-closed zonal parameters to RDS and Valkey FIS targets.
+# Change trail: @hungxqt - 2026-07-28 - Selected zonal RDS and Valkey targets by deterministic tags without ARNs.

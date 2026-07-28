@@ -22,10 +22,14 @@ output "contract" {
     stop_alarm_arns       = var.stop_alarm_arns
     target_selectors_by_zone = {
       for zone in var.target_zones : zone => {
-        ec2_cluster_name = var.eks_cluster_name
-        subnet_ids       = lookup(var.subnet_ids_by_zone, zone, [])
-        rds_arn          = var.rds_db_instance_arn
-        valkey_arn       = var.valkey_replication_group_arn
+        ec2_cluster_name    = var.eks_cluster_name
+        subnet_ids          = lookup(var.subnet_ids_by_zone, zone, [])
+        rds_arn             = var.rds_db_instance_arn
+        rds_resource_tag    = { Name = var.rds_db_instance_identifier }
+        rds_zone            = zone
+        valkey_arn          = var.valkey_replication_group_arn
+        valkey_resource_tag = { Name = var.valkey_replication_group_id }
+        valkey_zone         = zone
       }
     }
     fault_durations = {
@@ -50,4 +54,4 @@ output "contract" {
   description = "Mandate 21 Person 1 -> Person 3 FIS contract schema"
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Defined outputs and contract for fis-az-failover module.
+# Change trail: @hungxqt - 2026-07-28 - Recorded tag-based RDS and Valkey target selectors in the FIS contract.

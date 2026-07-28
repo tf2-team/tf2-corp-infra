@@ -79,13 +79,25 @@ run "verify_two_az_contract" {
       one([
         for target in template.target : target
         if target.name == "RDSInstance"
+      ]).resource_arns == null &&
+      one(one([
+        for target in template.target : target
+        if target.name == "RDSInstance"
+      ]).resource_tag).key == "Name" &&
+      one(one([
+        for target in template.target : target
+        if target.name == "RDSInstance"
+      ]).resource_tag).value == "test-db" &&
+      one([
+        for target in template.target : target
+        if target.name == "RDSInstance"
       ]).parameters["availabilityZoneIdentifiers"] == zone &&
       length(one([
         for target in template.target : target
         if target.name == "RDSInstance"
       ]).parameters) == 1
     ])
-    error_message = "RDS targets must use explicit ARNs without filters and retain per-template AZ parameters."
+    error_message = "RDS targets must use the exact Name tag without ARNs or filters and retain per-template AZ parameters."
   }
 
   assert {
@@ -98,14 +110,26 @@ run "verify_two_az_contract" {
       one([
         for target in template.target : target
         if target.name == "ValkeyReplicationGroup"
+      ]).resource_arns == null &&
+      one(one([
+        for target in template.target : target
+        if target.name == "ValkeyReplicationGroup"
+      ]).resource_tag).key == "Name" &&
+      one(one([
+        for target in template.target : target
+        if target.name == "ValkeyReplicationGroup"
+      ]).resource_tag).value == "test-valkey" &&
+      one([
+        for target in template.target : target
+        if target.name == "ValkeyReplicationGroup"
       ]).parameters["availabilityZoneIdentifier"] == zone &&
       length(one([
         for target in template.target : target
         if target.name == "ValkeyReplicationGroup"
       ]).parameters) == 1
     ])
-    error_message = "Valkey targets must use the supported resource type and required per-template AZ parameter."
+    error_message = "Valkey targets must use the exact Name tag without ARNs and retain the required per-template AZ parameter."
   }
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Added regression coverage for valid zonal RDS and Valkey FIS targets.
+# Change trail: @hungxqt - 2026-07-28 - Prevented ARN and parameter combinations in zonal data-service targets.
