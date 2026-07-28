@@ -499,6 +499,13 @@ resource "aws_cloudtrail" "immutable_audit" {
     }
   }
 
+  lifecycle {
+    ignore_changes = [
+      event_selector,
+      advanced_event_selector,
+    ]
+  }
+
   tags = merge(var.tags, {
     Name    = local.immutable_audit_trail_name
     Mandate = "MD4-MD12"
