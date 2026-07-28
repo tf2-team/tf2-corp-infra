@@ -3,9 +3,9 @@ data "aws_partition" "current" {}
 data "aws_region" "current" {}
 
 resource "aws_fis_experiment_template" "az_failover" {
-  for_each = toset(var.target_zones)
+  for_each = var.template_variants
 
-  description = "Mandate 21 immutable FIS AZ failover experiment template for ${each.key}"
+  description = "Mandate 21 immutable FIS AZ failover experiment template ${each.key} for ${each.value.zone}"
   role_arn    = var.role_arn
 
   experiment_options {
@@ -46,7 +46,7 @@ resource "aws_fis_experiment_template" "az_failover" {
 
     filter {
       path   = "Placement.AvailabilityZone"
-      values = [each.key]
+      values = [each.value.zone]
     }
   }
 
@@ -55,21 +55,25 @@ resource "aws_fis_experiment_template" "az_failover" {
     resource_type  = "aws:ec2:subnet"
     selection_mode = "ALL"
     resource_arns = [
-      for sub_id in lookup(var.subnet_ids_by_zone, each.key, []) :
+      for sub_id in lookup(var.subnet_ids_by_zone, each.value.zone, []) :
       "arn:${data.aws_partition.current.partition}:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:subnet/${sub_id}"
     ]
   }
 
-  target {
-    name           = "RDSInstance"
-    resource_type  = "aws:rds:db"
-    selection_mode = "ALL"
-    parameters = {
-      availabilityZoneIdentifiers = each.key
-    }
-    resource_tag {
-      key   = "Name"
-      value = var.rds_db_instance_identifier
+  dynamic "target" {
+    for_each = each.value.rds_primary_relation == "inside" ? [each.value] : []
+
+    content {
+      name           = "RDSInstance"
+      resource_type  = "aws:rds:db"
+      selection_mode = "ALL"
+      parameters = {
+        availabilityZoneIdentifiers = target.value.zone
+      }
+      resource_tag {
+        key   = "Name"
+        value = var.rds_db_instance_identifier
+      }
     }
   }
 
@@ -78,7 +82,7 @@ resource "aws_fis_experiment_template" "az_failover" {
     resource_type  = "aws:elasticache:replicationgroup"
     selection_mode = "ALL"
     parameters = {
-      availabilityZoneIdentifier = each.key
+      availabilityZoneIdentifier = each.value.zone
     }
     resource_tag {
       key   = "Name"
@@ -121,18 +125,22 @@ resource "aws_fis_experiment_template" "az_failover" {
     }
   }
 
-  action {
-    name      = "FailoverRDS"
-    action_id = "aws:rds:reboot-db-instances"
+  dynamic "action" {
+    for_each = each.value.rds_primary_relation == "inside" ? [each.value] : []
 
-    target {
-      key   = "DBInstances"
-      value = "RDSInstance"
-    }
+    content {
+      name      = "FailoverRDS"
+      action_id = "aws:rds:reboot-db-instances"
 
-    parameter {
-      key   = "forceFailover"
-      value = "true"
+      target {
+        key   = "DBInstances"
+        value = "RDSInstance"
+      }
+
+      parameter {
+        key   = "forceFailover"
+        value = "true"
+      }
     }
   }
 
@@ -152,11 +160,23 @@ resource "aws_fis_experiment_template" "az_failover" {
   }
 
   tags = merge(var.tags, {
-    Name    = "${var.name_prefix}-az-failover-${each.key}"
-    Zone    = each.key
-    Mandate = "MD21"
-    Purpose = "az-failover-experiment"
+    Name               = "${var.name_prefix}-az-failover-${each.key}"
+    FaultZone          = each.value.zone
+    RdsPrimaryRelation = each.value.rds_primary_relation
+    TemplateVariant    = each.key
+    Mandate            = "MD21"
+    Purpose            = "az-failover-experiment"
   })
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Selected zonal RDS and Valkey targets by deterministic tags without ARNs.
+moved {
+  from = aws_fis_experiment_template.az_failover["us-east-1a"]
+  to   = aws_fis_experiment_template.az_failover["1a-primary-in"]
+}
+
+moved {
+  from = aws_fis_experiment_template.az_failover["us-east-1b"]
+  to   = aws_fis_experiment_template.az_failover["1b-primary-in"]
+}
+
+# Change trail: @hungxqt - 2026-07-28 - Expanded stable FIS variants and conditionally omitted RDS failover outside the fault zone.

@@ -129,26 +129,39 @@ locals {
     "us-east-1a" = local.mandate21_subnet_ids_1a
     "us-east-1b" = local.mandate21_subnet_ids_1b
   }
+  mandate21_fis_template_variants = {
+    "1a-primary-in" = {
+      zone                 = "us-east-1a"
+      rds_primary_relation = "inside"
+    }
+    "1a-primary-outside" = {
+      zone                 = "us-east-1a"
+      rds_primary_relation = "outside"
+    }
+    "1b-primary-in" = {
+      zone                 = "us-east-1b"
+      rds_primary_relation = "inside"
+    }
+    "1b-primary-outside" = {
+      zone                 = "us-east-1b"
+      rds_primary_relation = "outside"
+    }
+  }
 }
 
 module "fis_az_failover" {
   source = "../../modules/fis-az-failover"
 
-  name_prefix                   = var.project_name
-  vpc_id                        = module.vpc.vpc_id
-  eks_cluster_name              = module.eks.cluster_name
-  target_zones                  = ["us-east-1a", "us-east-1b"]
-  subnet_ids_by_zone            = local.mandate21_subnet_ids_by_zone
-  karpenter_controller_role_arn = module.karpenter.controller_role_arn
-  rds_db_instance_arn           = module.rds_postgresql.db_instance_arn
-  rds_db_instance_identifier    = module.rds_postgresql.db_instance_identifier
-  valkey_replication_group_arn  = module.commerce_ha.valkey_replication_group_arn
-  valkey_replication_group_id   = module.commerce_ha.valkey_replication_group_id
-  evidence_bucket_name          = aws_s3_bucket.immutable_audit_k8s_raw.bucket
-  evidence_kms_key_arn          = aws_kms_key.immutable_audit.arn
-  evidence_prefix               = "mandate-21/fis/"
-  role_arn                      = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-fis-execution-role"
-  tags                          = var.tags
+  name_prefix                 = var.project_name
+  eks_cluster_name            = module.eks.cluster_name
+  template_variants           = local.mandate21_fis_template_variants
+  subnet_ids_by_zone          = local.mandate21_subnet_ids_by_zone
+  rds_db_instance_identifier  = module.rds_postgresql.db_instance_identifier
+  valkey_replication_group_id = module.commerce_ha.valkey_replication_group_id
+  evidence_bucket_name        = aws_s3_bucket.immutable_audit_k8s_raw.bucket
+  evidence_prefix             = "mandate-21/fis/"
+  role_arn                    = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-fis-execution-role"
+  tags                        = var.tags
 
   stop_alarm_arns = [
     aws_cloudwatch_metric_alarm.storefront_healthy_hosts.arn,
@@ -158,4 +171,4 @@ module "fis_az_failover" {
   ]
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Added mandate21_fis.tf for production FIS composition and stop alarms.
+# Change trail: @hungxqt - 2026-07-28 - Supplied the exact four production FIS template variants and RDS-primary relationships.
