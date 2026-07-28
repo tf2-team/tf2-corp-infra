@@ -124,3 +124,11 @@ output "github_actions_terraform_github_secrets" {
   }
   description = "Convenience map of all ten infra-repo GitHub Actions secrets (names → values)"
 }
+
+output "fis_prod_execution_role_arn" {
+  value       = aws_iam_role.fis_prod.arn
+  description = "IAM role ARN created in bootstrap for Mandate 21 FIS experiments in production"
+}
+
+# Change trail: @hungxqt - 2026-07-28 - Exported fis_prod_execution_role_arn for Mandate 21 FIS experiments.
+

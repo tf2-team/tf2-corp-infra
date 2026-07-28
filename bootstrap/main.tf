@@ -333,4 +333,131 @@ module "github_actions_terraform" {
   })
 }
 
-# Change trail: @hungxqt - 2026-07-19 - Grant GHA platform roles S3 publish on Mem0 FastEmbed prefix.
+# ──────────────────────────────────────────────
+# Mandate 21: FIS Execution Role (production environment)
+# ──────────────────────────────────────────────
+
+data "aws_iam_policy_document" "fis_prod_assume_role" {
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["fis.amazonaws.com"]
+    }
+
+    actions = ["sts:AssumeRole"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [local.account_id]
+    }
+
+    condition {
+      test     = "ArnLike"
+      variable = "aws:SourceArn"
+      values   = ["arn:aws:fis:${var.aws_region}:${local.account_id}:experiment-template/*"]
+    }
+  }
+}
+
+resource "aws_iam_role" "fis_prod" {
+  name               = "${var.project_name}-prod-tf2-fis-execution-role"
+  assume_role_policy = data.aws_iam_policy_document.fis_prod_assume_role.json
+
+  tags = merge(var.tags, {
+    Name    = "${var.project_name}-prod-tf2-fis-execution-role"
+    Mandate = "MD21"
+    Purpose = "fis-execution-role"
+  })
+}
+
+data "aws_iam_policy_document" "fis_prod_policy" {
+  statement {
+    sid    = "AllowEC2InstanceActions"
+    effect = "Allow"
+    actions = [
+      "ec2:StopInstances",
+      "ec2:StartInstances",
+      "ec2:RebootInstances",
+    ]
+    resources = [
+      "arn:aws:ec2:${var.aws_region}:${local.account_id}:instance/*"
+    ]
+  }
+
+  statement {
+    sid    = "AllowEC2ReadActions"
+    effect = "Allow"
+    actions = [
+      "ec2:DescribeInstances",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeVpcs",
+      "ec2:DescribeNetworkAcls",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowNACLDisruptionActions"
+    effect = "Allow"
+    actions = [
+      "ec2:CreateNetworkAcl",
+      "ec2:CreateNetworkAclEntry",
+      "ec2:DeleteNetworkAcl",
+      "ec2:DeleteNetworkAclEntry",
+      "ec2:ReplaceNetworkAclAssociation",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowRDSFailoverActions"
+    effect = "Allow"
+    actions = [
+      "rds:RebootDBInstance",
+      "rds:DescribeDBInstances",
+    ]
+    resources = ["arn:aws:rds:${var.aws_region}:${local.account_id}:db:*"]
+  }
+
+  statement {
+    sid    = "AllowValkeyFailoverActions"
+    effect = "Allow"
+    actions = [
+      "elasticache:TestFailover",
+      "elasticache:DescribeReplicationGroups",
+    ]
+    resources = ["arn:aws:elasticache:${var.aws_region}:${local.account_id}:replicationgroup:*"]
+  }
+
+  statement {
+    sid    = "AllowS3EvidenceLogging"
+    effect = "Allow"
+    actions = [
+      "s3:PutObject",
+      "s3:GetBucketLocation",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowKMSEvidenceEncryption"
+    effect = "Allow"
+    actions = [
+      "kms:GenerateDataKey*",
+      "kms:Decrypt",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "fis_prod" {
+  name   = "${var.project_name}-prod-tf2-fis-policy"
+  role   = aws_iam_role.fis_prod.id
+  policy = data.aws_iam_policy_document.fis_prod_policy.json
+}
+
+# Change trail: @hungxqt - 2026-07-28 - Created Mandate 21 FIS execution role techx-prod-tf2-fis-execution-role.
+
