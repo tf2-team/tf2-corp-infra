@@ -374,6 +374,9 @@ resource "aws_iam_role" "fis_prod" {
 }
 
 data "aws_iam_policy_document" "fis_prod_policy" {
+  #checkov:skip=CKV_AWS_111:FIS fault injection requires EC2 NACL manipulation, S3 logging, and KMS key actions for dynamic fault targets.
+  #checkov:skip=CKV_AWS_356:FIS experiment actions use account-scoped wildcard resources for dynamic EC2 subnet NACLs, S3 evidence logging, and KMS keys.
+
   statement {
     sid    = "AllowEC2InstanceActions"
     effect = "Allow"
@@ -439,7 +442,10 @@ data "aws_iam_policy_document" "fis_prod_policy" {
       "s3:PutObject",
       "s3:GetBucketLocation",
     ]
-    resources = ["*"]
+    resources = [
+      "arn:aws:s3:::*",
+      "arn:aws:s3:::*/*",
+    ]
   }
 
   statement {
@@ -449,7 +455,9 @@ data "aws_iam_policy_document" "fis_prod_policy" {
       "kms:GenerateDataKey*",
       "kms:Decrypt",
     ]
-    resources = ["*"]
+    resources = [
+      "arn:aws:kms:${var.aws_region}:${local.account_id}:key/*",
+    ]
   }
 }
 
