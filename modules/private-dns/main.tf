@@ -9,6 +9,7 @@
 # Path routing stays on frontend-proxy (unchanged):
 #   https://internal.hungtran.id.vn/grafana/  (when ACM ARN + chart certificateArn set)
 #   https://internal.hungtran.id.vn/argocd/   (Argo CD UI; VPN only; CF blocks /argocd)
+#   https://internal.hungtran.id.vn/kubecost/ (Kubecost UI; VPN only; CF blocks /kubecost)
 #   http://internal.hungtran.id.vn/grafana/   (HTTP:80 always kept for CloudFront origin)
 #
 # Zone is dedicated (e.g. internal.hungtran.id.vn), not the public apex, so no
@@ -77,4 +78,3 @@ resource "aws_route53_record" "apex" {
     evaluate_target_health = true
   }
 }
-

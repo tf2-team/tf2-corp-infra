@@ -970,12 +970,14 @@ variable "cloudfront_blocked_prefixes" {
     "/loadgen",
     "/feature",
     "/argocd",
+    "/kubecost",
   ]
   nullable    = false
   description = <<-EOT
     URI path prefixes blocked at CloudFront when cloudfront_block_sensitive_paths is true.
     /otlp-http and /flagservice are allowed so the storefront can use browser OTLP and
-    flagd evaluation EventStream via the public edge. /argocd is VPN/private-DNS only.
+    flagd evaluation EventStream via the public edge. /argocd and /kubecost are
+    VPN/private-DNS only.
   EOT
 }
 
@@ -1091,6 +1093,7 @@ variable "private_dns_service_paths" {
     loadgen     = "/loadgen/"
     feature     = "/feature/"
     argocd      = "/argocd/"
+    kubecost    = "/kubecost/"
     flagservice = "/flagservice/"
   }
   nullable    = false

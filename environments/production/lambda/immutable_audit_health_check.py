@@ -319,10 +319,14 @@ def handler(_event, _context):
             errors.append(f"{check.__name__} failed: {exc}")
 
     if errors:
+        result = {"status": "FAIL", "errors": errors}
         _put_health_metric(0)
-        print(json.dumps({"status": "FAIL", "errors": errors}))
-        raise RuntimeError("; ".join(errors))
+        print(json.dumps(result))
+        return result
 
     _put_health_metric(1)
     print(json.dumps({"status": "PASS"}))
     return {"status": "PASS"}
+
+
+# Change trail: @hungxqt - 2026-07-28 - Kept detected audit drift fail-closed without self-populating the Lambda DLQ.

@@ -188,6 +188,9 @@ locals {
       s3_publish_list_prefixes = [
         "${local.mem0_fastembed_prefix}/*",
       ]
+      lambda_update_function_arns = [
+        "arn:aws:lambda:${var.aws_region}:${local.account_id}:function:techx-audit-alert-router",
+      ]
     }
     development = {
       name                = var.github_actions_ecr_development.role_name
@@ -235,10 +238,11 @@ module "github_actions_ecr" {
   oidc_provider_arn   = aws_iam_openid_connect_provider.github.arn
   ecr_repository_arns = each.value.ecr_repository_arns
 
-  s3_publish_bucket_arns   = each.value.s3_publish_bucket_arns
-  s3_publish_object_arns   = each.value.s3_publish_object_arns
-  s3_publish_list_prefixes = each.value.s3_publish_list_prefixes
-  cosign_kms_key_arn       = aws_kms_key.cosign.arn
+  s3_publish_bucket_arns      = each.value.s3_publish_bucket_arns
+  s3_publish_object_arns      = each.value.s3_publish_object_arns
+  s3_publish_list_prefixes    = each.value.s3_publish_list_prefixes
+  lambda_update_function_arns = lookup(each.value, "lambda_update_function_arns", [])
+  cosign_kms_key_arn          = aws_kms_key.cosign.arn
 
   tags = merge(var.tags, {
     Purpose = "github-actions-ecr-push"
@@ -383,11 +387,15 @@ data "aws_iam_policy_document" "fis_prod_policy" {
     actions = [
       "ec2:StopInstances",
       "ec2:StartInstances",
-      "ec2:RebootInstances",
     ]
     resources = [
       "arn:aws:ec2:${var.aws_region}:${local.account_id}:instance/*"
     ]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/kubernetes.io/cluster/techx-tf2-prod"
+      values   = ["shared"]
+    }
   }
 
   statement {
@@ -398,6 +406,8 @@ data "aws_iam_policy_document" "fis_prod_policy" {
       "ec2:DescribeSubnets",
       "ec2:DescribeVpcs",
       "ec2:DescribeNetworkAcls",
+      "ec2:DescribeManagedPrefixLists",
+      "ec2:GetManagedPrefixListEntries",
     ]
     resources = ["*"]
   }
@@ -408,31 +418,52 @@ data "aws_iam_policy_document" "fis_prod_policy" {
     actions = [
       "ec2:CreateNetworkAcl",
       "ec2:CreateNetworkAclEntry",
+      "ec2:CreateTags",
       "ec2:DeleteNetworkAcl",
       "ec2:DeleteNetworkAclEntry",
       "ec2:ReplaceNetworkAclAssociation",
     ]
     resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestTag/managedByFIS"
+      values   = ["true"]
+    }
   }
 
   statement {
-    sid    = "AllowRDSFailoverActions"
-    effect = "Allow"
-    actions = [
-      "rds:RebootDBInstance",
-      "rds:DescribeDBInstances",
-    ]
-    resources = ["arn:aws:rds:${var.aws_region}:${local.account_id}:db:*"]
+    sid       = "AllowRDSFailoverActions"
+    effect    = "Allow"
+    actions   = ["rds:RebootDBInstance"]
+    resources = ["arn:aws:rds:${var.aws_region}:${local.account_id}:db:techx-prod-tf2-postgresql"]
   }
 
   statement {
-    sid    = "AllowValkeyFailoverActions"
-    effect = "Allow"
-    actions = [
-      "elasticache:TestFailover",
-      "elasticache:DescribeReplicationGroups",
-    ]
-    resources = ["arn:aws:elasticache:${var.aws_region}:${local.account_id}:replicationgroup:*"]
+    sid       = "AllowRDSReadActions"
+    effect    = "Allow"
+    actions   = ["rds:DescribeDBInstances"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "AllowValkeyFailoverActions"
+    effect    = "Allow"
+    actions   = ["elasticache:InterruptClusterAzPower"]
+    resources = ["arn:aws:elasticache:${var.aws_region}:${local.account_id}:replicationgroup:techx-prod-tf2-cart"]
+  }
+
+  statement {
+    sid       = "AllowValkeyReadActions"
+    effect    = "Allow"
+    actions   = ["elasticache:DescribeReplicationGroups"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "AllowFISTargetResolutionByTags"
+    effect    = "Allow"
+    actions   = ["tag:GetResources"]
+    resources = ["*"]
   }
 
   statement {
@@ -443,8 +474,8 @@ data "aws_iam_policy_document" "fis_prod_policy" {
       "s3:GetBucketLocation",
     ]
     resources = [
-      "arn:aws:s3:::*",
-      "arn:aws:s3:::*/*",
+      "arn:aws:s3:::techx-prod-tf2-immutable-audit-${local.account_id}",
+      "arn:aws:s3:::techx-prod-tf2-immutable-audit-${local.account_id}/mandate-21/fis/*",
     ]
   }
 
@@ -459,6 +490,25 @@ data "aws_iam_policy_document" "fis_prod_policy" {
       "arn:aws:kms:${var.aws_region}:${local.account_id}:key/*",
     ]
   }
+
+  statement {
+    sid       = "AllowEncryptedEC2RestartGrant"
+    effect    = "Allow"
+    actions   = ["kms:CreateGrant"]
+    resources = ["arn:aws:kms:${var.aws_region}:${local.account_id}:key/*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["ec2.${var.aws_region}.amazonaws.com"]
+    }
+
+    condition {
+      test     = "Bool"
+      variable = "kms:GrantIsForAWSResource"
+      values   = ["true"]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "fis_prod" {
@@ -467,5 +517,4 @@ resource "aws_iam_role_policy" "fis_prod" {
   policy = data.aws_iam_policy_document.fis_prod_policy.json
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Created Mandate 21 FIS execution role techx-prod-tf2-fis-execution-role.
-
+# Change trail: @hungxqt - 2026-07-28 - Completed least-required permissions for Mandate 21 FIS actions.

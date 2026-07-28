@@ -65,6 +65,7 @@ output "operator_note" {
     3) Path-based service URLs (frontend-proxy):
          ${local.url_scheme}://${var.zone_name}/grafana/
          ${local.url_scheme}://${var.zone_name}/jaeger/
+         ${local.url_scheme}://${var.zone_name}/kubecost/
     4) HTTPS: issue ACM cert for ${var.zone_name} in us-east-1 (DNS validation in public DNS),
        set private_dns_acm_certificate_arn in tfvars, and the same ARN on chart
        publicAlb.certificateArn. Keep HTTP:80 for CloudFront; do NOT enable ALB ssl-redirect.

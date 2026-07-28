@@ -35,6 +35,7 @@ jobs:
           - bootstrap
           - environments/development
           - environments/production
+          - modules/fis-az-failover
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -54,8 +55,8 @@ jobs:
       - name: Terraform validate
         run: terraform -chdir=${{ matrix.terraform_dir }} validate
 
-      - name: Validate production VPC CNI NetworkPolicy configuration
-        if: matrix.terraform_dir == 'environments/production'
+      - name: Run Terraform native tests
+        if: matrix.terraform_dir == 'environments/production' || matrix.terraform_dir == 'modules/fis-az-failover'
         run: terraform -chdir=${{ matrix.terraform_dir }} test
 
   tflint:
@@ -202,5 +203,4 @@ jobs:
               issue_number: context.issue.number,
               body
             });
-# Change trail: @hungxqt - 2026-07-20 - Bump third-party actions to Node 24 runtimes (SHA pins).
-# Change trail: @tientp - 2026-07-27 - Re-trigger required PR checks for Mandate 20 evidence review.
+# Change trail: @hungxqt - 2026-07-28 - Added standalone FIS module tests to Terraform CI while preserving pinned actions.

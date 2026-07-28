@@ -30,6 +30,7 @@ variable "services" {
   default = [
     "accounting",
     "ad",
+    "aiops",
     "cart",
     "checkout",
     "currency",
@@ -131,4 +132,4 @@ variable "repositories" {
   EOT
 }
 
-# Change trail: @hungxqt - 2026-07-22 - Allow keep_last_n_buildcache=0 (default); update validation.
+# Change trail: @hungxqt - 2026-07-28 - Add aiops to ECR module default services list.

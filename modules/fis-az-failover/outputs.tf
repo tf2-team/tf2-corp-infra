@@ -3,31 +3,67 @@ output "role_arn" {
   description = "IAM role ARN assumed by FIS for experiment actions"
 }
 
-output "template_ids" {
+output "template_ids_by_variant" {
   value       = { for k, v in aws_fis_experiment_template.az_failover : k => v.id }
-  description = "Map of Availability Zone to FIS experiment template ID"
+  description = "Map of stable template variant key to FIS experiment template ID"
 }
 
-output "template_arns" {
+output "template_arns_by_variant" {
   value       = { for k, v in aws_fis_experiment_template.az_failover : k => "arn:${data.aws_partition.current.partition}:fis:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:experiment-template/${v.id}" }
-  description = "Map of Availability Zone to FIS experiment template ARN"
+  description = "Map of stable template variant key to FIS experiment template ARN"
 }
 
 output "contract" {
   value = {
-    schema_version        = "1.0"
-    allowed_zones         = var.target_zones
-    template_ids_by_zone  = { for k, v in aws_fis_experiment_template.az_failover : k => v.id }
-    template_arns_by_zone = { for k, v in aws_fis_experiment_template.az_failover : k => "arn:${data.aws_partition.current.partition}:fis:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:experiment-template/${v.id}" }
-    stop_alarm_arns       = var.stop_alarm_arns
-    target_selectors_by_zone = {
-      for zone in var.target_zones : zone => {
-        ec2_cluster_name = var.eks_cluster_name
-        subnet_ids       = lookup(var.subnet_ids_by_zone, zone, [])
-        rds_arn          = var.rds_db_instance_arn
-        valkey_arn       = var.valkey_replication_group_arn
+    schema_version = "2.0"
+    allowed_zones = sort(distinct([
+      for variant in values(var.template_variants) : variant.zone
+    ]))
+    template_ids_by_variant  = { for k, v in aws_fis_experiment_template.az_failover : k => v.id }
+    template_arns_by_variant = { for k, v in aws_fis_experiment_template.az_failover : k => "arn:${data.aws_partition.current.partition}:fis:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:experiment-template/${v.id}" }
+    templates = {
+      for variant_key, template in aws_fis_experiment_template.az_failover : variant_key => {
+        id                    = template.id
+        arn                   = "arn:${data.aws_partition.current.partition}:fis:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:experiment-template/${template.id}"
+        zone                  = var.template_variants[variant_key].zone
+        rds_primary_relation  = var.template_variants[variant_key].rds_primary_relation
+        includes_rds_failover = var.template_variants[variant_key].rds_primary_relation == "inside"
+        target_selectors = {
+          ec2 = {
+            cluster_resource_tag = {
+              key   = "kubernetes.io/cluster/${var.eks_cluster_name}"
+              value = "shared"
+            }
+            state_filter = {
+              path   = "State.Name"
+              values = ["running"]
+            }
+            zone_filter = {
+              path   = "Placement.AvailabilityZone"
+              values = [var.template_variants[variant_key].zone]
+            }
+          }
+          subnet_ids = lookup(var.subnet_ids_by_zone, var.template_variants[variant_key].zone, [])
+          rds = var.template_variants[variant_key].rds_primary_relation == "inside" ? {
+            resource_type = "aws:rds:db"
+            resource_tag = {
+              key   = "Name"
+              value = var.rds_db_instance_identifier
+            }
+            availability_zone_identifier = var.template_variants[variant_key].zone
+          } : null
+          valkey = {
+            resource_type = "aws:elasticache:replicationgroup"
+            resource_tag = {
+              key   = "Name"
+              value = var.valkey_replication_group_id
+            }
+            availability_zone_identifier = var.template_variants[variant_key].zone
+          }
+        }
       }
     }
+    stop_alarm_arns = var.stop_alarm_arns
     fault_durations = {
       compute_fault_duration = "PT10M"
       network_fault_duration = "PT2M"
@@ -47,7 +83,7 @@ output "contract" {
       ]
     }
   }
-  description = "Mandate 21 Person 1 -> Person 3 FIS contract schema"
+  description = "Mandate 21 Person 1 to Person 3 FIS contract schema keyed by stable template variant"
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Defined outputs and contract for fis-az-failover module.
+# Change trail: @hungxqt - 2026-07-28 - Published the schema 2.0 four-variant FIS contract and nullable RDS selectors.

@@ -1,51 +1,41 @@
-# ADR-BCP-21: Multi-AZ High Availability and Automated Availability Zone Failover
+# ADR-BCP-21: Multi-AZ Availability and Availability Zone Failure Templates
 
-* **Status:** Proposed (Pending Live Fault Drill Evidence)
+* **Status:** Proposed — gates remain FAIL pending deployment and live evidence
 * **Date:** 2026-07-28
 * **Authors:** @hungxqt (Person 1)
 * **Deciders:** TechX Infrastructure & Platform Team
 
----
+## Context
 
-## 1. Context and Problem Statement
+Mandate 21 requires repeatable two-AZ failure drills while preserving zonal egress, managed-data safety, audit visibility, a five-minute recovery objective, and a weekly cost ceiling of `$300`. A classic Multi-AZ `aws_db_instance` has one current primary AZ, so a single per-AZ template cannot both fail closed and safely handle the case where the RDS primary is outside the fault AZ.
 
-To satisfy Mandate 21 business continuity requirements, the TechX infrastructure must maintain high availability across two Availability Zones (`us-east-1a` and `us-east-1b`), ensure private egress without cross-AZ dependencies, cap weekly infrastructure costs under 300 USD/week, and support repeatable live fault injection drills.
+## Decision
 
-## 2. Decision Drivers
+- Retain the existing dual zonal NAT baseline and its same-AZ Terraform validations.
+- Publish a wrapper-compatible production contract with `schemaVersion = 1` and two nested template IDs per AZ; retain internal module schema `2.0` metadata for four stable variants: `1a-primary-in`, `1a-primary-outside`, `1b-primary-in`, and `1b-primary-outside`.
+- Preserve the two existing Terraform resource identities as the `primary-in` variants with `moved` blocks; create the two `primary-outside` variants.
+- Include the RDS target and forced reboot/failover action only in `primary-in`. Omit both completely from `primary-outside`.
+- Keep `empty_target_resolution_mode = "fail"` for every template and every target that exists.
+- Require the runtime wrapper to read the current RDS primary immediately before preview/start, select by fault AZ plus primary relation, and reject stale or arbitrary template selection.
+- Treat skip-all as target-resolution evidence only and require separate capacity, action-permission, cleanup, durability, alarm, and RTO evidence.
 
-* **HA Invariant:** Private subnets in `us-east-1a` must route through `nat-1a`, and private subnets in `us-east-1b` must route through `nat-1b`.
-* **Cost Cap:** Weekly total infrastructure cost (including baseline, FIS actions, and retained evidence) must not exceed 300 USD/week.
-* **Safety & Security:** FIS fault templates must be immutable per AZ and bounded by fail-closed CloudWatch stop alarms.
-* **GitOps Alignment:** Argo CD owns Kubernetes resources; infrastructure mutation must occur strictly via Terraform.
+## Alternatives considered
 
-## 3. Considered Alternatives
+1. **Two per-AZ templates with RDS in both:** rejected because the template for the AZ outside the current RDS primary resolves empty and fails closed.
+2. **Skip empty targets:** rejected because it produces misleading resilience evidence and contradicts the Terraform fail-closed contract.
+3. **Runtime target injection:** rejected because FIS template targets are controlled infrastructure and arbitrary IDs/overrides expand blast radius.
+4. **Direct Helm/kubectl recovery:** rejected because Argo CD owns the Kubernetes desired state.
 
-1. **Single NAT Gateway with Cross-AZ Private Routes:**
-   - *Pros:* Saves ~$32/week NAT hourly cost.
-   - *Cons:* Single point of failure; if the NAT AZ dies, both AZs lose outbound internet egress. Rejected for HA compliance.
+## Consequences
 
-2. **VPC Endpoints for All AWS Services:**
-   - *Pros:* Eliminates NAT data transfer fees for AWS API calls.
-   - *Cons:* Fixed hourly endpoint fee for 10+ AWS services exceeds $40/week, making total spend higher than dual NAT. Rejected based on measured cost analysis.
+- The production output now matches the Person 3 wrapper contract; internal schema `2.0` remains module metadata and is not the handoff payload.
+- Template count increases from two to four without destroying the existing two identities.
+- The live account remains on the old two-template deployment until a reviewed production plan is applied.
+- Current Cost Explorer estimate is `$377.55` and the conservative drill-week forecast is `$381.85`; both exceed the ceiling, so cost remains `FAIL`.
+- Current audit and five-minute capacity proof are incomplete. The overall Mandate 21 gate remains `FAIL`.
 
-3. **Dynamic Single FIS Template with Runtime AZ Overrides:**
-   - *Pros:* Fewer Terraform template resources.
-   - *Cons:* Introduces risk of runtime parameter injection errors during chaos drills. Rejected in favor of two immutable per-AZ FIS templates (`us-east-1a` and `us-east-1b`).
+## Rollback
 
-## 4. Decision Outcome
+Revert the contract and use inverse moved blocks from `1a-primary-in`/`1b-primary-in` to the old AZ-keyed addresses. Review a plan that destroys only the two `primary-outside` additions and does not recreate the preserved templates. Coordinate consumer rollback before applying the reviewed plan artifact.
 
-* **Dual Zonal NAT Baseline:** Retain `nat-1a` and `nat-1b` with Terraform cross-variable validations preventing cross-AZ NAT associations.
-* **CloudTrail Selector Optimization:** Replace all-management-read logging with `ManagementWrites`, `RequiredSecretReads` (`GetSecretValue`), and 6 sensitive S3 data event prefixes, saving ~$28.50/week.
-* **Immutable Two-Template FIS Module:** Deploy `modules/fis-az-failover` creating two per-AZ experiment templates guarded by 4 fail-closed CloudWatch stop alarms.
-
-## 5. Consequences and Trade-Offs
-
-* **Positive:**
-  - Guaranteed zonal isolation for private egress.
-  - Normalized weekly spend of **$288.86 / week** meeting the <=$300 cost gate.
-  - Fail-closed FIS execution with automatic rollback on alarm breach.
-* **Negative / Risks:**
-  - Requires maintaining 4 CloudWatch stop alarms.
-  - FIS live drill incurs ~$4.30 per 43 action-minutes.
-
-<!-- Change trail: @hungxqt - 2026-07-28 - Authored ADR-BCP-21 for Availability Zone failover architecture. -->
+<!-- Change trail: @hungxqt - 2026-07-28 - Adopted four fail-closed FIS variants selected from the current RDS primary. -->

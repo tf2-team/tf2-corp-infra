@@ -104,9 +104,15 @@ variable "cosign_kms_key_arn" {
   description = "Optional KMS key ARN to grant signing rights to the OIDC role"
 }
 
+variable "lambda_update_function_arns" {
+  type        = list(string)
+  default     = []
+  description = "Optional Lambda function ARNs to grant update function code rights to the OIDC role"
+}
+
 variable "tags" {
   type        = map(string)
   default     = {}
   description = "Additional tags for IAM resources"
 }
-# Change trail: @hungxqt - 2026-07-19 - Optional S3 model-artifact publish permissions for GHA ECR roles.
+# Change trail: @hungxqt - 2026-07-28 - Add optional Lambda update permissions to GHA ECR module.
