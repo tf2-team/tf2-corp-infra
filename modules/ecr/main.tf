@@ -95,11 +95,25 @@ resource "aws_ecr_lifecycle_policy" "this" {
         },
         {
           rulePriority = 2
-          description  = "Keep last ${each.value.keep_last_n_images} images"
+          description  = "Keep last ${each.value.keep_last_n_images} tagged release images, signatures, and attestations"
           selection = {
-            tagStatus   = "any"
-            countType   = "imageCountMoreThan"
-            countNumber = each.value.keep_last_n_images
+            tagStatus     = "tagged"
+            tagPrefixList = ["sha-", "v", "sha256-", "latest"]
+            countType     = "imageCountMoreThan"
+            countNumber   = each.value.keep_last_n_images
+          }
+          action = {
+            type = "expire"
+          }
+        },
+        {
+          rulePriority = 3
+          description  = "Expire untagged image layers after 1 day"
+          selection = {
+            tagStatus   = "untagged"
+            countType   = "sinceImagePushed"
+            countUnit   = "days"
+            countNumber = 1
           }
           action = {
             type = "expire"
@@ -124,11 +138,25 @@ resource "aws_ecr_lifecycle_policy" "this" {
         },
         {
           rulePriority = 2
-          description  = "Keep last ${each.value.keep_last_n_images} images"
+          description  = "Keep last ${each.value.keep_last_n_images} tagged release images, signatures, and attestations"
           selection = {
-            tagStatus   = "any"
-            countType   = "imageCountMoreThan"
-            countNumber = each.value.keep_last_n_images
+            tagStatus     = "tagged"
+            tagPrefixList = ["sha-", "v", "sha256-", "latest"]
+            countType     = "imageCountMoreThan"
+            countNumber   = each.value.keep_last_n_images
+          }
+          action = {
+            type = "expire"
+          }
+        },
+        {
+          rulePriority = 3
+          description  = "Expire untagged image layers after 1 day"
+          selection = {
+            tagStatus   = "untagged"
+            countType   = "sinceImagePushed"
+            countUnit   = "days"
+            countNumber = 1
           }
           action = {
             type = "expire"
