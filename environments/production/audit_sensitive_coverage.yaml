@@ -7,10 +7,13 @@ s3_object_prefixes:
     owner: TF2
     demo_priority: P0
     expected_events:
-      - GetObject
-      - HeadObject
       - PutObject
       - DeleteObject
+      - DeleteObjects
+      - PutObjectAcl
+      - PutObjectTagging
+      - DeleteObjectTagging
+      - RestoreObject
 
   - id: terraform-state-primary
     bucket: techx-tf-state-493499579600-us-east-1
@@ -21,9 +24,13 @@ s3_object_prefixes:
     demo_priority: P0
     expected_events:
       - GetObject
-      - HeadObject
       - PutObject
       - DeleteObject
+      - DeleteObjects
+      - PutObjectAcl
+      - PutObjectTagging
+      - DeleteObjectTagging
+      - RestoreObject
 
   - id: immutable-cloudtrail-evidence
     bucket: techx-prod-tf2-cloudtrail-immutable-493499579600
@@ -34,9 +41,13 @@ s3_object_prefixes:
     demo_priority: P0
     expected_events:
       - GetObject
-      - HeadObject
       - PutObject
       - DeleteObject
+      - DeleteObjects
+      - PutObjectAcl
+      - PutObjectTagging
+      - DeleteObjectTagging
+      - RestoreObject
 
   - id: k8s-audit-raw-archive
     bucket: techx-prod-tf2-k8s-audit-raw-493499579600
@@ -47,9 +58,13 @@ s3_object_prefixes:
     demo_priority: P0
     expected_events:
       - GetObject
-      - HeadObject
       - PutObject
       - DeleteObject
+      - DeleteObjects
+      - PutObjectAcl
+      - PutObjectTagging
+      - DeleteObjectTagging
+      - RestoreObject
 
   - id: athena-cur-query-results
     bucket: techx-prod-tf2-athena-results-493499579600-ap-southeast-1
@@ -59,10 +74,13 @@ s3_object_prefixes:
     owner: TF2
     demo_priority: P1
     expected_events:
-      - GetObject
-      - HeadObject
       - PutObject
       - DeleteObject
+      - DeleteObjects
+      - PutObjectAcl
+      - PutObjectTagging
+      - DeleteObjectTagging
+      - RestoreObject
 
   - id: company-cur-telemetry
     bucket: company-cdo-493499579600-telemetry
@@ -73,9 +91,13 @@ s3_object_prefixes:
     demo_priority: P1
     expected_events:
       - GetObject
-      - HeadObject
       - PutObject
       - DeleteObject
+      - DeleteObjects
+      - PutObjectAcl
+      - PutObjectTagging
+      - DeleteObjectTagging
+      - RestoreObject
 
 secrets:
   - id: discord-webhook
@@ -89,15 +111,9 @@ secrets:
       - UpdateSecret
 
 known_gaps:
-  - id: legacy-cloudtrail-us-west-2
-    resource: aws-cloudtrail-logs-493499579600-7f0b69bb
-    reason: Legacy CloudTrail bucket outside the MD12 production demo trail scope.
   - id: legacy-tfstate-capstone
     resource: tfstate-capstone-tf2
     reason: Legacy Terraform state bucket; add to s3_object_prefixes if still active during demo.
-  - id: audit-events-bucket
-    resource: techx-prod-tf2-audit-events
-    reason: Existing audit pipeline bucket; deferred until owner and data retention semantics are confirmed.
   - id: account-wide-s3-data-events
     resource: all other S3 buckets
     reason: Deliberately not enabled account-wide to control CloudTrail data-event cost and noise.

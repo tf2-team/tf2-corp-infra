@@ -11,6 +11,54 @@ locals {
       scope.cloudtrail_data_event_arn
     ]
   )))
+  immutable_audit_full_forensic_s3_data_event_object_arns = toset([
+    for arn in concat(
+      tolist(var.immutable_audit_s3_data_event_object_arns),
+      [
+        for scope in try(local.immutable_audit_sensitive_coverage.s3_object_prefixes, []) :
+        scope.cloudtrail_data_event_arn
+        if contains([
+          "terraform-state-primary",
+          "immutable-cloudtrail-evidence",
+          "k8s-audit-raw-archive",
+        ], scope.id)
+      ]
+    ) : arn
+  ])
+  immutable_audit_write_only_s3_data_event_object_arns = toset([
+    for scope in try(local.immutable_audit_sensitive_coverage.s3_object_prefixes, []) :
+    scope.cloudtrail_data_event_arn
+    if contains([
+      "ai-model-artifacts",
+      "athena-cur-query-results",
+    ], scope.id)
+  ])
+  immutable_audit_cur_telemetry_s3_data_event_object_arns = toset([
+    for scope in try(local.immutable_audit_sensitive_coverage.s3_object_prefixes, []) :
+    scope.cloudtrail_data_event_arn
+    if contains([
+      "company-cur-telemetry",
+    ], scope.id)
+  ])
+  immutable_audit_s3_full_forensic_event_names = [
+    "GetObject",
+    "PutObject",
+    "DeleteObject",
+    "DeleteObjects",
+    "PutObjectAcl",
+    "PutObjectTagging",
+    "DeleteObjectTagging",
+    "RestoreObject",
+  ]
+  immutable_audit_s3_write_destructive_event_names = [
+    "PutObject",
+    "DeleteObject",
+    "DeleteObjects",
+    "PutObjectAcl",
+    "PutObjectTagging",
+    "DeleteObjectTagging",
+    "RestoreObject",
+  ]
   immutable_audit_bucket_name = (
     var.immutable_audit_bucket_name != ""
     ? var.immutable_audit_bucket_name
@@ -485,17 +533,84 @@ resource "aws_cloudtrail" "immutable_audit" {
   enable_log_file_validation    = true
   enable_logging                = true
 
-  event_selector {
-    read_write_type           = "All"
-    include_management_events = true
+  advanced_event_selector {
+    name = "Management events"
 
-    dynamic "data_resource" {
-      for_each = local.immutable_audit_s3_data_event_object_arns
+    field_selector {
+      field  = "eventCategory"
+      equals = ["Management"]
+    }
+  }
 
-      content {
-        type   = "AWS::S3::Object"
-        values = [data_resource.value]
-      }
+  advanced_event_selector {
+    name = "Full forensic S3 object events"
+
+    field_selector {
+      field  = "eventCategory"
+      equals = ["Data"]
+    }
+
+    field_selector {
+      field  = "resources.type"
+      equals = ["AWS::S3::Object"]
+    }
+
+    field_selector {
+      field       = "resources.ARN"
+      starts_with = tolist(local.immutable_audit_full_forensic_s3_data_event_object_arns)
+    }
+
+    field_selector {
+      field  = "eventName"
+      equals = local.immutable_audit_s3_full_forensic_event_names
+    }
+  }
+
+  advanced_event_selector {
+    name = "Write and destructive S3 object events"
+
+    field_selector {
+      field  = "eventCategory"
+      equals = ["Data"]
+    }
+
+    field_selector {
+      field  = "resources.type"
+      equals = ["AWS::S3::Object"]
+    }
+
+    field_selector {
+      field       = "resources.ARN"
+      starts_with = tolist(local.immutable_audit_write_only_s3_data_event_object_arns)
+    }
+
+    field_selector {
+      field  = "eventName"
+      equals = local.immutable_audit_s3_write_destructive_event_names
+    }
+  }
+
+  advanced_event_selector {
+    name = "CUR telemetry read write and destructive S3 object events"
+
+    field_selector {
+      field  = "eventCategory"
+      equals = ["Data"]
+    }
+
+    field_selector {
+      field  = "resources.type"
+      equals = ["AWS::S3::Object"]
+    }
+
+    field_selector {
+      field       = "resources.ARN"
+      starts_with = tolist(local.immutable_audit_cur_telemetry_s3_data_event_object_arns)
+    }
+
+    field_selector {
+      field  = "eventName"
+      equals = local.immutable_audit_s3_full_forensic_event_names
     }
   }
 
