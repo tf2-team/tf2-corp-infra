@@ -103,6 +103,11 @@ output "router_throttle_alarm_name" {
   value       = var.enabled && var.enable_discord_router && var.enable_alarms ? aws_cloudwatch_metric_alarm.router_throttles[0].alarm_name : null
 }
 
+output "discord_delivery_failure_alarm_name" {
+  description = "CloudWatch alarm name for router Discord delivery failures."
+  value       = var.enabled && var.enable_discord_router && var.enable_alarms ? aws_cloudwatch_metric_alarm.discord_delivery_failures[0].alarm_name : null
+}
+
 output "alert_ready_dlq_visible_messages_alarm_name" {
   description = "CloudWatch alarm name for visible messages in the alert-ready router DLQ."
   value       = var.enabled && var.enable_discord_router && var.enable_alarms ? aws_cloudwatch_metric_alarm.alert_ready_dlq_visible_messages[0].alarm_name : null
@@ -127,3 +132,5 @@ output "operator_note" {
     "Before final handoff, capture one raw CloudTrail sample, one raw EKS audit sample, and five alert_sent evidence records from Lambda logs.",
   ]) : "Mandate 11.2 audit detection pipeline disabled"
 }
+
+# Change trail: @hungxqt - 2026-07-29 - Export the Discord delivery failure alarm for guarded DLQ recovery.

@@ -93,7 +93,7 @@ After a terminal state, verify no experiment-created NACL association remains, s
 
 ## 8. Immutable-audit DLQ archive and drain
 
-Historical immutable-audit DLQ messages must never be replayed or purged. The bounded tool reads only the three queue URLs exported by the production Terraform stack, verifies that every current producer is healthy, and verifies that the archive bucket has Object Lock with default retention.
+Historical immutable-audit DLQ messages must never be replayed or purged. The bounded tool reads only five queue URLs exported by the production Terraform stack: the immutable-audit Discord, health-check Lambda, K8s sealer, shared validation, and alert-router DLQs. It verifies that every current producer and its required alarms are healthy and that the archive bucket has Object Lock with default retention.
 
 Generate the bounded Terraform output file and run the read-only inspection:
 
@@ -104,7 +104,7 @@ cd /d ..\..\..
 python scripts\operations\archive-immutable-audit-dlqs.py --inspect --terraform-output-json environments\production\terraform-output.json
 ```
 
-`--inspect` does not receive, archive, delete, purge, or replay messages. The overall audit gate remains `FAIL` until the three immutable-audit alarms have returned to `OK` for their full evaluation window.
+`--inspect` does not receive, archive, delete, purge, or replay messages. Do not approve `--execute` until the corrected alert router is deployed, the delivery-failure metric is active, and all producer-health alarms are `OK`. The overall audit gate remains `FAIL` until all monitored DLQs are empty, `AuditControlHealth` publishes `1`, and the three target alarms have returned to `OK` for their full evaluation windows.
 
 The following execution command is intentionally pending separate, immediate approval. It archives each complete message document to the Object-Locked bucket, verifies the exact version with `HeadObject`, and only then deletes that single source message:
 
@@ -115,4 +115,4 @@ python scripts\operations\archive-immutable-audit-dlqs.py --execute --terraform-
 
 Stop on the first error. Do not use SQS purge, redrive, replay, or manual message deletion as a fallback. Retain the tool's safe counts plus archive key, SHA-256 digest, and Object Lock version evidence, alarm history, and producer-health evidence with the change record. Remove the locally generated `terraform-output.json` after the approved operation; it is operational evidence and must not be committed.
 
-<!-- Change trail: @hungxqt - 2026-07-29 - Added the approval-gated immutable-audit DLQ archive and drain procedure. -->
+<!-- Change trail: @hungxqt - 2026-07-29 - Extend the approval-gated archive procedure to all five alarm-blocking DLQs. -->
