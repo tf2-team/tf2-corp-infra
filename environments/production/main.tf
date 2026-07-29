@@ -1036,6 +1036,20 @@ module "vpc" {
   nat_gateways     = var.nat_gateways
   eks_cluster_name = var.cluster_name
 
+  # Keep AWS API traffic on private endpoints. S3 remains the existing
+  # Gateway endpoint created by ai_model_storage; do not duplicate it here.
+  gateway_endpoint_services = ["dynamodb"]
+  interface_endpoint_services = [
+    "ec2",
+    "ecr.api",
+    "ecr.dkr",
+    "monitoring",
+    "secretsmanager",
+    "sqs",
+    "sts",
+  ]
+  interface_endpoint_subnet_keys = ["priv-1a-nodes", "priv-1b-nodes"]
+
   flow_logs_enabled           = var.vpc_flow_logs_enabled
   flow_logs_retention_in_days = var.vpc_flow_logs_retention_in_days
 }
@@ -1145,6 +1159,10 @@ module "mem0_postgresql" {
   tags                                = var.tags
 }
 
+data "aws_secretsmanager_secret" "aiops_live_executor_token" {
+  name = "${var.secrets_manager_name_prefix}/aiops-live-executor-token"
+}
+
 module "external_secrets" {
   source = "../../modules/external-secrets"
 
@@ -1160,6 +1178,7 @@ module "external_secrets" {
       module.msk.scram_secret_arn,
       module.rds_postgresql.connection_secret_arn,
       module.mem0_postgresql.master_user_secret_arn,
+      data.aws_secretsmanager_secret.aiops_live_executor_token.arn,
     ],
   )
   kms_key_arns = [
@@ -1277,6 +1296,28 @@ module "mandate20_backup" {
     "arn:aws:rds:${var.aws_region}:${data.aws_caller_identity.current.account_id}:db:${var.project_name}-mem0-postgres",
     "arn:aws:rds:${var.aws_region}:${data.aws_caller_identity.current.account_id}:db:${var.project_name}-postgresql",
   ]
+}
+
+# Daily DLM snapshots apply only to named persistent telemetry volumes.
+# Node root disks are excluded: Karpenter deletes them with their instances.
+module "telemetry_ebs_snapshot_lifecycle" {
+  source = "../../modules/ebs-snapshot-lifecycle"
+
+  name = var.project_name
+  tags = var.tags
+
+  volume_selectors = {
+    prometheus = {
+      Name = "enc-prometheus"
+    }
+    opensearch = {
+      Name = "enc-opensearch"
+    }
+    grafana = {
+      "kubernetes.io/created-for/pvc/name"      = "grafana"
+      "kubernetes.io/created-for/pvc/namespace" = "techx-corp-prod"
+    }
+  }
 }
 
 # MANDATE-20 destructive-DDL notifications use a dedicated SNS topic instead

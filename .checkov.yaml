@@ -30,6 +30,10 @@ skip-check:
   - CKV2_AWS_12
   # VPC: Flow logs - acceptable to skip to reduce CloudWatch cost in non-prod environments
   - CKV2_AWS_11
+  # VPC: Checkov does not treat Interface VPC Endpoint ENIs as an attached
+  # resource for this graph check. Endpoint security groups are attached via
+  # aws_vpc_endpoint.interface.security_group_ids and are not standalone.
+  - CKV2_AWS_5
 
   # S3 State Bucket: Access logging, cross-region replication, event notifications
   # are operational enhancements deferred to post-MVP; state bucket has versioning and encryption
