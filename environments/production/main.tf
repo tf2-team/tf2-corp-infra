@@ -1145,6 +1145,10 @@ module "mem0_postgresql" {
   tags                                = var.tags
 }
 
+data "aws_secretsmanager_secret" "aiops_live_executor_token" {
+  name = "${var.secrets_manager_name_prefix}/aiops-live-executor-token"
+}
+
 module "external_secrets" {
   source = "../../modules/external-secrets"
 
@@ -1160,6 +1164,7 @@ module "external_secrets" {
       module.msk.scram_secret_arn,
       module.rds_postgresql.connection_secret_arn,
       module.mem0_postgresql.master_user_secret_arn,
+      data.aws_secretsmanager_secret.aiops_live_executor_token.arn,
     ],
   )
   kms_key_arns = [
