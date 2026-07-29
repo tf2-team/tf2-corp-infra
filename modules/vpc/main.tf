@@ -28,6 +28,8 @@ locals {
   )
 }
 
+data "aws_region" "current" {}
+
 # ──────────────────────────────────────────────
 # VPC
 # ──────────────────────────────────────────────
@@ -272,5 +274,66 @@ resource "aws_route_table_association" "private" {
 
   subnet_id      = aws_subnet.private[each.key].id
   route_table_id = aws_route_table.private[each.value.nat_gateway_key].id
+}
+
+# ──────────────────────────────────────────────
+# VPC endpoints
+# ──────────────────────────────────────────────
+
+# Gateway endpoints add routes to the private route tables and have no
+# per-AZ hourly charge. Interface endpoints are placed only in the selected
+# node subnets, one per AZ, and use Private DNS so AWS SDK calls stay private.
+resource "aws_vpc_endpoint" "gateway" {
+  for_each = var.gateway_endpoint_services
+
+  vpc_id            = aws_vpc.this.id
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.${each.value}"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = [for route_table in aws_route_table.private : route_table.id]
+
+  tags = {
+    Name    = "${var.name}-vpce-${replace(each.value, ".", "-")}"
+    Purpose = "private-aws-api-access"
+  }
+}
+
+#checkov:skip=CKV2_AWS_5:This security group is attached to Interface VPC endpoint ENIs by aws_vpc_endpoint.interface, not to EC2 instances.
+resource "aws_security_group" "interface_endpoints" {
+  count = length(var.interface_endpoint_services) > 0 ? 1 : 0
+
+  name_prefix = "${var.name}-vpce-"
+  description = "HTTPS from VPC workloads to interface VPC endpoints"
+  vpc_id      = aws_vpc.this.id
+
+  ingress {
+    description = "HTTPS from VPC workloads"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [var.cidr_block]
+  }
+
+  tags = {
+    Name    = "${var.name}-vpce"
+    Purpose = "private-aws-api-access"
+  }
+}
+
+resource "aws_vpc_endpoint" "interface" {
+  for_each = var.interface_endpoint_services
+
+  vpc_id              = aws_vpc.this.id
+  service_name        = "com.amazonaws.${data.aws_region.current.name}.${each.value}"
+  vpc_endpoint_type   = "Interface"
+  private_dns_enabled = true
+  subnet_ids = [
+    for subnet_key in var.interface_endpoint_subnet_keys : aws_subnet.private[subnet_key].id
+  ]
+  security_group_ids = [aws_security_group.interface_endpoints[0].id]
+
+  tags = {
+    Name    = "${var.name}-vpce-${replace(each.value, ".", "-")}"
+    Purpose = "private-aws-api-access"
+  }
 }
 # Change trail: @hungxqt - 2026-07-14 - Large /20 node subnets for VPC CNI prefix IP headroom.

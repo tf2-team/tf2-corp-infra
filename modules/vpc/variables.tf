@@ -165,4 +165,35 @@ variable "flow_logs_retention_in_days" {
     error_message = "flow_logs_retention_in_days must be a supported short retention value: 1, 3, 5, 7, 14, or 30."
   }
 }
+
+variable "gateway_endpoint_services" {
+  type        = set(string)
+  default     = []
+  nullable    = false
+  description = "AWS service suffixes for Gateway VPC endpoints, for example dynamodb. S3 is managed separately by the model-storage module."
+}
+
+variable "interface_endpoint_services" {
+  type        = set(string)
+  default     = []
+  nullable    = false
+  description = "AWS service suffixes for Interface VPC endpoints, for example ecr.api or sts."
+}
+
+variable "interface_endpoint_subnet_keys" {
+  type        = set(string)
+  default     = []
+  nullable    = false
+  description = "Private-subnet keys where each Interface endpoint creates an ENI; normally one node subnet per AZ."
+
+  validation {
+    condition     = alltrue([for subnet_key in var.interface_endpoint_subnet_keys : contains(keys(var.private_subnets), subnet_key)])
+    error_message = "Every interface_endpoint_subnet_key must name a private subnet."
+  }
+
+  validation {
+    condition     = length(var.interface_endpoint_services) == 0 || length(var.interface_endpoint_subnet_keys) > 0
+    error_message = "interface_endpoint_subnet_keys is required when interface_endpoint_services is not empty."
+  }
+}
 # Change trail: @hungxqt - 2026-07-28 - Added fail-closed cross-variable zonal NAT validation.
