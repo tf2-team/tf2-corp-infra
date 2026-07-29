@@ -203,4 +203,32 @@ jobs:
               issue_number: context.issue.number,
               body
             });
+
+  required-gate:
+    name: Mandate 10 required gate
+    if: always()
+    needs:
+      - static-checks
+      - tflint
+      - checkov
+      - plan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require Terraform validation, lint, IaC scan and plans
+        env:
+          NEEDS_JSON: ${{ toJson(needs) }}
+        run: |
+          failures="$(
+            jq -r '
+              to_entries[]
+              | select(.value.result != "success")
+              | "\(.key)=\(.value.result)"
+            ' <<<"${NEEDS_JSON}"
+          )"
+          if [[ -n "${failures}" ]]; then
+            echo "::error::Required infrastructure jobs did not pass:"
+            printf '%s\n' "${failures}"
+            exit 1
+          fi
+          echo "All required infrastructure jobs passed."
 # Change trail: @hungxqt - 2026-07-28 - Added standalone FIS module tests to Terraform CI while preserving pinned actions.
