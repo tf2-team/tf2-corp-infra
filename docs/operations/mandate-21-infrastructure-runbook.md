@@ -91,4 +91,28 @@ aws fis stop-experiment --region us-east-1 --id <experiment-id>
 
 After a terminal state, verify no experiment-created NACL association remains, stopped EC2 instances recovered or were replaced, RDS and Valkey endpoints are healthy, ALB targets are healthy, Argo CD is `Synced/Healthy`, audit alarms recover naturally, and no manual kubectl mutation occurred. Do not use `set-alarm-state`, purge a DLQ, or redrive messages until the consumer is fixed and a separate bounded action is approved.
 
-<!-- Change trail: @hungxqt - 2026-07-28 - Updated the drill workflow for four fail-closed templates and evidence-gated selection. -->
+## 8. Immutable-audit DLQ archive and drain
+
+Historical immutable-audit DLQ messages must never be replayed or purged. The bounded tool reads only the three queue URLs exported by the production Terraform stack, verifies that every current producer is healthy, and verifies that the archive bucket has Object Lock with default retention.
+
+Generate the bounded Terraform output file and run the read-only inspection:
+
+```cmd
+cd /d techx-corp-infra\environments\production
+terraform output -json > terraform-output.json
+cd /d ..\..\..
+python scripts\operations\archive-immutable-audit-dlqs.py --inspect --terraform-output-json environments\production\terraform-output.json
+```
+
+`--inspect` does not receive, archive, delete, purge, or replay messages. The overall audit gate remains `FAIL` until the three immutable-audit alarms have returned to `OK` for their full evaluation window.
+
+The following execution command is intentionally pending separate, immediate approval. It archives each complete message document to the Object-Locked bucket, verifies the exact version with `HeadObject`, and only then deletes that single source message:
+
+```cmd
+cd /d techx-corp-infra
+python scripts\operations\archive-immutable-audit-dlqs.py --execute --terraform-output-json environments\production\terraform-output.json
+```
+
+Stop on the first error. Do not use SQS purge, redrive, replay, or manual message deletion as a fallback. Retain the tool's safe counts plus archive key, SHA-256 digest, and Object Lock version evidence, alarm history, and producer-health evidence with the change record. Remove the locally generated `terraform-output.json` after the approved operation; it is operational evidence and must not be committed.
+
+<!-- Change trail: @hungxqt - 2026-07-29 - Added the approval-gated immutable-audit DLQ archive and drain procedure. -->
