@@ -103,6 +103,11 @@ resource "aws_fis_experiment_template" "az_failover" {
       key   = "startInstancesAfterDuration"
       value = "PT10M"
     }
+
+    parameter {
+      key   = "completeIfInstancesTerminated"
+      value = "true"
+    }
   }
 
   action {
@@ -164,6 +169,7 @@ resource "aws_fis_experiment_template" "az_failover" {
     FaultZone          = each.value.zone
     RdsPrimaryRelation = each.value.rds_primary_relation
     TemplateVariant    = each.key
+    CleanupPolicy      = "fis-native-verify-v1"
     Mandate            = "MD21"
     Purpose            = "az-failover-experiment"
   })
@@ -179,4 +185,4 @@ moved {
   to   = aws_fis_experiment_template.az_failover["1b-primary-in"]
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Expanded stable FIS variants and conditionally omitted RDS failover outside the fault zone.
+# Change trail: @hungxqt - 2026-07-29 - Added startInstancesAfterDuration, completeIfInstancesTerminated, and CleanupPolicy tag to FIS templates.

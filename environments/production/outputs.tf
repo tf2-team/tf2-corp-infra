@@ -1077,6 +1077,18 @@ output "mandate21_fis_contract" {
         primaryOutsideZoneTemplateId = module.fis_az_failover.template_ids_by_variant["1b-primary-outside"]
       }
     }
+    cleanupByTemplateId = {
+      for variant_key, template_contract in module.fis_az_failover.contract.templates :
+      template_contract.id => {
+        variant              = variant_key
+        policyVersion        = template_contract.cleanup.policyVersion
+        mode                 = template_contract.cleanup.mode
+        timeoutMinutes       = template_contract.cleanup.timeoutMinutes
+        pollIntervalSeconds  = template_contract.cleanup.pollIntervalSeconds
+        requiredAlarmWindows = template_contract.cleanup.requiredAlarmWindows
+        rdsFailoverExpected  = template_contract.cleanup.expected.rdsFailoverExpected
+      }
+    }
   }
   description = "Mandate 21 Person 1 to Person 3 wrapper-compatible FIS runtime contract"
 }
@@ -1101,4 +1113,4 @@ output "mandate21_stop_alarm_arns" {
   description = "Mandate 21 fail-closed CloudWatch stop alarm ARNs"
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Exported the wrapper-compatible four-template Mandate 21 FIS contract.
+# Change trail: @hungxqt - 2026-07-29 - Added cleanupByTemplateId map to the Mandate 21 FIS production output contract.

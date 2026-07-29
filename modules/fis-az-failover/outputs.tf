@@ -61,6 +61,20 @@ output "contract" {
             availability_zone_identifier = var.template_variants[variant_key].zone
           }
         }
+        cleanup = {
+          policyVersion        = 1
+          mode                 = "verify-only"
+          timeoutMinutes       = 45
+          pollIntervalSeconds  = 15
+          requiredAlarmWindows = 2
+          expected = {
+            ec2AutoRestart           = true
+            allowInstanceReplacement = true
+            networkAclRestore        = true
+            rdsFailoverExpected      = var.template_variants[variant_key].rds_primary_relation == "inside"
+            valkeyRecovery           = true
+          }
+        }
       }
     }
     stop_alarm_arns = var.stop_alarm_arns
@@ -86,4 +100,4 @@ output "contract" {
   description = "Mandate 21 Person 1 to Person 3 FIS contract schema keyed by stable template variant"
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Published the schema 2.0 four-variant FIS contract and nullable RDS selectors.
+# Change trail: @hungxqt - 2026-07-29 - Added static cleanup policy configuration to contract templates.
