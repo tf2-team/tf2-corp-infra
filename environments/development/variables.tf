@@ -563,6 +563,7 @@ variable "cloudfront_blocked_prefixes" {
     "/flagservice",
     "/otlp-http",
     "/argocd",
+    "/api/ai-traces",
   ]
   nullable    = false
   description = "URI path prefixes blocked at CloudFront when cloudfront_block_sensitive_paths is true"
@@ -723,4 +724,4 @@ variable "mem0_postgresql_kms_key_id" {
   description = "Optional customer-managed KMS key for Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-22 - Default ecr_keep_last_n_buildcache to 0.
+# Change trail: @hungxqt - 2026-07-29 - Added /api/ai-traces to development CloudFront blocked prefixes default.

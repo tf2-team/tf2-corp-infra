@@ -30,6 +30,9 @@ locals {
     # AIOps inbound Grafana webhook shared secret
     # Consumed by: techx-corp-chart secrets-chart → K8s Secret techx-corp-aiops-grafana-webhook
     "aiops-grafana-webhook",
+    # AI Observability HMAC secret key
+    # Consumed by: techx-corp-chart secrets-chart → K8s Secret techx-corp-ai-observability
+    "ai-observability",
   ])
 }
 
@@ -48,4 +51,4 @@ resource "aws_secretsmanager_secret" "this" {
   })
 }
 
-# Change trail: @hungxqt - 2026-07-19 - Add shopping-copilot ASM secret shell for LLM API key.
+# Change trail: @hungxqt - 2026-07-29 - Add ai-observability ASM secret shell.
