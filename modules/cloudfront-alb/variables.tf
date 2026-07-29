@@ -143,6 +143,7 @@ variable "blocked_prefixes" {
     "/feature",
     "/argocd",
     "/kubecost",
+    "/api/ai-traces",
   ]
   description = <<-EOT
     URI path prefixes blocked at CloudFront when block_sensitive_paths is true.
@@ -217,3 +218,6 @@ variable "tags" {
   description = "Tags applied to CloudFront resources"
   default     = {}
 }
+
+# Change trail: @hungxqt - 2026-07-29 - Added /api/ai-traces to CloudFront blocked prefixes default.
+
