@@ -297,12 +297,11 @@ resource "aws_vpc_endpoint" "gateway" {
   }
 }
 
-#checkov:skip=CKV2_AWS_5:This security group is attached to Interface VPC endpoint ENIs by aws_vpc_endpoint.interface, not to EC2 instances.
 resource "aws_security_group" "interface_endpoints" {
-  count = length(var.interface_endpoint_services) > 0 ? 1 : 0
+  for_each = var.interface_endpoint_services
 
   name_prefix = "${var.name}-vpce-"
-  description = "HTTPS from VPC workloads to interface VPC endpoints"
+  description = "HTTPS from VPC workloads to the ${each.value} interface endpoint"
   vpc_id      = aws_vpc.this.id
 
   ingress {
@@ -314,7 +313,7 @@ resource "aws_security_group" "interface_endpoints" {
   }
 
   tags = {
-    Name    = "${var.name}-vpce"
+    Name    = "${var.name}-vpce-${replace(each.value, ".", "-")}"
     Purpose = "private-aws-api-access"
   }
 }
@@ -329,7 +328,7 @@ resource "aws_vpc_endpoint" "interface" {
   subnet_ids = [
     for subnet_key in var.interface_endpoint_subnet_keys : aws_subnet.private[subnet_key].id
   ]
-  security_group_ids = [aws_security_group.interface_endpoints[0].id]
+  security_group_ids = [aws_security_group.interface_endpoints[each.key].id]
 
   tags = {
     Name    = "${var.name}-vpce-${replace(each.value, ".", "-")}"
