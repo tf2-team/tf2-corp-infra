@@ -188,6 +188,16 @@ output "immutable_audit_validation_dlq_url" {
   description = "DLQ for failed scheduled Mandate 12 validation invocations"
 }
 
+output "immutable_audit_dlq_producer_alarm_names" {
+  value = local.immutable_audit_discord_enabled && local.immutable_audit_k8s_sealer_enabled && local.immutable_audit_validation_enabled ? {
+    discord_errors          = aws_cloudwatch_metric_alarm.immutable_audit_discord_forwarder_errors[0].alarm_name
+    discord_throttles       = aws_cloudwatch_metric_alarm.immutable_audit_discord_forwarder_throttles[0].alarm_name
+    k8s_sealer_errors       = aws_cloudwatch_metric_alarm.immutable_audit_k8s_sealer_errors[0].alarm_name
+    cloudtrail_validation   = aws_cloudwatch_metric_alarm.immutable_audit_cloudtrail_validation[0].alarm_name
+    k8s_manifest_validation = aws_cloudwatch_metric_alarm.immutable_audit_k8s_manifest_validation[0].alarm_name
+  } : null
+  description = "Authoritative producer-health alarms required before immutable-audit DLQ archival and deletion"
+}
 output "immutable_audit_validation_alarm_names" {
   value = local.immutable_audit_validation_enabled ? {
     cloudtrail    = aws_cloudwatch_metric_alarm.immutable_audit_cloudtrail_validation[0].alarm_name
@@ -1113,4 +1123,4 @@ output "mandate21_stop_alarm_arns" {
   description = "Mandate 21 fail-closed CloudWatch stop alarm ARNs"
 }
 
-# Change trail: @hungxqt - 2026-07-29 - Added cleanupByTemplateId map to the Mandate 21 FIS production output contract.
+# Change trail: @hungxqt - 2026-07-29 - Added authoritative immutable-audit DLQ producer alarm output contract.
