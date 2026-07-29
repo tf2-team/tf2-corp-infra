@@ -1279,6 +1279,28 @@ module "mandate20_backup" {
   ]
 }
 
+# Daily DLM snapshots apply only to named persistent telemetry volumes.
+# Node root disks are excluded: Karpenter deletes them with their instances.
+module "telemetry_ebs_snapshot_lifecycle" {
+  source = "../../modules/ebs-snapshot-lifecycle"
+
+  name = var.project_name
+  tags = var.tags
+
+  volume_selectors = {
+    prometheus = {
+      Name = "enc-prometheus"
+    }
+    opensearch = {
+      Name = "enc-opensearch"
+    }
+    grafana = {
+      "kubernetes.io/created-for/pvc/name"      = "grafana"
+      "kubernetes.io/created-for/pvc/namespace" = "techx-corp-prod"
+    }
+  }
+}
+
 # MANDATE-20 destructive-DDL notifications use a dedicated SNS topic instead
 # of the Mandate 12 encrypted audit topic. The organization SCP deliberately
 # denies kms:PutKeyPolicy to the production apply role, so CloudWatch cannot be

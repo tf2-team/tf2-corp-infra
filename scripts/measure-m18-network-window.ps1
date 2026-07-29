@@ -20,12 +20,7 @@ param(
   [decimal]$Gp3GbMonthUsd = 0.080,
   [decimal]$SnapshotGbMonthUsd = 0.050,
   [decimal]$InterfaceEndpointHourUsd = 0.010,
-  [decimal]$InterfaceEndpointDataGbUsd = 0.010,
-
-  # Disabled by default: publishing is an explicit, user-authorised action.
-  # When enabled, the calculated evidence is written to TechX/Mandate18 so
-  # Grafana can show the exact controlled window without relying on CUR delay.
-  [switch]$PublishCloudWatch
+  [decimal]$InterfaceEndpointDataGbUsd = 0.010
 )
 
 Set-StrictMode -Version Latest
@@ -97,17 +92,6 @@ foreach ($interface in $interfaces.NetworkInterfaces) {
   foreach ($address in $interface.PrivateIpAddresses) {
     $destinationAzCache[$address.PrivateIpAddress] = $interface.AvailabilityZoneId
   }
-}
-
-function Publish-M18Evidence {
-  param([array]$MetricData)
-  if (-not $PublishCloudWatch) { return }
-
-  $payload = $MetricData | ConvertTo-Json -Compress -Depth 6
-  Invoke-AwsJson cloudwatch put-metric-data `
-    --region $Region `
-    --namespace TechX/Mandate18 `
-    --metric-data $payload | Out-Null
 }
 
 $crossAzPairs = @{}
@@ -202,60 +186,32 @@ $costDrivers = @(
 ) | Sort-Object EstimatedUsd -Descending
 $totalEstimatedUsd = [math]::Round((($costDrivers | Measure-Object -Property EstimatedUsd -Sum).Sum), 6)
 
-$evidenceMetrics = @()
-foreach ($nat in $natUsage) {
-  $evidenceMetrics += @{
-    MetricName = "NatDataProcessedBytes"; Value = [double]($nat.TotalDataProcessedGiB * 1GB); Unit = "Bytes"
-    Dimensions = @(@{ Name = "NatGatewayId"; Value = $nat.NatGatewayId })
-  }
-}
-$evidenceMetrics += @{ MetricName = "NatDataProcessedBytesTotal"; Value = $totalNatDataProcessedBytes; Unit = "Bytes" }
-foreach ($pair in $crossAzPairs.GetEnumerator()) {
-  $az = $pair.Key -split " -> "
-  $evidenceMetrics += @{
-    MetricName = "CrossAzDataTransferBytes"; Value = [double]$pair.Value; Unit = "Bytes"
-    Dimensions = @(@{ Name = "SourceAz"; Value = $az[0] }, @{ Name = "DestinationAz"; Value = $az[1] })
-  }
-}
-$evidenceMetrics += @(
-  @{ MetricName = "CrossAzDataTransferBytesTotal"; Value = $totalCrossAzBytes; Unit = "Bytes" },
-  @{ MetricName = "NatGatewayActiveHours"; Value = [double]$natGatewayHours; Unit = "Count" },
-  @{ MetricName = "EbsGp3AllocatedGiB"; Value = [double]$totalEbsGiB; Unit = "Gigabytes" },
-  @{ MetricName = "EbsSnapshotStoredGB"; Value = [double]$snapshotStoredGB; Unit = "Gigabytes" },
-  @{ MetricName = "InterfaceEndpointActiveHours"; Value = [double]$interfaceEndpointHours; Unit = "Count" },
-  @{ MetricName = "InterfaceEndpointDataProcessedBytes"; Value = 0; Unit = "Bytes" },
-  @{ MetricName = "EstimatedNonComputeCostUsdTotal"; Value = [double]$totalEstimatedUsd; Unit = "None" }
-)
-foreach ($driver in $costDrivers) {
-  $evidenceMetrics += @{
-    MetricName = "EstimatedNonComputeCostUsd"; Value = [double]$driver.EstimatedUsd; Unit = "None"
-    Dimensions = @(@{ Name = "Driver"; Value = $driver.Driver })
-  }
-}
-Publish-M18Evidence -MetricData $evidenceMetrics
+Write-Host "" 
+Write-Host "Mandate 18 live network usage: $($start.ToString('u')) to $($end.ToString('u'))" -ForegroundColor Cyan
 
-Write-Host "`nMandate 18 live network usage: $($start.ToString('u')) to $($end.ToString('u'))" -ForegroundColor Cyan
-Write-Host "`nNAT data processing" -ForegroundColor Cyan
-Write-Host "CloudWatch metrics: BytesOutToDestination + BytesOutToSource = TotalDataProcessed" -ForegroundColor DarkCyan
-$natUsage | Format-Table -AutoSize
+Write-Host "" 
+Write-Host "=== NAT data processing ===" -ForegroundColor Yellow
+Write-Host "BytesOutToDestination + BytesOutToSource = TotalDataProcessed" -ForegroundColor DarkCyan
+$natTable = $natUsage | Format-Table -AutoSize | Out-String -Width 4096
+Write-Host $natTable.Trim()
 $totalNatDataProcessedGiB = [math]::Round((($natUsage | Measure-Object -Property TotalDataProcessedGiB -Sum).Sum), 4)
-Write-Host "Total NAT data processing (all NAT Gateways): $totalNatDataProcessedGiB GiB" -ForegroundColor Cyan
-Write-Host "`nCross-AZ data transfer" -ForegroundColor Cyan
+Write-Host "TOTAL NAT data processing: $totalNatDataProcessedGiB GiB" -ForegroundColor Green
+
+Write-Host "" 
+Write-Host "=== Cross-AZ data transfer ===" -ForegroundColor Yellow
 if ($crossAzUsage) {
-  $crossAzUsage | Format-Table -AutoSize
-  Write-Host "Total Cross-AZ data transfer: $totalCrossAzGiB GiB" -ForegroundColor Cyan
+  $crossAzTable = $crossAzUsage | Format-Table -AutoSize | Out-String -Width 4096
+  Write-Host $crossAzTable.Trim()
+  Write-Host "TOTAL Cross-AZ data transfer: $totalCrossAzGiB GiB" -ForegroundColor Green
 } else {
-  Write-Host "No cross-AZ flow records found in this window."
+  Write-Host "No cross-AZ flow records found in this window." -ForegroundColor DarkGray
 }
 
-Write-Host "`nTop non-compute cost drivers (list-price equivalent)" -ForegroundColor Cyan
-$costDrivers |
+$totalCostTable = $costDrivers |
   Select-Object Driver, Usage, Unit, @{ Name = "ListPriceUsdPerUnit"; Expression = { '$' + ([decimal]$_.RateUsd).ToString('F3') } }, @{ Name = "EstimatedUsd"; Expression = { '$' + ([decimal]$_.EstimatedUsd).ToString('F6') } } |
-  Format-Table -AutoSize
-Write-Host "Total estimated non-compute cost for this window: `$$totalEstimatedUsd" -ForegroundColor Cyan
+  Format-Table -AutoSize | Out-String -Width 4096
+Write-Host "" 
+Write-Host "=== Top non-compute cost drivers (list-price equivalent) ===" -ForegroundColor Yellow
+Write-Host $totalCostTable.Trim()
+Write-Host "TOTAL estimated non-compute cost: `$$totalEstimatedUsd" -ForegroundColor Green
 Write-Host "Snapshot storage is prorated from Cost Explorer month-to-date SnapshotUsage: $snapshotGbMonthMtd GB-month." -ForegroundColor DarkCyan
-if ($PublishCloudWatch) {
-  Write-Host "Published Mandate 18 evidence to CloudWatch namespace TechX/Mandate18." -ForegroundColor Cyan
-} else {
-  Write-Host "Not published. Re-run with -PublishCloudWatch to populate the Grafana live-evidence panels." -ForegroundColor DarkYellow
-}
