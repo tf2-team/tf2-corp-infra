@@ -447,7 +447,7 @@ resource "aws_lambda_function" "router" {
   function_name    = var.router_lambda_function_name
   description      = "Mandate 11.4 SQS-to-Discord audit alert router. Platform CI/CD replaces the placeholder package with router code."
   role             = aws_iam_role.router[0].arn
-  handler          = "audit_alert_router.handler.lambda_handler"
+  handler          = "router.handler"
   runtime          = "python3.12"
   filename         = data.archive_file.router_placeholder[0].output_path
   source_code_hash = data.archive_file.router_placeholder[0].output_base64sha256
