@@ -19,20 +19,6 @@ after it ends for Flow Logs delivery, then run:
   -EndUtc '<load-test-end-in-UTC>'
 ```
 
-To publish that exact calculated window to the Grafana live-evidence dashboard,
-add `-PublishCloudWatch`:
-
-```powershell
-./scripts/measure-m18-network-window.ps1 `
-  -StartUtc '<load-test-start-in-UTC>' `
-  -EndUtc '<load-test-end-in-UTC>' `
-  -PublishCloudWatch
-```
-
-Publishing is opt-in. It writes only the calculated evidence values to the
-`TechX/Mandate18` CloudWatch custom namespace; it does not alter workloads,
-routes, or AWS resources. Grafana has read-only access to this namespace.
-
 For example, a load test from 18:00 to 18:15 in Vietnam (UTC+7) uses
 `11:00:00Z` and `11:15:00Z`. Both timestamps must be in the past; wait several
 minutes after the test before running the script so Flow Logs have arrived.
