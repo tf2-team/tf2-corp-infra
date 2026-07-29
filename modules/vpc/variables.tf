@@ -55,13 +55,16 @@ variable "private_subnets" {
       for k, v in var.private_subnets :
       v.nat_gateway_key == null ? true : (
         contains(keys(var.nat_gateways), v.nat_gateway_key) &&
-        try(
-          v.availability_zone == var.public_subnets[var.nat_gateways[v.nat_gateway_key].public_subnet_key].availability_zone,
-          false
+        (
+          length(var.nat_gateways) == 1 ||
+          try(
+            v.availability_zone == var.public_subnets[var.nat_gateways[v.nat_gateway_key].public_subnet_key].availability_zone,
+            false
+          )
         )
       )
     ])
-    error_message = "Every private subnet nat_gateway_key must reference a valid NAT gateway in var.nat_gateways, and its availability_zone must match the availability_zone of the NAT gateway's public subnet."
+    error_message = "Every private subnet nat_gateway_key must reference a valid NAT gateway. Multi-NAT topologies must route each private subnet through a NAT gateway in the same availability zone; an explicit single-NAT topology may route cross-AZ."
   }
 
   description = <<-EOT
@@ -163,4 +166,3 @@ variable "flow_logs_retention_in_days" {
   }
 }
 # Change trail: @hungxqt - 2026-07-28 - Added fail-closed cross-variable zonal NAT validation.
-

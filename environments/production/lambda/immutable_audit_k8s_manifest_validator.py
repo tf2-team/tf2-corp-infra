@@ -61,15 +61,32 @@ def _read_json_object(bucket, key):
 
 def _select_manifest_chain(candidates, expected_initial_previous_hash=None):
     by_previous_hash = {}
+    candidate_hashes = set()
     for candidate in candidates:
         previous_hash = candidate["manifest"].get("previous_manifest_hash", "")
         by_previous_hash.setdefault(previous_hash, []).append(candidate)
+        manifest_hash = candidate["manifest"].get("manifest_hash")
+        if manifest_hash:
+            candidate_hashes.add(manifest_hash)
 
     for items in by_previous_hash.values():
         items.sort(key=lambda item: (item["window_start"], item["last_modified"], item["key"]))
 
-    start_hash = expected_initial_previous_hash if expected_initial_previous_hash is not None else ""
-    frontier = [(start_hash, [], None)]
+    if expected_initial_previous_hash is not None:
+        start_hashes = [expected_initial_previous_hash]
+    else:
+        # A scheduled validation normally starts in the middle of the immutable
+        # chain because its lookback is bounded. In that case the first
+        # candidate legitimately points to a manifest outside the lookback.
+        # Start from every boundary predecessor and still require every
+        # subsequent manifest in the selected chain to link by hash.
+        start_hashes = sorted(
+            previous_hash
+            for previous_hash in by_previous_hash
+            if previous_hash not in candidate_hashes
+        )
+
+    frontier = [(start_hash, [], None) for start_hash in start_hashes]
     best = []
     visited = set()
     while frontier:
