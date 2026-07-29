@@ -287,7 +287,28 @@ variable "cloudtrail_event_target_id" {
   type        = string
   default     = "audit-alert-parser-direct"
   nullable    = false
-  description = "EventBridge target ID for the direct CloudTrail-to-parser Lambda route."
+  description = "EventBridge target ID for the CloudTrail high-risk candidate route."
+}
+
+variable "manage_cloudtrail_event_target" {
+  type        = bool
+  default     = true
+  nullable    = false
+  description = "When true, the module manages the CloudTrail candidate EventBridge target. Set false when the environment owns a custom target such as a shared SQS queue."
+}
+
+variable "parser_alert_ready_queue_url" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional queue URL for parser alert-ready output. Empty uses the module-managed alert-ready queue when the Discord router is enabled."
+}
+
+variable "parser_alert_ready_queue_arn" {
+  type        = string
+  default     = ""
+  nullable    = false
+  description = "Optional queue ARN for parser alert-ready output permissions. Empty uses the module-managed alert-ready queue when the Discord router is enabled."
 }
 
 variable "eks_audit_subscription_filter_name" {
@@ -329,20 +350,6 @@ variable "cloudtrail_eks_event_names" {
   ]
   nullable    = false
   description = "EKS CloudTrail event names forwarded to Task 11.3 for access and audit-log tamper matching."
-}
-
-variable "cloudtrail_audit_event_names" {
-  type = set(string)
-  default = [
-    "StopLogging",
-    "DeleteTrail",
-    "UpdateTrail",
-    "PutEventSelectors",
-    "DeleteEventDataStore",
-    "UpdateEventDataStore",
-  ]
-  nullable    = false
-  description = "CloudTrail service event names forwarded to Task 11.3 for audit-trail tamper matching."
 }
 
 variable "eks_audit_filter_pattern" {

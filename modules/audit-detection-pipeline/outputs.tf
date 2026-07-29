@@ -8,6 +8,11 @@ output "parser_lambda_function_arn" {
   value       = var.enabled ? aws_lambda_function.parser[0].arn : null
 }
 
+output "parser_lambda_role_arn" {
+  description = "IAM role ARN used by the Mandate 11 parser Lambda."
+  value       = var.enabled ? aws_iam_role.parser[0].arn : null
+}
+
 output "cloudtrail_event_rule_name" {
   description = "EventBridge rule name for CloudTrail candidate events."
   value       = var.enabled ? aws_cloudwatch_event_rule.cloudtrail_candidates[0].name : null
@@ -41,6 +46,16 @@ output "dlq_url" {
 output "alert_ready_queue_url" {
   description = "SQS queue URL used by the parser to hand alert-ready payloads to the Discord router."
   value       = var.enabled && var.enable_discord_router ? aws_sqs_queue.alert_ready[0].url : null
+}
+
+output "parser_alert_ready_queue_url" {
+  description = "Effective SQS queue URL used by the parser for alert-ready payloads."
+  value       = var.enabled && local.parser_alert_ready_queue_url != "" ? local.parser_alert_ready_queue_url : null
+}
+
+output "parser_alert_ready_queue_arn" {
+  description = "Effective SQS queue ARN used by the parser for alert-ready payloads."
+  value       = var.enabled && local.parser_alert_ready_queue_arn != "" ? local.parser_alert_ready_queue_arn : null
 }
 
 output "alert_ready_queue_arn" {
@@ -123,10 +138,11 @@ output "operator_note" {
   value = var.enabled ? join("\n", [
     "Mandate 11.2 audit detection pipeline is enabled.",
     "Task 11.3 parser Lambda: ${aws_lambda_function.parser[0].function_name}",
-    "CloudTrail candidates route: EventBridge rule ${aws_cloudwatch_event_rule.cloudtrail_candidates[0].name} -> Lambda raw event.",
+    var.manage_cloudtrail_event_target ? "CloudTrail candidates route: EventBridge rule ${aws_cloudwatch_event_rule.cloudtrail_candidates[0].name} -> Lambda raw event." : "CloudTrail candidates route: EventBridge rule ${aws_cloudwatch_event_rule.cloudtrail_candidates[0].name} -> externally managed target.",
     "EKS audit candidates route: log group ${local.audit_log_group} subscription ${aws_cloudwatch_log_subscription_filter.eks_audit_candidates[0].name} -> Lambda raw awslogs.data.",
     "DLQ: ${aws_sqs_queue.audit_detection_dlq[0].arn}",
-    var.enable_discord_router ? "Task 11.4 router: parser -> SQS ${aws_sqs_queue.alert_ready[0].name} -> Lambda ${aws_lambda_function.router[0].function_name} -> Discord." : "Task 11.4 router is disabled; parser emits alert_ready evidence only.",
+    local.parser_alert_ready_queue_url != "" ? "Parser alert-ready output queue: ${local.parser_alert_ready_queue_url}." : "Parser alert-ready output queue is disabled.",
+    var.enable_discord_router ? "Legacy Task 11.4 router remains deployed for migration safety: SQS ${aws_sqs_queue.alert_ready[0].name} -> Lambda ${aws_lambda_function.router[0].function_name} -> Discord." : "Task 11.4 router is disabled; parser emits alert_ready evidence only.",
     var.enable_discord_router ? "Task 11.5 TTD evidence: CloudWatch dashboard ${local.ttd_dashboard_name}; final evidence status is alert_sent." : "Task 11.5 final Discord TTD is unavailable until router is enabled.",
     var.enable_discord_router ? "Discord webhook secret ARN: ${local.discord_webhook_secret_arn}. Store only the secret value out of Terraform state." : "No Discord secret created.",
     "Before final handoff, capture one raw CloudTrail sample, one raw EKS audit sample, and five alert_sent evidence records from Lambda logs.",

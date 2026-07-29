@@ -1,8 +1,8 @@
 # Mandate 11 Audit Detection Pipeline
 
 This module creates the infrastructure side of Mandate 11. It performs coarse
-11.2 filtering, forwards raw candidate events to the 11.3 parser Lambda, wires
-11.3 alert-ready payloads to a 11.4 SQS-to-Discord router, and creates 11.5
+11.2 filtering, forwards raw K8s audit candidates to the 11.3 parser Lambda,
+wires 11.3 alert-ready payloads to SQS, and creates 11.5
 CloudWatch TTD evidence monitoring.
 
 ## Responsibility Boundary
@@ -22,10 +22,15 @@ severity, suppress Terraform/CI actors, or transform CloudWatch Logs
 ## Routes
 
 ```text
-CloudTrail/EventBridge -> techx-audit-alert-parser
+CloudTrail/EventBridge -> managed or environment-owned target
 EKS CloudWatch Logs subscription -> techx-audit-alert-parser
-techx-audit-alert-parser -> SQS alert-ready queue -> techx-audit-alert-router -> Discord
+techx-audit-alert-parser -> SQS alert-ready queue
 ```
+
+Production currently owns the CloudTrail/EventBridge target outside this module
+so high-risk IAM/EKS AWS API events can go directly to the shared Mandate 12
+Discord SQS queue. CloudTrail tamper actions are owned by Mandate 12 tamper
+rules, not this Mandate 11 high-risk catalog.
 
 The Lambda packages created by this module are placeholders. Platform CI/CD
 updates the same functions with the real code using handlers:

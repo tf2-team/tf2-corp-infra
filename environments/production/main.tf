@@ -1679,9 +1679,9 @@ module "runtime_security_alerting" {
 
 # ------------------------------------------------------------------------------
 # Mandate 11.2 audit detection pipeline
-# Coarse filters only: CloudTrail/EventBridge and EKS audit logs are forwarded as
-# raw events to the Task 11.3 parser Lambda. Keep disabled until the 11.3 parser
-# package and end-to-end test window are ready.
+# Coarse filters only: IAM/EKS high-risk CloudTrail events route to the shared
+# MD12 Discord queue, while EKS audit logs still flow through the parser for
+# normalization/classification. CloudTrail tamper detection is owned by MD12.
 # ------------------------------------------------------------------------------
 
 module "audit_detection_pipeline" {
@@ -1699,6 +1699,9 @@ module "audit_detection_pipeline" {
   lambda_tracing_mode                   = var.audit_detection_lambda_tracing_mode
   cloudtrail_event_rule_name            = var.audit_detection_cloudtrail_event_rule_name
   cloudtrail_event_target_id            = var.audit_detection_cloudtrail_event_target_id
+  manage_cloudtrail_event_target        = false
+  parser_alert_ready_queue_url          = local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord[0].url : ""
+  parser_alert_ready_queue_arn          = local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord[0].arn : ""
   eks_audit_subscription_filter_name    = var.audit_detection_eks_audit_subscription_filter_name
   eks_audit_filter_pattern              = var.audit_detection_eks_audit_filter_pattern
   lambda_reserved_concurrent_executions = var.audit_detection_lambda_reserved_concurrent_executions

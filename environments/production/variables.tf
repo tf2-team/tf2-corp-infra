@@ -1499,7 +1499,7 @@ variable "audit_detection_cloudtrail_event_target_id" {
   type        = string
   default     = "audit-alert-parser-direct"
   nullable    = false
-  description = "EventBridge target ID for direct CloudTrail to parser Lambda delivery."
+  description = "EventBridge target ID for Mandate 11 high-risk CloudTrail candidate delivery."
 }
 
 variable "audit_detection_audit_log_group_name" {

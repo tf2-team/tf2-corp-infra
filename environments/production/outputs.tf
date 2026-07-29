@@ -973,6 +973,11 @@ output "audit_detection_parser_lambda_function_arn" {
   description = "Lambda function ARN for Mandate 11.2/11.3 audit alert parser"
 }
 
+output "audit_detection_parser_alert_ready_queue_url" {
+  value       = module.audit_detection_pipeline.parser_alert_ready_queue_url
+  description = "Effective SQS queue URL used by the Mandate 11 parser for alert-ready payloads"
+}
+
 output "audit_detection_cloudtrail_event_rule_arn" {
   value       = module.audit_detection_pipeline.cloudtrail_event_rule_arn
   description = "EventBridge rule ARN for Mandate 11.2 CloudTrail candidate events"

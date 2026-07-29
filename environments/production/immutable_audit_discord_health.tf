@@ -189,7 +189,7 @@ data "aws_iam_policy_document" "immutable_audit_discord_queue" {
   count = local.immutable_audit_discord_enabled ? 1 : 0
 
   statement {
-    sid    = "AllowEventBridgeTamperRules"
+    sid    = "AllowEventBridgeAuditRules"
     effect = "Allow"
 
     principals {
@@ -203,7 +203,29 @@ data "aws_iam_policy_document" "immutable_audit_discord_queue" {
     condition {
       test     = "ArnEquals"
       variable = "aws:SourceArn"
-      values   = [for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.arn]
+      values = concat(
+        [for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.arn],
+        compact([
+          try(module.audit_detection_pipeline.cloudtrail_event_rule_arn, ""),
+        ]),
+      )
+    }
+  }
+
+  dynamic "statement" {
+    for_each = var.audit_detection_pipeline_enabled ? [1] : []
+
+    content {
+      sid    = "AllowAuditParserK8sAlerts"
+      effect = "Allow"
+
+      principals {
+        type        = "AWS"
+        identifiers = [module.audit_detection_pipeline.parser_lambda_role_arn]
+      }
+
+      actions   = ["sqs:SendMessage"]
+      resources = [aws_sqs_queue.immutable_audit_discord[0].arn]
     }
   }
 
@@ -330,6 +352,25 @@ resource "aws_cloudwatch_event_target" "immutable_audit_tamper_discord" {
   rule      = each.value.name
   target_id = "discord-audit-alert"
   arn       = aws_sqs_queue.immutable_audit_discord[0].arn
+
+  depends_on = [aws_sqs_queue_policy.immutable_audit_discord]
+}
+
+resource "aws_cloudwatch_event_target" "audit_detection_cloudtrail_high_risk_discord" {
+  count = local.immutable_audit_discord_enabled && var.audit_detection_pipeline_enabled ? 1 : 0
+
+  rule      = module.audit_detection_pipeline.cloudtrail_event_rule_name
+  target_id = var.audit_detection_cloudtrail_event_target_id
+  arn       = aws_sqs_queue.immutable_audit_discord[0].arn
+
+  dead_letter_config {
+    arn = module.audit_detection_pipeline.dlq_arn
+  }
+
+  retry_policy {
+    maximum_event_age_in_seconds = 3600
+    maximum_retry_attempts       = 6
+  }
 
   depends_on = [aws_sqs_queue_policy.immutable_audit_discord]
 }
