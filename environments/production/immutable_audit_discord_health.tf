@@ -965,10 +965,10 @@ resource "aws_cloudwatch_metric_alarm" "immutable_audit_health_lambda_dlq_visibl
   metric_name         = "ApproximateNumberOfMessagesVisible"
   statistic           = "Maximum"
   period              = 300
-  evaluation_periods  = 1
+  evaluation_periods  = 2
   threshold           = 0
   comparison_operator = "GreaterThanThreshold"
-  treat_missing_data  = "notBreaching"
+  treat_missing_data  = "breaching"
   alarm_actions       = [aws_sns_topic.immutable_audit_tamper_alerts.arn]
 
   dimensions = {
@@ -991,7 +991,7 @@ resource "aws_cloudwatch_metric_alarm" "immutable_audit_health_check_errors" {
   metric_name         = "Errors"
   statistic           = "Sum"
   period              = 300
-  evaluation_periods  = 1
+  evaluation_periods  = 2
   threshold           = 0
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "breaching"
@@ -1016,8 +1016,8 @@ resource "aws_cloudwatch_metric_alarm" "immutable_audit_control_health" {
   namespace           = "TechX/Audit"
   metric_name         = "AuditControlHealth"
   statistic           = "Minimum"
-  period              = 900
-  evaluation_periods  = 1
+  period              = 300
+  evaluation_periods  = 2
   threshold           = 1
   comparison_operator = "LessThanThreshold"
   treat_missing_data  = "breaching"
@@ -1033,3 +1033,5 @@ resource "aws_cloudwatch_metric_alarm" "immutable_audit_control_health" {
     Purpose = "audit-control-health-check"
   })
 }
+
+# Change trail: @hungxqt - 2026-07-29 - Enforce 5-minute period, 2 evaluation periods, and fail-closed breaching missing data on audit health alarms.

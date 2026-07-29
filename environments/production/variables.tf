@@ -97,7 +97,7 @@ variable "immutable_audit_health_check_enabled" {
 variable "immutable_audit_health_check_schedule_expression" {
   type        = string
   description = "EventBridge schedule expression for audit control health checks."
-  default     = "rate(15 minutes)"
+  default     = "rate(5 minutes)"
 }
 
 variable "immutable_audit_health_check_max_delivery_age_minutes" {
