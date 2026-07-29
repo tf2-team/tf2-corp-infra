@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inspect or immutably archive the three production immutable-audit DLQs."""
+"""Inspect or immutably archive the five production audit alarm DLQs."""
 
 import argparse
 import base64
@@ -25,9 +25,13 @@ EMPTY_RECEIVE_CONFIRMATIONS = 2
 MAX_RECEIVE_BATCHES = 1000
 QUEUE_OUTPUT_KEYS = (
     "immutable_audit_discord_dlq_url",
+    "immutable_audit_health_lambda_dlq_url",
     "immutable_audit_k8s_sealer_dlq_url",
     "immutable_audit_validation_dlq_url",
+    "audit_detection_alert_ready_dlq_url",
 )
+ALERT_ROUTER_FUNCTION_NAME = "techx-audit-alert-router"
+ALERT_ROUTER_DLQ_NAME = "techx-prod-tf2-audit-alert-ready-dlq"
 QUEUE_ATTRIBUTE_NAMES = (
     "ApproximateNumberOfMessages",
     "ApproximateNumberOfMessagesNotVisible",
@@ -185,6 +189,18 @@ def load_config(terraform_output_path, explicit_bucket=None):
     discord_producer = discord_name[: -len("-discord-dlq")] + "-discord-forwarder"
     _validate_lambda_name(discord_producer, "derived Discord producer")
 
+    health_producer = _validate_lambda_name(
+        _output_value(outputs, "immutable_audit_health_check_lambda_name"),
+        "immutable_audit_health_check_lambda_name",
+    )
+    health_prefix = health_producer.removesuffix("-health-check")
+    health_name = parsed["immutable_audit_health_lambda_dlq_url"][1]
+    if (
+        health_prefix == health_producer
+        or health_name != f"{health_prefix}-health-lambda-dlq"
+    ):
+        raise ArchiveError("health-check DLQ does not match its production producer")
+
     sealer_producer = _validate_lambda_name(
         _output_value(outputs, "immutable_audit_k8s_sealer_lambda_name"),
         "immutable_audit_k8s_sealer_lambda_name",
@@ -210,15 +226,31 @@ def load_config(terraform_output_path, explicit_bucket=None):
         or validation_name != f"{cloudtrail_prefix}-audit-validation-dlq"
     ):
         raise ArchiveError("validation DLQ does not match its production producers")
+
+    alert_producer = _validate_lambda_name(
+        _output_value(outputs, "audit_detection_router_lambda_function_name"),
+        "audit_detection_router_lambda_function_name",
+    )
+    alert_name = parsed["audit_detection_alert_ready_dlq_url"][1]
+    if (
+        alert_producer != ALERT_ROUTER_FUNCTION_NAME
+        or alert_name != ALERT_ROUTER_DLQ_NAME
+    ):
+        raise ArchiveError("alert-router DLQ does not match the production contract")
+
     producer_alarms = _output_mapping(
         outputs, "immutable_audit_dlq_producer_alarm_names"
     )
     expected_alarm_keys = {
         "discord_errors",
         "discord_throttles",
+        "health_check_errors",
         "k8s_sealer_errors",
         "cloudtrail_validation",
         "k8s_manifest_validation",
+        "alert_router_errors",
+        "alert_router_throttles",
+        "alert_router_delivery_failures",
     }
     if set(producer_alarms) != expected_alarm_keys:
         raise ArchiveError("producer alarm output does not match the production contract")
@@ -239,6 +271,13 @@ def load_config(terraform_output_path, explicit_bucket=None):
                 ),
             ),
             QueueTarget(
+                "health-check",
+                "immutable_audit_health_lambda_dlq_url",
+                urls["immutable_audit_health_lambda_dlq_url"],
+                (health_producer,),
+                (producer_alarms["health_check_errors"],),
+            ),
+            QueueTarget(
                 "k8s-sealer",
                 "immutable_audit_k8s_sealer_dlq_url",
                 urls["immutable_audit_k8s_sealer_dlq_url"],
@@ -253,6 +292,17 @@ def load_config(terraform_output_path, explicit_bucket=None):
                 (
                     producer_alarms["cloudtrail_validation"],
                     producer_alarms["k8s_manifest_validation"],
+                ),
+            ),
+            QueueTarget(
+                "alert-router",
+                "audit_detection_alert_ready_dlq_url",
+                urls["audit_detection_alert_ready_dlq_url"],
+                (alert_producer,),
+                (
+                    producer_alarms["alert_router_errors"],
+                    producer_alarms["alert_router_throttles"],
+                    producer_alarms["alert_router_delivery_failures"],
                 ),
             ),
         ),
@@ -545,4 +595,4 @@ if __name__ == "__main__":
     raise SystemExit(main())
 
 
-# Change trail: @hungxqt - 2026-07-29 - Added fail-closed immutable archival and verified deletion for production audit DLQs.
+# Change trail: @hungxqt - 2026-07-29 - Extend verified archival recovery to the five alarm-blocking audit DLQs.

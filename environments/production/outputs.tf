@@ -103,6 +103,11 @@ output "immutable_audit_health_check_lambda_name" {
   description = "Scheduled Lambda that verifies Mandate 12.1 audit control health"
 }
 
+output "immutable_audit_health_lambda_dlq_url" {
+  value       = local.immutable_audit_health_enabled ? aws_sqs_queue.immutable_audit_health_lambda_dlq[0].url : null
+  description = "DLQ for failed scheduled audit control health-check invocations"
+}
+
 output "immutable_audit_control_health_alarm_name" {
   value       = local.immutable_audit_health_enabled ? aws_cloudwatch_metric_alarm.immutable_audit_control_health[0].alarm_name : null
   description = "CloudWatch alarm for Mandate 12.1 audit control health drift"
@@ -190,11 +195,15 @@ output "immutable_audit_validation_dlq_url" {
 
 output "immutable_audit_dlq_producer_alarm_names" {
   value = local.immutable_audit_discord_enabled && local.immutable_audit_k8s_sealer_enabled && local.immutable_audit_validation_enabled ? {
-    discord_errors          = aws_cloudwatch_metric_alarm.immutable_audit_discord_forwarder_errors[0].alarm_name
-    discord_throttles       = aws_cloudwatch_metric_alarm.immutable_audit_discord_forwarder_throttles[0].alarm_name
-    k8s_sealer_errors       = aws_cloudwatch_metric_alarm.immutable_audit_k8s_sealer_errors[0].alarm_name
-    cloudtrail_validation   = aws_cloudwatch_metric_alarm.immutable_audit_cloudtrail_validation[0].alarm_name
-    k8s_manifest_validation = aws_cloudwatch_metric_alarm.immutable_audit_k8s_manifest_validation[0].alarm_name
+    discord_errors                 = aws_cloudwatch_metric_alarm.immutable_audit_discord_forwarder_errors[0].alarm_name
+    discord_throttles              = aws_cloudwatch_metric_alarm.immutable_audit_discord_forwarder_throttles[0].alarm_name
+    health_check_errors            = aws_cloudwatch_metric_alarm.immutable_audit_health_check_errors[0].alarm_name
+    k8s_sealer_errors              = aws_cloudwatch_metric_alarm.immutable_audit_k8s_sealer_errors[0].alarm_name
+    cloudtrail_validation          = aws_cloudwatch_metric_alarm.immutable_audit_cloudtrail_validation[0].alarm_name
+    k8s_manifest_validation        = aws_cloudwatch_metric_alarm.immutable_audit_k8s_manifest_validation[0].alarm_name
+    alert_router_errors            = module.audit_detection_pipeline.router_error_alarm_name
+    alert_router_throttles         = module.audit_detection_pipeline.router_throttle_alarm_name
+    alert_router_delivery_failures = module.audit_detection_pipeline.discord_delivery_failure_alarm_name
   } : null
   description = "Authoritative producer-health alarms required before immutable-audit DLQ archival and deletion"
 }
@@ -1123,4 +1132,4 @@ output "mandate21_stop_alarm_arns" {
   description = "Mandate 21 fail-closed CloudWatch stop alarm ARNs"
 }
 
-# Change trail: @hungxqt - 2026-07-29 - Added authoritative immutable-audit DLQ producer alarm output contract.
+# Change trail: @hungxqt - 2026-07-29 - Export the five-queue recovery targets and producer alarm gates.
