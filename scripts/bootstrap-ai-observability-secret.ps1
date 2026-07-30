@@ -46,7 +46,10 @@ $payload = @{
     AI_OBSERVABILITY_HMAC_KEY = $HmacKey
 } | ConvertTo-Json -Compress
 
-Write-Host "Writing secret: $secretName in region $Region..."
-aws secretsmanager put-secret-value --secret-id $secretName --secret-string $payload --region $Region
+$escapedPayload = $payload.Replace('"', '\"')
 
-# Change trail: @hungxqt - 2026-07-29 - Created bootstrap script for AI Observability HMAC secret.
+Write-Host "Writing secret: $secretName in region $Region..."
+aws secretsmanager put-secret-value --secret-id $secretName --secret-string $escapedPayload --region $Region
+
+# Change trail: @hungxqt - 2026-07-30 - Escape JSON payload double quotes for native AWS CLI invocation in PowerShell.
+
