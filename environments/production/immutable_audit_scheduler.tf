@@ -65,6 +65,18 @@ data "aws_iam_policy_document" "immutable_audit_scheduler" {
       local.immutable_audit_validation_enabled ? aws_sqs_queue.immutable_audit_validation_dlq[0].arn : "",
     ])
   }
+
+  statement {
+    sid    = "DecryptScheduledPayloads"
+    effect = "Allow"
+
+    actions = ["kms:Decrypt"]
+    resources = compact([
+      local.immutable_audit_health_enabled ? aws_kms_key.immutable_audit_alert_runtime[0].arn : "",
+      local.immutable_audit_k8s_sealer_enabled ? aws_kms_key.immutable_audit_k8s_sealer_runtime[0].arn : "",
+      local.immutable_audit_validation_enabled ? aws_kms_key.immutable_audit_validation_runtime[0].arn : "",
+    ])
+  }
 }
 
 resource "aws_iam_role_policy" "immutable_audit_scheduler" {

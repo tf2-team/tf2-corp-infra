@@ -465,6 +465,7 @@ resource "aws_scheduler_schedule" "immutable_audit_cloudtrail_validator" {
   schedule_expression          = var.immutable_audit_validation_schedule_expression
   schedule_expression_timezone = "Etc/UTC"
   state                        = "ENABLED"
+  kms_key_arn                  = aws_kms_key.immutable_audit_validation_runtime[0].arn
 
   flexible_time_window {
     mode = "OFF"
@@ -503,6 +504,7 @@ resource "aws_scheduler_schedule" "immutable_audit_k8s_manifest_validator" {
   schedule_expression          = var.immutable_audit_validation_schedule_expression
   schedule_expression_timezone = "Etc/UTC"
   state                        = "ENABLED"
+  kms_key_arn                  = aws_kms_key.immutable_audit_validation_runtime[0].arn
 
   flexible_time_window {
     mode = "OFF"

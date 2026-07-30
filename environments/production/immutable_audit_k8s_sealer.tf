@@ -355,6 +355,7 @@ resource "aws_scheduler_schedule" "immutable_audit_k8s_sealer" {
   schedule_expression          = var.immutable_audit_k8s_sealer_schedule_expression
   schedule_expression_timezone = "Etc/UTC"
   state                        = "ENABLED"
+  kms_key_arn                  = aws_kms_key.immutable_audit_k8s_sealer_runtime[0].arn
 
   flexible_time_window {
     mode = "OFF"
