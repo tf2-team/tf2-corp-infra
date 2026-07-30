@@ -102,6 +102,7 @@ run "mandate21_four_variant_contract" {
       "storefrontUrl",
       "rdsInstanceIdentifier",
       "zones",
+      "cleanupByTemplateId",
     ])
     error_message = "Person 3 contract must expose exactly the required wrapper fields."
   }
@@ -139,4 +140,4 @@ run "mandate21_four_variant_contract" {
   }
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Verified four-template Mandate 21 output contract with plan-compatible test assertions.
+# Change trail: @hungxqt - 2026-07-29 - Verified cleanupByTemplateId field and plan-compatible test assertions.

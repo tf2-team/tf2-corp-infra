@@ -1155,6 +1155,10 @@ module "mem0_postgresql" {
   tags                                = var.tags
 }
 
+data "aws_secretsmanager_secret" "aiops_live_executor_token" {
+  name = "${var.secrets_manager_name_prefix}/aiops-live-executor-token"
+}
+
 module "external_secrets" {
   source = "../../modules/external-secrets"
 
@@ -1170,6 +1174,7 @@ module "external_secrets" {
       module.msk.scram_secret_arn,
       module.rds_postgresql.connection_secret_arn,
       module.mem0_postgresql.master_user_secret_arn,
+      data.aws_secretsmanager_secret.aiops_live_executor_token.arn,
     ],
   )
   kms_key_arns = [
@@ -1206,10 +1211,11 @@ module "ai_model_storage" {
   oidc_issuer_url         = module.eks.oidc_issuer
   consumers = {
     product-reviews = {
-      namespace            = "techx-corp-prod"
-      service_account_name = "product-reviews"
-      model_prefix         = "protectai/deberta-v3-base-prompt-injection-v2/"
-      allow_list_bucket    = true
+      namespace                     = "techx-corp-prod"
+      service_account_name          = "product-reviews"
+      model_prefix                  = "protectai/deberta-v3-base-prompt-injection-v2/"
+      allow_list_bucket             = true
+      bedrock_inference_profile_ids = ["global.amazon.nova-2-lite-v1:0"]
     }
     shopping-copilot = {
       namespace                     = "techx-corp-prod"
@@ -1670,9 +1676,9 @@ module "runtime_security_alerting" {
 
 # ------------------------------------------------------------------------------
 # Mandate 11.2 audit detection pipeline
-# Coarse filters only: CloudTrail/EventBridge and EKS audit logs are forwarded as
-# raw events to the Task 11.3 parser Lambda. Keep disabled until the 11.3 parser
-# package and end-to-end test window are ready.
+# Coarse filters only: IAM/EKS high-risk CloudTrail events route to the shared
+# MD12 Discord queue, while EKS audit logs still flow through the parser for
+# normalization/classification. CloudTrail tamper detection is owned by MD12.
 # ------------------------------------------------------------------------------
 
 module "audit_detection_pipeline" {
@@ -1690,6 +1696,9 @@ module "audit_detection_pipeline" {
   lambda_tracing_mode                   = var.audit_detection_lambda_tracing_mode
   cloudtrail_event_rule_name            = var.audit_detection_cloudtrail_event_rule_name
   cloudtrail_event_target_id            = var.audit_detection_cloudtrail_event_target_id
+  manage_cloudtrail_event_target        = false
+  parser_alert_ready_queue_url          = local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord[0].url : ""
+  parser_alert_ready_queue_arn          = local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord[0].arn : ""
   eks_audit_subscription_filter_name    = var.audit_detection_eks_audit_subscription_filter_name
   eks_audit_filter_pattern              = var.audit_detection_eks_audit_filter_pattern
   lambda_reserved_concurrent_executions = var.audit_detection_lambda_reserved_concurrent_executions

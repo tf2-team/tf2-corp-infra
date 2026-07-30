@@ -188,6 +188,41 @@ run "verify_four_variant_contract" {
     ])
     error_message = "Each template contract must publish selectors for its exact fault zone."
   }
+
+  assert {
+    condition = alltrue([
+      for key, template in aws_fis_experiment_template.az_failover :
+      length([for action in template.action : action if action.name == "StopEC2Instances"]) == 1 &&
+      one([for p in one([for action in template.action : action if action.name == "StopEC2Instances"]).parameter : p if p.key == "startInstancesAfterDuration"]).value == "PT10M" &&
+      one([for p in one([for action in template.action : action if action.name == "StopEC2Instances"]).parameter : p if p.key == "completeIfInstancesTerminated"]).value == "true"
+    ])
+    error_message = "Every StopEC2Instances action must configure startInstancesAfterDuration and completeIfInstancesTerminated."
+  }
+
+  assert {
+    condition = alltrue([
+      for key, template in aws_fis_experiment_template.az_failover :
+      template.tags["CleanupPolicy"] == "fis-native-verify-v1"
+    ])
+    error_message = "Every template must expose tag CleanupPolicy = fis-native-verify-v1."
+  }
+
+  assert {
+    condition = alltrue([
+      for key, template_contract in output.contract.templates :
+      template_contract.cleanup.policyVersion == 1 &&
+      template_contract.cleanup.mode == "verify-only" &&
+      template_contract.cleanup.timeoutMinutes == 45 &&
+      template_contract.cleanup.pollIntervalSeconds == 15 &&
+      template_contract.cleanup.requiredAlarmWindows == 2 &&
+      template_contract.cleanup.expected.ec2AutoRestart == true &&
+      template_contract.cleanup.expected.allowInstanceReplacement == true &&
+      template_contract.cleanup.expected.networkAclRestore == true &&
+      template_contract.cleanup.expected.valkeyRecovery == true &&
+      template_contract.cleanup.expected.rdsFailoverExpected == (template_contract.rds_primary_relation == "inside")
+    ])
+    error_message = "Every contract template entry must expose static cleanup policy matching expected RDS failover relation."
+  }
 }
 
 run "reject_invalid_template_variant_contract" {
@@ -204,4 +239,4 @@ run "reject_invalid_template_variant_contract" {
   expect_failures = [var.template_variants]
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Verified the exact four FIS variants, conditional RDS failover, fail-closed settings, selectors, tags, and alarms.
+# Change trail: @hungxqt - 2026-07-29 - Verified completeIfInstancesTerminated parameter, CleanupPolicy tag, and template cleanup contract.

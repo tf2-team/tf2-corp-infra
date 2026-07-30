@@ -145,25 +145,6 @@ data "aws_iam_policy_document" "immutable_audit_k8s_sealer_dlq" {
   count = local.immutable_audit_k8s_sealer_enabled ? 1 : 0
 
   statement {
-    sid    = "AllowEventBridgeSealerFailures"
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["events.amazonaws.com"]
-    }
-
-    actions   = ["sqs:SendMessage"]
-    resources = [aws_sqs_queue.immutable_audit_k8s_sealer_dlq[0].arn]
-
-    condition {
-      test     = "ArnEquals"
-      variable = "aws:SourceArn"
-      values   = [aws_cloudwatch_event_rule.immutable_audit_k8s_sealer[0].arn]
-    }
-  }
-
-  statement {
     sid    = "DenyInsecureTransport"
     effect = "Deny"
 
@@ -365,48 +346,43 @@ resource "aws_lambda_function" "immutable_audit_k8s_sealer" {
   ]
 }
 
-resource "aws_cloudwatch_event_rule" "immutable_audit_k8s_sealer" {
+resource "aws_scheduler_schedule" "immutable_audit_k8s_sealer" {
   count = local.immutable_audit_k8s_sealer_enabled ? 1 : 0
 
-  name                = local.immutable_audit_k8s_sealer_name
-  description         = "Scheduled sealer for Mandate 12 immutable raw EKS audit manifests."
-  schedule_expression = var.immutable_audit_k8s_sealer_schedule_expression
-  state               = "ENABLED"
+  name                         = local.immutable_audit_k8s_sealer_name
+  group_name                   = aws_scheduler_schedule_group.immutable_audit[0].name
+  description                  = "Scheduled sealer for Mandate 12 immutable raw EKS audit manifests."
+  schedule_expression          = var.immutable_audit_k8s_sealer_schedule_expression
+  schedule_expression_timezone = "Etc/UTC"
+  state                        = "ENABLED"
+  kms_key_arn                  = aws_kms_key.immutable_audit_k8s_sealer_runtime[0].arn
 
-  tags = merge(var.tags, {
-    Name    = local.immutable_audit_k8s_sealer_name
-    Mandate = "MD12"
-    Purpose = "k8s-audit-manifest-sealing"
-  })
-}
-
-resource "aws_cloudwatch_event_target" "immutable_audit_k8s_sealer" {
-  count = local.immutable_audit_k8s_sealer_enabled ? 1 : 0
-
-  rule      = aws_cloudwatch_event_rule.immutable_audit_k8s_sealer[0].name
-  target_id = "k8s-audit-sealer"
-  arn       = aws_lambda_function.immutable_audit_k8s_sealer[0].arn
-
-  dead_letter_config {
-    arn = aws_sqs_queue.immutable_audit_k8s_sealer_dlq[0].arn
+  flexible_time_window {
+    mode = "OFF"
   }
 
-  retry_policy {
-    maximum_event_age_in_seconds = 3600
-    maximum_retry_attempts       = 2
+  target {
+    arn      = aws_lambda_function.immutable_audit_k8s_sealer[0].arn
+    role_arn = aws_iam_role.immutable_audit_scheduler[0].arn
+    input = jsonencode({
+      source = "eventbridge.scheduler"
+      name   = local.immutable_audit_k8s_sealer_name
+    })
+
+    dead_letter_config {
+      arn = aws_sqs_queue.immutable_audit_k8s_sealer_dlq[0].arn
+    }
+
+    retry_policy {
+      maximum_event_age_in_seconds = 3600
+      maximum_retry_attempts       = 2
+    }
   }
 
-  depends_on = [aws_sqs_queue_policy.immutable_audit_k8s_sealer_dlq]
-}
-
-resource "aws_lambda_permission" "immutable_audit_k8s_sealer" {
-  count = local.immutable_audit_k8s_sealer_enabled ? 1 : 0
-
-  statement_id  = "AllowEventBridgeK8sAuditSealer"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.immutable_audit_k8s_sealer[0].function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.immutable_audit_k8s_sealer[0].arn
+  depends_on = [
+    aws_iam_role_policy.immutable_audit_scheduler,
+    aws_sqs_queue_policy.immutable_audit_k8s_sealer_dlq,
+  ]
 }
 
 resource "aws_cloudwatch_metric_alarm" "immutable_audit_k8s_sealer_errors" {

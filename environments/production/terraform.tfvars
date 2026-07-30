@@ -49,7 +49,6 @@ immutable_audit_k8s_sealer_lambda_memory_mb       = 512
 # Mandate 12 Phase 4: scheduled integrity validation reports.
 immutable_audit_validation_enabled                     = true
 immutable_audit_validation_schedule_expression         = "rate(1 hour)"
-immutable_audit_cloudtrail_validation_lookback_hours   = 24
 immutable_audit_k8s_manifest_validation_lookback_hours = 6
 immutable_audit_validation_delay_minutes               = 30
 immutable_audit_validation_lambda_timeout_seconds      = 600
@@ -503,17 +502,10 @@ audit_detection_dlq_name                           = "techx-prod-tf2-alert-lambd
 audit_detection_lambda_kms_key_arn                 = "arn:aws:kms:us-east-1:493499579600:key/7847a1cd-8640-4e4e-b7e3-316f26aada37"
 audit_detection_lambda_tracing_mode                = "PassThrough"
 audit_detection_cloudtrail_event_rule_name         = "techx-prod-tf2-cloudtrail-high-risk-eventbridge"
-audit_detection_cloudtrail_event_target_id         = "audit-alert-parser-direct"
+audit_detection_cloudtrail_event_target_id         = "audit-alert-discord-sqs"
 audit_detection_eks_audit_subscription_filter_name = "high-risk-k8s-events-to-parser"
-audit_detection_enable_discord_router              = true
-audit_detection_alert_ready_queue_name             = "techx-prod-tf2-audit-alert-ready"
-audit_detection_alert_ready_dlq_name               = "techx-prod-tf2-audit-alert-ready-dlq"
-audit_detection_router_lambda_function_name        = "techx-audit-alert-router"
-audit_detection_router_lambda_role_name            = "techx-prod-tf2-audit-alert-router-role"
-audit_detection_router_lambda_policy_name          = "techx-prod-tf2-audit-alert-router-policy"
-audit_detection_discord_webhook_secret_name        = "techx-prod-tf2/mandate11/discord-webhook"
-audit_detection_ttd_threshold_seconds              = 300
-audit_detection_ttd_dashboard_name                 = "techx-prod-tf2-mandate11-ttd"
+audit_detection_eks_audit_filter_pattern           = "{ (($.objectRef.resource = \"secrets\") && (($.verb = \"get\") || ($.verb = \"list\") || ($.verb = \"delete\") || ($.verb = \"deletecollection\"))) || ((($.objectRef.resource = \"rolebindings\") || ($.objectRef.resource = \"clusterrolebindings\")) && (($.verb = \"create\") || ($.verb = \"update\") || ($.verb = \"patch\"))) || (($.objectRef.resource = \"pods\") && (($.objectRef.subresource = \"exec\") || ($.objectRef.subresource = \"attach\") || ($.objectRef.subresource = \"portforward\"))) || ((($.objectRef.resource = \"deployments\") || ($.objectRef.resource = \"statefulsets\") || ($.objectRef.resource = \"daemonsets\") || ($.objectRef.resource = \"services\") || ($.objectRef.resource = \"ingresses\") || ($.objectRef.resource = \"configmaps\")) && (($.verb = \"delete\") || ($.verb = \"deletecollection\"))) }"
+audit_detection_enable_discord_router              = false
 
 # Overlay: Cost Optimization Hub recommendations export for sprint backlog.
 cost_optimization_backlog_enabled                     = true

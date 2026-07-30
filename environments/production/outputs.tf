@@ -63,6 +63,20 @@ output "immutable_audit_tamper_event_rule_names" {
   description = "EventBridge rules that alert on CloudTrail, S3 log bucket, and KMS tampering for Mandate 12.1"
 }
 
+output "immutable_audit_scheduler_group_name" {
+  value       = local.immutable_audit_scheduler_enabled ? aws_scheduler_schedule_group.immutable_audit[0].name : null
+  description = "EventBridge Scheduler group for Mandate 12 recurring audit control jobs"
+}
+
+output "immutable_audit_schedule_names" {
+  value = {
+    health_check           = local.immutable_audit_health_enabled ? aws_scheduler_schedule.immutable_audit_health_check[0].name : null
+    k8s_sealer             = local.immutable_audit_k8s_sealer_enabled ? aws_scheduler_schedule.immutable_audit_k8s_sealer[0].name : null
+    k8s_manifest_validator = local.immutable_audit_validation_enabled ? aws_scheduler_schedule.immutable_audit_k8s_manifest_validator[0].name : null
+  }
+  description = "EventBridge Scheduler schedules that run recurring Mandate 12 audit control jobs"
+}
+
 output "immutable_audit_tamper_alert_topic_arn" {
   value       = aws_sns_topic.immutable_audit_tamper_alerts.arn
   description = "SNS topic that receives Mandate 12.1 immutable audit tamper alerts and forwards them to confirmed email subscribers"
@@ -101,6 +115,11 @@ output "immutable_audit_discord_dlq_url" {
 output "immutable_audit_health_check_lambda_name" {
   value       = local.immutable_audit_health_enabled ? aws_lambda_function.immutable_audit_health_check[0].function_name : null
   description = "Scheduled Lambda that verifies Mandate 12.1 audit control health"
+}
+
+output "immutable_audit_health_lambda_dlq_url" {
+  value       = local.immutable_audit_health_enabled ? aws_sqs_queue.immutable_audit_health_lambda_dlq[0].url : null
+  description = "DLQ for failed scheduled audit control health-check invocations"
 }
 
 output "immutable_audit_control_health_alarm_name" {
@@ -168,11 +187,6 @@ output "immutable_audit_k8s_sealer_dlq_url" {
   description = "DLQ for failed scheduled K8s audit sealer invocations"
 }
 
-output "immutable_audit_cloudtrail_validator_lambda_name" {
-  value       = local.immutable_audit_validation_enabled ? aws_lambda_function.immutable_audit_cloudtrail_validator[0].function_name : null
-  description = "Lambda that writes scheduled CloudTrail validation health reports"
-}
-
 output "immutable_audit_k8s_manifest_validator_lambda_name" {
   value       = local.immutable_audit_validation_enabled ? aws_lambda_function.immutable_audit_k8s_manifest_validator[0].function_name : null
   description = "Lambda that validates signed K8s audit manifest chains"
@@ -188,9 +202,18 @@ output "immutable_audit_validation_dlq_url" {
   description = "DLQ for failed scheduled Mandate 12 validation invocations"
 }
 
+output "immutable_audit_dlq_producer_alarm_names" {
+  value = local.immutable_audit_discord_enabled && local.immutable_audit_k8s_sealer_enabled && local.immutable_audit_validation_enabled ? {
+    discord_errors          = aws_cloudwatch_metric_alarm.immutable_audit_discord_forwarder_errors[0].alarm_name
+    discord_throttles       = aws_cloudwatch_metric_alarm.immutable_audit_discord_forwarder_throttles[0].alarm_name
+    health_check_errors     = aws_cloudwatch_metric_alarm.immutable_audit_health_check_errors[0].alarm_name
+    k8s_sealer_errors       = aws_cloudwatch_metric_alarm.immutable_audit_k8s_sealer_errors[0].alarm_name
+    k8s_manifest_validation = aws_cloudwatch_metric_alarm.immutable_audit_k8s_manifest_validation[0].alarm_name
+  } : null
+  description = "Authoritative producer-health alarms required before immutable-audit DLQ archival and deletion"
+}
 output "immutable_audit_validation_alarm_names" {
   value = local.immutable_audit_validation_enabled ? {
-    cloudtrail    = aws_cloudwatch_metric_alarm.immutable_audit_cloudtrail_validation[0].alarm_name
     k8s_manifests = aws_cloudwatch_metric_alarm.immutable_audit_k8s_manifest_validation[0].alarm_name
   } : null
   description = "CloudWatch alarms that detect Mandate 12 validation failure or missing validation metrics"
@@ -954,6 +977,11 @@ output "audit_detection_parser_lambda_function_arn" {
   description = "Lambda function ARN for Mandate 11.2/11.3 audit alert parser"
 }
 
+output "audit_detection_parser_alert_ready_queue_url" {
+  value       = module.audit_detection_pipeline.parser_alert_ready_queue_url
+  description = "Effective SQS queue URL used by the Mandate 11 parser for alert-ready payloads"
+}
+
 output "audit_detection_cloudtrail_event_rule_arn" {
   value       = module.audit_detection_pipeline.cloudtrail_event_rule_arn
   description = "EventBridge rule ARN for Mandate 11.2 CloudTrail candidate events"
@@ -967,36 +995,6 @@ output "audit_detection_eks_audit_subscription_filter_name" {
 output "audit_detection_dlq_arn" {
   value       = module.audit_detection_pipeline.dlq_arn
   description = "SQS DLQ ARN for Mandate 11.2 failed pipeline events"
-}
-
-output "audit_detection_alert_ready_queue_url" {
-  value       = module.audit_detection_pipeline.alert_ready_queue_url
-  description = "SQS queue URL for Mandate 11.4 alert-ready payloads"
-}
-
-output "audit_detection_alert_ready_dlq_url" {
-  value       = module.audit_detection_pipeline.alert_ready_dlq_url
-  description = "SQS DLQ URL for Mandate 11.4 failed Discord deliveries"
-}
-
-output "audit_detection_router_lambda_function_name" {
-  value       = module.audit_detection_pipeline.router_lambda_function_name
-  description = "Lambda function name for Mandate 11.4 Discord router"
-}
-
-output "audit_detection_router_lambda_function_arn" {
-  value       = module.audit_detection_pipeline.router_lambda_function_arn
-  description = "Lambda function ARN for Mandate 11.4 Discord router"
-}
-
-output "audit_detection_discord_webhook_secret_arn" {
-  value       = module.audit_detection_pipeline.discord_webhook_secret_arn
-  description = "Secrets Manager ARN for Mandate 11 Discord webhook URL"
-}
-
-output "audit_detection_ttd_dashboard_name" {
-  value       = module.audit_detection_pipeline.ttd_dashboard_name
-  description = "CloudWatch dashboard name for Mandate 11.5 TTD evidence"
 }
 
 output "audit_detection_operator_note" {
@@ -1077,6 +1075,18 @@ output "mandate21_fis_contract" {
         primaryOutsideZoneTemplateId = module.fis_az_failover.template_ids_by_variant["1b-primary-outside"]
       }
     }
+    cleanupByTemplateId = {
+      for variant_key, template_contract in module.fis_az_failover.contract.templates :
+      template_contract.id => {
+        variant              = variant_key
+        policyVersion        = template_contract.cleanup.policyVersion
+        mode                 = template_contract.cleanup.mode
+        timeoutMinutes       = template_contract.cleanup.timeoutMinutes
+        pollIntervalSeconds  = template_contract.cleanup.pollIntervalSeconds
+        requiredAlarmWindows = template_contract.cleanup.requiredAlarmWindows
+        rdsFailoverExpected  = template_contract.cleanup.expected.rdsFailoverExpected
+      }
+    }
   }
   description = "Mandate 21 Person 1 to Person 3 wrapper-compatible FIS runtime contract"
 }
@@ -1101,4 +1111,4 @@ output "mandate21_stop_alarm_arns" {
   description = "Mandate 21 fail-closed CloudWatch stop alarm ARNs"
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Exported the wrapper-compatible four-template Mandate 21 FIS contract.
+# Change trail: @hungxqt - 2026-07-30 - Keep immutable-audit recovery outputs aligned to the four active DLQs.

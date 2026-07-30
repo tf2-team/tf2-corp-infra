@@ -50,9 +50,19 @@ locals {
   discord_webhook_secret_arn = var.discord_webhook_secret_arn != "" ? var.discord_webhook_secret_arn : try(aws_secretsmanager_secret.discord_webhook[0].arn, "")
   cloudtrail_target_id       = var.cloudtrail_event_target_id
   lambda_kms_key_arn         = var.lambda_kms_key_arn != "" ? var.lambda_kms_key_arn : null
-  default_filter_pattern     = "{ (($.objectRef.resource = \"secrets\") && (($.verb = \"get\") || ($.verb = \"list\") || ($.verb = \"watch\") || ($.verb = \"delete\") || ($.verb = \"deletecollection\"))) || ((($.objectRef.resource = \"rolebindings\") || ($.objectRef.resource = \"clusterrolebindings\")) && (($.verb = \"create\") || ($.verb = \"update\") || ($.verb = \"patch\"))) || (($.objectRef.resource = \"pods\") && (($.objectRef.subresource = \"exec\") || ($.verb = \"create\") || ($.verb = \"update\") || ($.verb = \"patch\"))) || ((($.objectRef.resource = \"deployments\") || ($.objectRef.resource = \"statefulsets\") || ($.objectRef.resource = \"daemonsets\") || ($.objectRef.resource = \"jobs\") || ($.objectRef.resource = \"cronjobs\") || ($.objectRef.resource = \"services\") || ($.objectRef.resource = \"ingresses\") || ($.objectRef.resource = \"configmaps\")) && (($.verb = \"create\") || ($.verb = \"update\") || ($.verb = \"patch\") || ($.verb = \"delete\") || ($.verb = \"deletecollection\"))) }"
-  eks_filter_pattern         = var.eks_audit_filter_pattern != "" ? var.eks_audit_filter_pattern : local.default_filter_pattern
-  ttd_dashboard_name         = var.ttd_dashboard_name != "" ? var.ttd_dashboard_name : "${var.name_prefix}-mandate11-ttd"
+  parser_alert_ready_queue_url = (
+    var.parser_alert_ready_queue_url != ""
+    ? var.parser_alert_ready_queue_url
+    : local.router_enabled ? aws_sqs_queue.alert_ready[0].url : ""
+  )
+  parser_alert_ready_queue_arn = (
+    var.parser_alert_ready_queue_arn != ""
+    ? var.parser_alert_ready_queue_arn
+    : local.router_enabled ? aws_sqs_queue.alert_ready[0].arn : ""
+  )
+  default_filter_pattern = "{ (($.objectRef.resource = \"secrets\") && (($.verb = \"get\") || ($.verb = \"list\") || ($.verb = \"watch\") || ($.verb = \"delete\") || ($.verb = \"deletecollection\"))) || ((($.objectRef.resource = \"rolebindings\") || ($.objectRef.resource = \"clusterrolebindings\")) && (($.verb = \"create\") || ($.verb = \"update\") || ($.verb = \"patch\"))) || (($.objectRef.resource = \"pods\") && (($.objectRef.subresource = \"exec\") || ($.verb = \"create\") || ($.verb = \"update\") || ($.verb = \"patch\"))) || ((($.objectRef.resource = \"deployments\") || ($.objectRef.resource = \"statefulsets\") || ($.objectRef.resource = \"daemonsets\") || ($.objectRef.resource = \"jobs\") || ($.objectRef.resource = \"cronjobs\") || ($.objectRef.resource = \"services\") || ($.objectRef.resource = \"ingresses\") || ($.objectRef.resource = \"configmaps\")) && (($.verb = \"create\") || ($.verb = \"update\") || ($.verb = \"patch\") || ($.verb = \"delete\") || ($.verb = \"deletecollection\"))) }"
+  eks_filter_pattern     = var.eks_audit_filter_pattern != "" ? var.eks_audit_filter_pattern : local.default_filter_pattern
+  ttd_dashboard_name     = var.ttd_dashboard_name != "" ? var.ttd_dashboard_name : "${var.name_prefix}-mandate11-ttd"
 
   lambda_environment = merge(
     {
@@ -225,7 +235,7 @@ data "aws_iam_policy_document" "parser" {
   }
 
   dynamic "statement" {
-    for_each = local.router_enabled ? [aws_sqs_queue.alert_ready[0].arn] : []
+    for_each = local.parser_alert_ready_queue_arn != "" ? [local.parser_alert_ready_queue_arn] : []
 
     content {
       sid       = "SendAlertReadyMessages"
@@ -302,8 +312,8 @@ resource "aws_lambda_function" "parser" {
   environment {
     variables = merge(
       local.lambda_environment,
-      local.router_enabled ? {
-        ALERT_READY_QUEUE_URL = aws_sqs_queue.alert_ready[0].url
+      local.parser_alert_ready_queue_url != "" ? {
+        ALERT_READY_QUEUE_URL = local.parser_alert_ready_queue_url
       } : {},
     )
   }
@@ -447,7 +457,7 @@ resource "aws_lambda_function" "router" {
   function_name    = var.router_lambda_function_name
   description      = "Mandate 11.4 SQS-to-Discord audit alert router. Platform CI/CD replaces the placeholder package with router code."
   role             = aws_iam_role.router[0].arn
-  handler          = "audit_alert_router.handler.lambda_handler"
+  handler          = "router.handler"
   runtime          = "python3.12"
   filename         = data.archive_file.router_placeholder[0].output_path
   source_code_hash = data.archive_file.router_placeholder[0].output_base64sha256
@@ -505,7 +515,7 @@ resource "aws_cloudwatch_event_rule" "cloudtrail_candidates" {
   count = local.create ? 1 : 0
 
   name        = local.cloudtrail_rule_name
-  description = "Mandate 11.2 coarse CloudTrail filter. Forwards raw candidate events to the 11.3 parser Lambda."
+  description = "Mandate 11.2 coarse CloudTrail filter for IAM and EKS high-risk API candidates."
   event_pattern = jsonencode({
     "detail-type" = ["AWS API Call via CloudTrail"]
     detail = {
@@ -517,11 +527,7 @@ resource "aws_cloudwatch_event_rule" "cloudtrail_candidates" {
         {
           eventSource = ["eks.amazonaws.com"]
           eventName   = sort(tolist(var.cloudtrail_eks_event_names))
-        },
-        {
-          eventSource = ["cloudtrail.amazonaws.com"]
-          eventName   = sort(tolist(var.cloudtrail_audit_event_names))
-        },
+        }
       ]
     }
   })
@@ -534,7 +540,7 @@ resource "aws_cloudwatch_event_rule" "cloudtrail_candidates" {
 }
 
 resource "aws_lambda_permission" "eventbridge" {
-  count = local.create ? 1 : 0
+  count = local.create && var.manage_cloudtrail_event_target ? 1 : 0
 
   statement_id  = "AllowMandate11CloudTrailEventBridgeDirect"
   action        = "lambda:InvokeFunction"
@@ -574,7 +580,7 @@ resource "aws_sqs_queue_policy" "dlq" {
 }
 
 resource "aws_cloudwatch_event_target" "cloudtrail_to_parser" {
-  count = local.create ? 1 : 0
+  count = local.create && var.manage_cloudtrail_event_target ? 1 : 0
 
   rule      = aws_cloudwatch_event_rule.cloudtrail_candidates[0].name
   target_id = local.cloudtrail_target_id
@@ -666,7 +672,7 @@ resource "aws_cloudwatch_metric_alarm" "eventbridge_failed_invocations" {
   count = local.create && var.enable_alarms ? 1 : 0
 
   alarm_name          = "${local.cloudtrail_rule_name}-failed-invocations"
-  alarm_description   = "EventBridge failed to invoke the Mandate 11 parser for CloudTrail candidates."
+  alarm_description   = "EventBridge failed to deliver Mandate 11 CloudTrail candidates to the configured target."
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
   metric_name         = "FailedInvocations"
@@ -840,7 +846,7 @@ resource "aws_cloudwatch_dashboard" "ttd" {
         properties = {
           markdown = join("\n", [
             "# Mandate 11 Audit Detection TTD",
-            "Flow: CloudTrail/EKS audit -> parser Lambda -> SQS alert-ready -> Discord router Lambda -> Discord.",
+            "Flow: CloudTrail IAM/EKS high-risk events -> configured target; EKS audit -> parser Lambda -> alert-ready SQS.",
             "Webhook values are stored in Secrets Manager and must not appear in dashboards, logs, Terraform variables, or PR comments.",
           ])
         }

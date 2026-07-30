@@ -419,6 +419,12 @@ cd techx-corp-infra
 scripts\bootstrap-asm-secrets.cmd techx-corp/production us-east-1
 REM dev:
 scripts\bootstrap-asm-secrets.cmd techx-corp/development us-east-1
+
+REM Bootstrap AI Observability HMAC secret (minimum 32 bytes key length):
+scripts\bootstrap-ai-observability-secret.cmd techx-corp/production us-east-1
+
+REM Bootstrap AIOps live executor token approval without rotating the token:
+scripts\bootstrap-aiops-live-executor-secret.cmd techx-corp/production us-east-1 adr-live-001
 ```
 
 **Bash / Git Bash / WSL:**
@@ -426,6 +432,12 @@ scripts\bootstrap-asm-secrets.cmd techx-corp/development us-east-1
 ```bash
 ./scripts/bootstrap-asm-secrets.sh techx-corp/production us-east-1
 # dev: ./scripts/bootstrap-asm-secrets.sh techx-corp/development us-east-1
+
+# Bootstrap AI Observability HMAC secret:
+./scripts/bootstrap-ai-observability-secret.sh techx-corp/production us-east-1
+
+# Bootstrap AIOps live executor token approval without rotating the token:
+./scripts/bootstrap-aiops-live-executor-secret.sh techx-corp/production us-east-1 adr-live-001
 ```
 
 Optional overrides (same env var names on all shells), e.g. PowerShell:
@@ -436,6 +448,8 @@ $bytes = [byte[]]::new(32)
 [System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
 $env:AIOPS_GRAFANA_WEBHOOK_SECRET = [Convert]::ToHexString($bytes).ToLowerInvariant()
 .\scripts\bootstrap-asm-secrets.ps1 techx-corp/development us-east-1
+.\scripts\bootstrap-ai-observability-secret.ps1 techx-corp/development us-east-1
+.\scripts\bootstrap-aiops-live-executor-secret.ps1 techx-corp/production us-east-1 adr-live-001
 ```
 
 For Bash / Git Bash / WSL, generate the AIOps Grafana webhook secret outside Git and bootstrap it into ASM:
@@ -814,4 +828,4 @@ aws s3api list-object-versions \
 - `techx-corp-platform/docs/DEPLOYMENT.md` — E2E operator runbook  
 - `techx-corp-chart/docs/DEPLOYMENT.md` — Helm / smoke / rollback
 
-<!-- Change trail: @hungxqt - 2026-07-28 - Catalog aiops in ECR service list. -->
+<!-- Change trail: @hungxqt - 2026-07-29 - Added AI Observability HMAC secret bootstrap instructions. -->

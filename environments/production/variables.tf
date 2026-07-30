@@ -97,7 +97,7 @@ variable "immutable_audit_health_check_enabled" {
 variable "immutable_audit_health_check_schedule_expression" {
   type        = string
   description = "EventBridge schedule expression for audit control health checks."
-  default     = "rate(15 minutes)"
+  default     = "rate(5 minutes)"
 }
 
 variable "immutable_audit_health_check_max_delivery_age_minutes" {
@@ -228,19 +228,8 @@ variable "immutable_audit_validation_enabled" {
 
 variable "immutable_audit_validation_schedule_expression" {
   type        = string
-  description = "EventBridge schedule expression for Mandate 12 validation Lambdas."
+  description = "EventBridge schedule expression for the Mandate 12 K8s signed manifest validation Lambda."
   default     = "rate(1 hour)"
-}
-
-variable "immutable_audit_cloudtrail_validation_lookback_hours" {
-  type        = number
-  description = "Lookback window in hours for CloudTrail validation reports."
-  default     = 24
-
-  validation {
-    condition     = var.immutable_audit_cloudtrail_validation_lookback_hours >= 1 && var.immutable_audit_cloudtrail_validation_lookback_hours <= 168
-    error_message = "immutable_audit_cloudtrail_validation_lookback_hours must be between 1 and 168."
-  }
 }
 
 variable "immutable_audit_k8s_manifest_validation_lookback_hours" {
@@ -971,6 +960,7 @@ variable "cloudfront_blocked_prefixes" {
     "/feature",
     "/argocd",
     "/kubecost",
+    "/api/ai-traces",
   ]
   nullable    = false
   description = <<-EOT
@@ -1498,7 +1488,7 @@ variable "audit_detection_cloudtrail_event_target_id" {
   type        = string
   default     = "audit-alert-parser-direct"
   nullable    = false
-  description = "EventBridge target ID for direct CloudTrail to parser Lambda delivery."
+  description = "EventBridge target ID for Mandate 11 high-risk CloudTrail candidate delivery."
 }
 
 variable "audit_detection_audit_log_group_name" {
@@ -1764,4 +1754,4 @@ variable "mem0_postgresql_kms_key_id" {
   description = "Optional customer-managed KMS key for Mem0 RDS"
 }
 
-# Change trail: @hungxqt - 2026-07-22 - Default ecr_keep_last_n_buildcache to 0.
+# Change trail: @hungxqt - 2026-07-29 - Added /api/ai-traces to production CloudFront blocked prefixes default.

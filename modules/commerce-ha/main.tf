@@ -143,6 +143,8 @@ resource "aws_dynamodb_table" "checkout_outbox" {
     kms_key_arn = aws_kms_key.commerce.arn
   }
 
+  deletion_protection_enabled = true
+
   tags = var.tags
 }
 
@@ -202,6 +204,18 @@ data "aws_iam_policy_document" "checkout_outbox" {
     resources = [
       aws_kms_key.commerce.arn,
     ]
+  }
+
+  statement {
+    sid       = "PutMandate21Metrics"
+    actions   = ["cloudwatch:PutMetricData"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "cloudwatch:namespace"
+      values   = ["TechX/Mandate21"]
+    }
   }
 }
 
@@ -271,4 +285,4 @@ resource "aws_iam_role_policy" "accounting_outbox_reconciler" {
   policy = data.aws_iam_policy_document.accounting_outbox_reconciler.json
 }
 
-# Change trail: @hungxqt - 2026-07-28 - Added a deterministic Valkey replication-group tag for FIS targeting.
+# Change trail: @hungxqt - 2026-07-29 - Enable DynamoDB deletion protection and add TechX/Mandate21 PutMetricData policy to checkout role.
