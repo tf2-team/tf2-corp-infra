@@ -195,15 +195,12 @@ output "immutable_audit_validation_dlq_url" {
 
 output "immutable_audit_dlq_producer_alarm_names" {
   value = local.immutable_audit_discord_enabled && local.immutable_audit_k8s_sealer_enabled && local.immutable_audit_validation_enabled ? {
-    discord_errors                 = aws_cloudwatch_metric_alarm.immutable_audit_discord_forwarder_errors[0].alarm_name
-    discord_throttles              = aws_cloudwatch_metric_alarm.immutable_audit_discord_forwarder_throttles[0].alarm_name
-    health_check_errors            = aws_cloudwatch_metric_alarm.immutable_audit_health_check_errors[0].alarm_name
-    k8s_sealer_errors              = aws_cloudwatch_metric_alarm.immutable_audit_k8s_sealer_errors[0].alarm_name
-    cloudtrail_validation          = aws_cloudwatch_metric_alarm.immutable_audit_cloudtrail_validation[0].alarm_name
-    k8s_manifest_validation        = aws_cloudwatch_metric_alarm.immutable_audit_k8s_manifest_validation[0].alarm_name
-    alert_router_errors            = module.audit_detection_pipeline.router_error_alarm_name
-    alert_router_throttles         = module.audit_detection_pipeline.router_throttle_alarm_name
-    alert_router_delivery_failures = module.audit_detection_pipeline.discord_delivery_failure_alarm_name
+    discord_errors          = aws_cloudwatch_metric_alarm.immutable_audit_discord_forwarder_errors[0].alarm_name
+    discord_throttles       = aws_cloudwatch_metric_alarm.immutable_audit_discord_forwarder_throttles[0].alarm_name
+    health_check_errors     = aws_cloudwatch_metric_alarm.immutable_audit_health_check_errors[0].alarm_name
+    k8s_sealer_errors       = aws_cloudwatch_metric_alarm.immutable_audit_k8s_sealer_errors[0].alarm_name
+    cloudtrail_validation   = aws_cloudwatch_metric_alarm.immutable_audit_cloudtrail_validation[0].alarm_name
+    k8s_manifest_validation = aws_cloudwatch_metric_alarm.immutable_audit_k8s_manifest_validation[0].alarm_name
   } : null
   description = "Authoritative producer-health alarms required before immutable-audit DLQ archival and deletion"
 }
@@ -993,36 +990,6 @@ output "audit_detection_dlq_arn" {
   description = "SQS DLQ ARN for Mandate 11.2 failed pipeline events"
 }
 
-output "audit_detection_alert_ready_queue_url" {
-  value       = module.audit_detection_pipeline.alert_ready_queue_url
-  description = "SQS queue URL for Mandate 11.4 alert-ready payloads"
-}
-
-output "audit_detection_alert_ready_dlq_url" {
-  value       = module.audit_detection_pipeline.alert_ready_dlq_url
-  description = "SQS DLQ URL for Mandate 11.4 failed Discord deliveries"
-}
-
-output "audit_detection_router_lambda_function_name" {
-  value       = module.audit_detection_pipeline.router_lambda_function_name
-  description = "Lambda function name for Mandate 11.4 Discord router"
-}
-
-output "audit_detection_router_lambda_function_arn" {
-  value       = module.audit_detection_pipeline.router_lambda_function_arn
-  description = "Lambda function ARN for Mandate 11.4 Discord router"
-}
-
-output "audit_detection_discord_webhook_secret_arn" {
-  value       = module.audit_detection_pipeline.discord_webhook_secret_arn
-  description = "Secrets Manager ARN for Mandate 11 Discord webhook URL"
-}
-
-output "audit_detection_ttd_dashboard_name" {
-  value       = module.audit_detection_pipeline.ttd_dashboard_name
-  description = "CloudWatch dashboard name for Mandate 11.5 TTD evidence"
-}
-
 output "audit_detection_operator_note" {
   value       = module.audit_detection_pipeline.operator_note
   description = "Post-apply steps for Mandate 11.2 audit detection pipeline"
@@ -1137,4 +1104,4 @@ output "mandate21_stop_alarm_arns" {
   description = "Mandate 21 fail-closed CloudWatch stop alarm ARNs"
 }
 
-# Change trail: @hungxqt - 2026-07-29 - Export the five-queue recovery targets and producer alarm gates.
+# Change trail: @hungxqt - 2026-07-30 - Keep immutable-audit recovery outputs aligned to the four active DLQs.

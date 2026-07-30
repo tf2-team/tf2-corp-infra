@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inspect or immutably archive the five production audit alarm DLQs."""
+"""Inspect or immutably archive the four production immutable-audit alarm DLQs."""
 
 import argparse
 import base64
@@ -28,10 +28,7 @@ QUEUE_OUTPUT_KEYS = (
     "immutable_audit_health_lambda_dlq_url",
     "immutable_audit_k8s_sealer_dlq_url",
     "immutable_audit_validation_dlq_url",
-    "audit_detection_alert_ready_dlq_url",
 )
-ALERT_ROUTER_FUNCTION_NAME = "techx-audit-alert-router"
-ALERT_ROUTER_DLQ_NAME = "techx-prod-tf2-audit-alert-ready-dlq"
 QUEUE_ATTRIBUTE_NAMES = (
     "ApproximateNumberOfMessages",
     "ApproximateNumberOfMessagesNotVisible",
@@ -227,17 +224,6 @@ def load_config(terraform_output_path, explicit_bucket=None):
     ):
         raise ArchiveError("validation DLQ does not match its production producers")
 
-    alert_producer = _validate_lambda_name(
-        _output_value(outputs, "audit_detection_router_lambda_function_name"),
-        "audit_detection_router_lambda_function_name",
-    )
-    alert_name = parsed["audit_detection_alert_ready_dlq_url"][1]
-    if (
-        alert_producer != ALERT_ROUTER_FUNCTION_NAME
-        or alert_name != ALERT_ROUTER_DLQ_NAME
-    ):
-        raise ArchiveError("alert-router DLQ does not match the production contract")
-
     producer_alarms = _output_mapping(
         outputs, "immutable_audit_dlq_producer_alarm_names"
     )
@@ -248,9 +234,6 @@ def load_config(terraform_output_path, explicit_bucket=None):
         "k8s_sealer_errors",
         "cloudtrail_validation",
         "k8s_manifest_validation",
-        "alert_router_errors",
-        "alert_router_throttles",
-        "alert_router_delivery_failures",
     }
     if set(producer_alarms) != expected_alarm_keys:
         raise ArchiveError("producer alarm output does not match the production contract")
@@ -292,17 +275,6 @@ def load_config(terraform_output_path, explicit_bucket=None):
                 (
                     producer_alarms["cloudtrail_validation"],
                     producer_alarms["k8s_manifest_validation"],
-                ),
-            ),
-            QueueTarget(
-                "alert-router",
-                "audit_detection_alert_ready_dlq_url",
-                urls["audit_detection_alert_ready_dlq_url"],
-                (alert_producer,),
-                (
-                    producer_alarms["alert_router_errors"],
-                    producer_alarms["alert_router_throttles"],
-                    producer_alarms["alert_router_delivery_failures"],
                 ),
             ),
         ),
@@ -595,4 +567,4 @@ if __name__ == "__main__":
     raise SystemExit(main())
 
 
-# Change trail: @hungxqt - 2026-07-29 - Extend verified archival recovery to the five alarm-blocking audit DLQs.
+# Change trail: @hungxqt - 2026-07-30 - Remove the retired MD11 alert-router DLQ from immutable-audit archival scope.

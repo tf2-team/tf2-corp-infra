@@ -152,7 +152,6 @@ def _format_k8s_message(alert):
         ],
     }
 
-
 def _normalized_alert(envelope):
     normalized = envelope.get("normalized_event")
     evidence = envelope.get("evidence", {})

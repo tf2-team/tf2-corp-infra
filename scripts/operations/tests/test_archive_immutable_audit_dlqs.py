@@ -53,10 +53,6 @@ def _outputs():
             "https://sqs.us-east-1.amazonaws.com/493499579600/"
             "techx-prod-audit-validation-dlq"
         ),
-        "audit_detection_alert_ready_dlq_url": (
-            "https://sqs.us-east-1.amazonaws.com/493499579600/"
-            "techx-prod-tf2-audit-alert-ready-dlq"
-        ),
         "immutable_audit_health_check_lambda_name": (
             "techx-prod-mandate12-immutable-audit-health-check"
         ),
@@ -67,7 +63,6 @@ def _outputs():
         "immutable_audit_k8s_manifest_validator_lambda_name": (
             "techx-prod-k8s-manifest-validator"
         ),
-        "audit_detection_router_lambda_function_name": "techx-audit-alert-router",
         "immutable_audit_validation_alarm_names": {
             "cloudtrail": "techx-prod-cloudtrail-validator-fail",
             "k8s_manifests": "techx-prod-k8s-manifest-validator-fail",
@@ -79,11 +74,6 @@ def _outputs():
             "k8s_sealer_errors": "techx-prod-k8s-audit-sealer-errors",
             "cloudtrail_validation": "techx-prod-cloudtrail-validator-fail",
             "k8s_manifest_validation": "techx-prod-k8s-manifest-validator-fail",
-            "alert_router_errors": "techx-audit-alert-router-errors",
-            "alert_router_throttles": "techx-audit-alert-router-throttles",
-            "alert_router_delivery_failures": (
-                "techx-audit-alert-router-discord-delivery-failures"
-            ),
         },
     }
     return {key: {"value": value} for key, value in values.items()}
@@ -148,7 +138,7 @@ class ArchiveImmutableAuditDlqsTests(unittest.TestCase):
 
         self.assertEqual("PASS", result["status"])
         self.assertEqual(
-            ["discord", "health-check", "k8s-sealer", "validation", "alert-router"],
+            ["discord", "health-check", "k8s-sealer", "validation"],
             [item["queue"] for item in result["queues"]],
         )
         self.sqs.receive_message.assert_not_called()
@@ -359,7 +349,7 @@ class ArchiveImmutableAuditDlqsTests(unittest.TestCase):
             self.module.EMPTY_RECEIVE_CONFIRMATIONS,
             result["queues"][0]["consecutive_empty_receives"],
         )
-    def test_config_is_an_exact_five_queue_allowlist(self):
+    def test_config_is_an_exact_four_queue_allowlist(self):
         config = self._config()
 
         self.assertEqual(
@@ -396,19 +386,6 @@ class ArchiveImmutableAuditDlqsTests(unittest.TestCase):
             path.write_text(json.dumps(outputs), encoding="utf-8")
             with self.assertRaisesRegex(
                 self.module.ArchiveError, "health-check DLQ"
-            ):
-                self.module.load_config(path)
-
-    def test_alert_router_substitution_is_rejected(self):
-        outputs = _outputs()
-        outputs["audit_detection_alert_ready_dlq_url"]["value"] = (
-            "https://sqs.us-east-1.amazonaws.com/493499579600/arbitrary-router-dlq"
-        )
-        with TemporaryDirectory() as directory:
-            path = Path(directory) / "outputs.json"
-            path.write_text(json.dumps(outputs), encoding="utf-8")
-            with self.assertRaisesRegex(
-                self.module.ArchiveError, "alert-router DLQ"
             ):
                 self.module.load_config(path)
 
@@ -562,4 +539,4 @@ class ArchiveImmutableAuditDlqsTests(unittest.TestCase):
         )
 
 
-# Change trail: @hungxqt - 2026-07-29 - Cover the exact five-queue alarm recovery allowlist and producer gates.
+# Change trail: @hungxqt - 2026-07-30 - Cover the exact four-queue immutable-audit recovery allowlist after MD11 router retirement.

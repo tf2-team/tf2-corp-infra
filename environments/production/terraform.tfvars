@@ -505,15 +505,7 @@ audit_detection_lambda_tracing_mode                = "PassThrough"
 audit_detection_cloudtrail_event_rule_name         = "techx-prod-tf2-cloudtrail-high-risk-eventbridge"
 audit_detection_cloudtrail_event_target_id         = "audit-alert-discord-sqs"
 audit_detection_eks_audit_subscription_filter_name = "high-risk-k8s-events-to-parser"
-audit_detection_enable_discord_router              = true
-audit_detection_alert_ready_queue_name             = "techx-prod-tf2-audit-alert-ready"
-audit_detection_alert_ready_dlq_name               = "techx-prod-tf2-audit-alert-ready-dlq"
-audit_detection_router_lambda_function_name        = "techx-audit-alert-router"
-audit_detection_router_lambda_role_name            = "techx-prod-tf2-audit-alert-router-role"
-audit_detection_router_lambda_policy_name          = "techx-prod-tf2-audit-alert-router-policy"
-audit_detection_discord_webhook_secret_name        = "techx-prod-tf2/mandate11/discord-webhook"
-audit_detection_ttd_threshold_seconds              = 300
-audit_detection_ttd_dashboard_name                 = "techx-prod-tf2-mandate11-ttd"
+audit_detection_enable_discord_router              = false
 
 # Overlay: Cost Optimization Hub recommendations export for sprint backlog.
 cost_optimization_backlog_enabled                     = true
