@@ -361,7 +361,7 @@ data "aws_iam_policy_document" "fis_prod_assume_role" {
     condition {
       test     = "ArnLike"
       variable = "aws:SourceArn"
-      values   = ["arn:aws:fis:${var.aws_region}:${local.account_id}:experiment-template/*"]
+      values   = ["arn:aws:fis:${var.aws_region}:${local.account_id}:experiment/*"]
     }
   }
 }
