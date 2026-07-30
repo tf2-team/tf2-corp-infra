@@ -505,6 +505,7 @@ audit_detection_lambda_tracing_mode                = "PassThrough"
 audit_detection_cloudtrail_event_rule_name         = "techx-prod-tf2-cloudtrail-high-risk-eventbridge"
 audit_detection_cloudtrail_event_target_id         = "audit-alert-discord-sqs"
 audit_detection_eks_audit_subscription_filter_name = "high-risk-k8s-events-to-parser"
+audit_detection_eks_audit_filter_pattern           = "{ (($.objectRef.resource = \"secrets\") && (($.verb = \"get\") || ($.verb = \"list\") || ($.verb = \"delete\") || ($.verb = \"deletecollection\"))) || ((($.objectRef.resource = \"rolebindings\") || ($.objectRef.resource = \"clusterrolebindings\")) && (($.verb = \"create\") || ($.verb = \"update\") || ($.verb = \"patch\"))) || (($.objectRef.resource = \"pods\") && (($.objectRef.subresource = \"exec\") || ($.objectRef.subresource = \"attach\") || ($.objectRef.subresource = \"portforward\"))) || ((($.objectRef.resource = \"deployments\") || ($.objectRef.resource = \"statefulsets\") || ($.objectRef.resource = \"daemonsets\") || ($.objectRef.resource = \"services\") || ($.objectRef.resource = \"ingresses\") || ($.objectRef.resource = \"configmaps\")) && (($.verb = \"delete\") || ($.verb = \"deletecollection\"))) }"
 audit_detection_enable_discord_router              = false
 
 # Overlay: Cost Optimization Hub recommendations export for sprint backlog.

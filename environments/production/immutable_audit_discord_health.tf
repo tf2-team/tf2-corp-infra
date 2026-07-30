@@ -685,17 +685,20 @@ data "aws_iam_policy_document" "immutable_audit_health_check" {
       "events:DescribeRule",
       "events:ListTargetsByRule",
     ]
-    resources = concat(
-      concat(
-        [for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.arn],
-        [aws_cloudwatch_event_rule.immutable_audit_health_check[0].arn]
-      ),
-      compact([
-        try(aws_cloudwatch_event_rule.immutable_audit_k8s_sealer[0].arn, ""),
-        try(aws_cloudwatch_event_rule.immutable_audit_cloudtrail_validator[0].arn, ""),
-        try(aws_cloudwatch_event_rule.immutable_audit_k8s_manifest_validator[0].arn, ""),
-      ])
-    )
+    resources = [for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.arn]
+  }
+
+  statement {
+    sid    = "ReadAuditSchedulerState"
+    effect = "Allow"
+
+    actions = ["scheduler:GetSchedule"]
+    resources = compact([
+      local.immutable_audit_health_enabled ? "arn:${data.aws_partition.current.partition}:scheduler:${var.aws_region}:${data.aws_caller_identity.current.account_id}:schedule/${local.immutable_audit_scheduler_group_name}/${local.immutable_audit_health_check_name}" : "",
+      local.immutable_audit_k8s_sealer_enabled ? "arn:${data.aws_partition.current.partition}:scheduler:${var.aws_region}:${data.aws_caller_identity.current.account_id}:schedule/${local.immutable_audit_scheduler_group_name}/${local.immutable_audit_k8s_sealer_name}" : "",
+      local.immutable_audit_validation_enabled ? "arn:${data.aws_partition.current.partition}:scheduler:${var.aws_region}:${data.aws_caller_identity.current.account_id}:schedule/${local.immutable_audit_scheduler_group_name}/${local.immutable_audit_cloudtrail_validator_name}" : "",
+      local.immutable_audit_validation_enabled ? "arn:${data.aws_partition.current.partition}:scheduler:${var.aws_region}:${data.aws_caller_identity.current.account_id}:schedule/${local.immutable_audit_scheduler_group_name}/${local.immutable_audit_k8s_manifest_validator_name}" : "",
+    ])
   }
 
   statement {
@@ -823,12 +826,14 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
       RAW_ARCHIVE_BUCKET                = aws_s3_bucket.immutable_audit_k8s_raw.bucket
       RAW_ARCHIVE_OBJECT_LOCK_DAYS      = tostring(var.immutable_audit_k8s_raw_archive_retention_days)
       RAW_ARCHIVE_OBJECT_LOCK_MODE      = var.immutable_audit_k8s_raw_archive_retention_mode
-      SCHEDULED_RULE_NAMES = jsonencode(compact(concat(
-        [aws_cloudwatch_event_rule.immutable_audit_health_check[0].name],
-        local.immutable_audit_k8s_sealer_enabled ? [aws_cloudwatch_event_rule.immutable_audit_k8s_sealer[0].name] : [],
+      SCHEDULED_RULE_NAMES              = jsonencode([])
+      SCHEDULE_GROUP_NAME               = local.immutable_audit_scheduler_group_name
+      SCHEDULED_SCHEDULE_NAMES = jsonencode(compact(concat(
+        [local.immutable_audit_health_check_name],
+        local.immutable_audit_k8s_sealer_enabled ? [local.immutable_audit_k8s_sealer_name] : [],
         local.immutable_audit_validation_enabled ? [
-          aws_cloudwatch_event_rule.immutable_audit_cloudtrail_validator[0].name,
-          aws_cloudwatch_event_rule.immutable_audit_k8s_manifest_validator[0].name,
+          local.immutable_audit_cloudtrail_validator_name,
+          local.immutable_audit_k8s_manifest_validator_name,
         ] : []
       )))
       TAMPER_RULE_NAMES        = jsonencode([for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.name])
@@ -860,37 +865,40 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
   ]
 }
 
-resource "aws_cloudwatch_event_rule" "immutable_audit_health_check" {
+resource "aws_scheduler_schedule" "immutable_audit_health_check" {
   count = local.immutable_audit_health_enabled ? 1 : 0
 
-  name                = local.immutable_audit_health_check_name
-  description         = "Scheduled health check for Mandate 12 immutable audit controls."
-  schedule_expression = var.immutable_audit_health_check_schedule_expression
-  state               = "ENABLED"
+  name                         = local.immutable_audit_health_check_name
+  group_name                   = aws_scheduler_schedule_group.immutable_audit[0].name
+  description                  = "Scheduled health check for Mandate 12 immutable audit controls."
+  schedule_expression          = var.immutable_audit_health_check_schedule_expression
+  schedule_expression_timezone = "Etc/UTC"
+  state                        = "ENABLED"
+  kms_key_arn                  = aws_kms_key.immutable_audit_alert_runtime[0].arn
 
-  tags = merge(var.tags, {
-    Name    = local.immutable_audit_health_check_name
-    Mandate = "MD12"
-    Purpose = "audit-control-health-check"
-  })
-}
+  flexible_time_window {
+    mode = "OFF"
+  }
 
-resource "aws_cloudwatch_event_target" "immutable_audit_health_check" {
-  count = local.immutable_audit_health_enabled ? 1 : 0
+  target {
+    arn      = aws_lambda_function.immutable_audit_health_check[0].arn
+    role_arn = aws_iam_role.immutable_audit_scheduler[0].arn
+    input = jsonencode({
+      source = "eventbridge.scheduler"
+      name   = local.immutable_audit_health_check_name
+    })
 
-  rule      = aws_cloudwatch_event_rule.immutable_audit_health_check[0].name
-  target_id = "audit-control-health-check"
-  arn       = aws_lambda_function.immutable_audit_health_check[0].arn
-}
+    dead_letter_config {
+      arn = aws_sqs_queue.immutable_audit_health_lambda_dlq[0].arn
+    }
 
-resource "aws_lambda_permission" "immutable_audit_health_check" {
-  count = local.immutable_audit_health_enabled ? 1 : 0
+    retry_policy {
+      maximum_event_age_in_seconds = 900
+      maximum_retry_attempts       = 2
+    }
+  }
 
-  statement_id  = "AllowEventBridgeAuditHealthCheck"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.immutable_audit_health_check[0].function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.immutable_audit_health_check[0].arn
+  depends_on = [aws_iam_role_policy.immutable_audit_scheduler]
 }
 
 resource "aws_cloudwatch_metric_alarm" "immutable_audit_discord_forwarder_errors" {

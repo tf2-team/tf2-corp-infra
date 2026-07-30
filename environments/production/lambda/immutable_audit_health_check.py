@@ -18,6 +18,7 @@ events = boto3.client("events", config=CONFIG)
 kms = boto3.client("kms", config=CONFIG)
 logs = boto3.client("logs", config=CONFIG)
 s3 = boto3.client("s3", config=CONFIG)
+scheduler = boto3.client("scheduler", config=CONFIG)
 secretsmanager = boto3.client("secretsmanager", config=CONFIG)
 sns = boto3.client("sns", config=CONFIG)
 sqs = boto3.client("sqs", config=CONFIG)
@@ -188,6 +189,19 @@ def _check_eventbridge(errors):
         missing = expected_target_arns - target_arns
         if missing:
             errors.append(f"EventBridge rule {rule_name} missing targets: {sorted(missing)}")
+
+    scheduled_schedule_names = set(_env_json("SCHEDULED_SCHEDULE_NAMES", []))
+    schedule_group_name = os.environ.get("SCHEDULE_GROUP_NAME", "default")
+    for schedule_name in sorted(scheduled_schedule_names):
+        schedule = scheduler.get_schedule(
+            GroupName=schedule_group_name,
+            Name=schedule_name,
+        )
+        if schedule.get("State") != "ENABLED":
+            errors.append(f"EventBridge schedule is not ENABLED: {schedule_name}")
+        target = schedule.get("Target", {})
+        if not target.get("Arn"):
+            errors.append(f"EventBridge schedule has no target: {schedule_name}")
 
 
 def _latest_validation_report(bucket, prefix):

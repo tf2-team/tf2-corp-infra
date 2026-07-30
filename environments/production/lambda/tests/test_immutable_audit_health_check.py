@@ -125,4 +125,49 @@ class ImmutableAuditHealthCheckTests(unittest.TestCase):
             self.module.handler({}, None)
 
 
-# Change trail: @hungxqt - 2026-07-28 - Covered fail-closed audit health results and metric publication failures without global test pollution.
+class ImmutableAuditHealthCheckEventBridgeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.module = _load_module()
+
+    def test_scheduler_schedule_must_be_enabled_and_targeted(self):
+        fake_events = mock.Mock()
+        fake_events.describe_rule.return_value = {"State": "ENABLED"}
+        fake_events.list_targets_by_rule.return_value = {
+            "Targets": [{"Arn": "arn:aws:sns:us-east-1:123456789012:topic"}],
+        }
+        fake_scheduler = mock.Mock()
+        fake_scheduler.get_schedule.return_value = {
+            "State": "DISABLED",
+            "Target": {},
+        }
+        env = {
+            "TAMPER_RULE_NAMES": "[]",
+            "TAMPER_TOPIC_RULE_NAMES": "[]",
+            "TAMPER_TOPIC_ARN": "arn:aws:sns:us-east-1:123456789012:topic",
+            "SCHEDULED_RULE_NAMES": "[]",
+            "SCHEDULED_SCHEDULE_NAMES": '["audit-health"]',
+            "SCHEDULE_GROUP_NAME": "audit-schedules",
+        }
+
+        errors = []
+        with (
+            mock.patch.object(self.module, "events", fake_events),
+            mock.patch.object(self.module, "scheduler", fake_scheduler),
+            mock.patch.dict(self.module.os.environ, env, clear=False),
+        ):
+            self.module._check_eventbridge(errors)
+
+        fake_scheduler.get_schedule.assert_called_once_with(
+            GroupName="audit-schedules",
+            Name="audit-health",
+        )
+        self.assertEqual(
+            [
+                "EventBridge schedule is not ENABLED: audit-health",
+                "EventBridge schedule has no target: audit-health",
+            ],
+            errors,
+        )
+
+# Change trail: @hungxqt - 2026-07-30 - Covered EventBridge Scheduler health drift checks.

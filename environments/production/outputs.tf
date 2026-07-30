@@ -63,6 +63,21 @@ output "immutable_audit_tamper_event_rule_names" {
   description = "EventBridge rules that alert on CloudTrail, S3 log bucket, and KMS tampering for Mandate 12.1"
 }
 
+output "immutable_audit_scheduler_group_name" {
+  value       = local.immutable_audit_scheduler_enabled ? aws_scheduler_schedule_group.immutable_audit[0].name : null
+  description = "EventBridge Scheduler group for Mandate 12 recurring audit control jobs"
+}
+
+output "immutable_audit_schedule_names" {
+  value = {
+    health_check           = local.immutable_audit_health_enabled ? aws_scheduler_schedule.immutable_audit_health_check[0].name : null
+    k8s_sealer             = local.immutable_audit_k8s_sealer_enabled ? aws_scheduler_schedule.immutable_audit_k8s_sealer[0].name : null
+    cloudtrail_validator   = local.immutable_audit_validation_enabled ? aws_scheduler_schedule.immutable_audit_cloudtrail_validator[0].name : null
+    k8s_manifest_validator = local.immutable_audit_validation_enabled ? aws_scheduler_schedule.immutable_audit_k8s_manifest_validator[0].name : null
+  }
+  description = "EventBridge Scheduler schedules that run recurring Mandate 12 audit control jobs"
+}
+
 output "immutable_audit_tamper_alert_topic_arn" {
   value       = aws_sns_topic.immutable_audit_tamper_alerts.arn
   description = "SNS topic that receives Mandate 12.1 immutable audit tamper alerts and forwards them to confirmed email subscribers"
