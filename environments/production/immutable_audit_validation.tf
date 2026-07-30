@@ -85,28 +85,6 @@ data "aws_iam_policy_document" "immutable_audit_validation_dlq" {
   count = local.immutable_audit_validation_enabled ? 1 : 0
 
   statement {
-    sid    = "AllowEventBridgeValidationFailures"
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["events.amazonaws.com"]
-    }
-
-    actions   = ["sqs:SendMessage"]
-    resources = [aws_sqs_queue.immutable_audit_validation_dlq[0].arn]
-
-    condition {
-      test     = "ArnEquals"
-      variable = "aws:SourceArn"
-      values = [
-        aws_cloudwatch_event_rule.immutable_audit_cloudtrail_validator[0].arn,
-        aws_cloudwatch_event_rule.immutable_audit_k8s_manifest_validator[0].arn,
-      ]
-    }
-  }
-
-  statement {
     sid    = "DenyInsecureTransport"
     effect = "Deny"
 
@@ -478,92 +456,80 @@ resource "aws_lambda_function" "immutable_audit_k8s_manifest_validator" {
   ]
 }
 
-resource "aws_cloudwatch_event_rule" "immutable_audit_cloudtrail_validator" {
+resource "aws_scheduler_schedule" "immutable_audit_cloudtrail_validator" {
   count = local.immutable_audit_validation_enabled ? 1 : 0
 
-  name                = local.immutable_audit_cloudtrail_validator_name
-  description         = "Scheduled CloudTrail validation report for Mandate 12."
-  schedule_expression = var.immutable_audit_validation_schedule_expression
-  state               = "ENABLED"
+  name                         = local.immutable_audit_cloudtrail_validator_name
+  group_name                   = aws_scheduler_schedule_group.immutable_audit[0].name
+  description                  = "Scheduled CloudTrail validation report for Mandate 12."
+  schedule_expression          = var.immutable_audit_validation_schedule_expression
+  schedule_expression_timezone = "Etc/UTC"
+  state                        = "ENABLED"
 
-  tags = merge(var.tags, {
-    Name    = local.immutable_audit_cloudtrail_validator_name
-    Mandate = "MD12"
-    Purpose = "cloudtrail-validation"
-  })
-}
-
-resource "aws_cloudwatch_event_rule" "immutable_audit_k8s_manifest_validator" {
-  count = local.immutable_audit_validation_enabled ? 1 : 0
-
-  name                = local.immutable_audit_k8s_manifest_validator_name
-  description         = "Scheduled K8s manifest validation report for Mandate 12."
-  schedule_expression = var.immutable_audit_validation_schedule_expression
-  state               = "ENABLED"
-
-  tags = merge(var.tags, {
-    Name    = local.immutable_audit_k8s_manifest_validator_name
-    Mandate = "MD12"
-    Purpose = "k8s-manifest-validation"
-  })
-}
-
-resource "aws_cloudwatch_event_target" "immutable_audit_cloudtrail_validator" {
-  count = local.immutable_audit_validation_enabled ? 1 : 0
-
-  rule      = aws_cloudwatch_event_rule.immutable_audit_cloudtrail_validator[0].name
-  target_id = "cloudtrail-validator"
-  arn       = aws_lambda_function.immutable_audit_cloudtrail_validator[0].arn
-
-  dead_letter_config {
-    arn = aws_sqs_queue.immutable_audit_validation_dlq[0].arn
+  flexible_time_window {
+    mode = "OFF"
   }
 
-  retry_policy {
-    maximum_event_age_in_seconds = 3600
-    maximum_retry_attempts       = 2
+  target {
+    arn      = aws_lambda_function.immutable_audit_cloudtrail_validator[0].arn
+    role_arn = aws_iam_role.immutable_audit_scheduler[0].arn
+    input = jsonencode({
+      source = "eventbridge.scheduler"
+      name   = local.immutable_audit_cloudtrail_validator_name
+    })
+
+    dead_letter_config {
+      arn = aws_sqs_queue.immutable_audit_validation_dlq[0].arn
+    }
+
+    retry_policy {
+      maximum_event_age_in_seconds = 3600
+      maximum_retry_attempts       = 2
+    }
   }
 
-  depends_on = [aws_sqs_queue_policy.immutable_audit_validation_dlq]
+  depends_on = [
+    aws_iam_role_policy.immutable_audit_scheduler,
+    aws_sqs_queue_policy.immutable_audit_validation_dlq,
+  ]
 }
 
-resource "aws_cloudwatch_event_target" "immutable_audit_k8s_manifest_validator" {
+resource "aws_scheduler_schedule" "immutable_audit_k8s_manifest_validator" {
   count = local.immutable_audit_validation_enabled ? 1 : 0
 
-  rule      = aws_cloudwatch_event_rule.immutable_audit_k8s_manifest_validator[0].name
-  target_id = "k8s-manifest-validator"
-  arn       = aws_lambda_function.immutable_audit_k8s_manifest_validator[0].arn
+  name                         = local.immutable_audit_k8s_manifest_validator_name
+  group_name                   = aws_scheduler_schedule_group.immutable_audit[0].name
+  description                  = "Scheduled K8s manifest validation report for Mandate 12."
+  schedule_expression          = var.immutable_audit_validation_schedule_expression
+  schedule_expression_timezone = "Etc/UTC"
+  state                        = "ENABLED"
 
-  dead_letter_config {
-    arn = aws_sqs_queue.immutable_audit_validation_dlq[0].arn
+  flexible_time_window {
+    mode = "OFF"
   }
 
-  retry_policy {
-    maximum_event_age_in_seconds = 3600
-    maximum_retry_attempts       = 2
+  target {
+    arn      = aws_lambda_function.immutable_audit_k8s_manifest_validator[0].arn
+    role_arn = aws_iam_role.immutable_audit_scheduler[0].arn
+    input = jsonencode({
+      source = "eventbridge.scheduler"
+      name   = local.immutable_audit_k8s_manifest_validator_name
+    })
+
+    dead_letter_config {
+      arn = aws_sqs_queue.immutable_audit_validation_dlq[0].arn
+    }
+
+    retry_policy {
+      maximum_event_age_in_seconds = 3600
+      maximum_retry_attempts       = 2
+    }
   }
 
-  depends_on = [aws_sqs_queue_policy.immutable_audit_validation_dlq]
-}
-
-resource "aws_lambda_permission" "immutable_audit_cloudtrail_validator" {
-  count = local.immutable_audit_validation_enabled ? 1 : 0
-
-  statement_id  = "AllowEventBridgeCloudTrailValidator"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.immutable_audit_cloudtrail_validator[0].function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.immutable_audit_cloudtrail_validator[0].arn
-}
-
-resource "aws_lambda_permission" "immutable_audit_k8s_manifest_validator" {
-  count = local.immutable_audit_validation_enabled ? 1 : 0
-
-  statement_id  = "AllowEventBridgeK8sManifestValidator"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.immutable_audit_k8s_manifest_validator[0].function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.immutable_audit_k8s_manifest_validator[0].arn
+  depends_on = [
+    aws_iam_role_policy.immutable_audit_scheduler,
+    aws_sqs_queue_policy.immutable_audit_validation_dlq,
+  ]
 }
 
 resource "aws_cloudwatch_metric_alarm" "immutable_audit_cloudtrail_validation" {
