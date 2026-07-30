@@ -49,7 +49,6 @@ data "aws_iam_policy_document" "immutable_audit_scheduler" {
     resources = compact([
       local.immutable_audit_health_enabled ? "arn:${data.aws_partition.current.partition}:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${local.immutable_audit_health_check_name}" : "",
       local.immutable_audit_k8s_sealer_enabled ? "arn:${data.aws_partition.current.partition}:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${local.immutable_audit_k8s_sealer_name}" : "",
-      local.immutable_audit_validation_enabled ? "arn:${data.aws_partition.current.partition}:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${local.immutable_audit_cloudtrail_validator_name}" : "",
       local.immutable_audit_validation_enabled ? "arn:${data.aws_partition.current.partition}:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${local.immutable_audit_k8s_manifest_validator_name}" : "",
     ])
   }

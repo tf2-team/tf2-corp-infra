@@ -72,7 +72,6 @@ output "immutable_audit_schedule_names" {
   value = {
     health_check           = local.immutable_audit_health_enabled ? aws_scheduler_schedule.immutable_audit_health_check[0].name : null
     k8s_sealer             = local.immutable_audit_k8s_sealer_enabled ? aws_scheduler_schedule.immutable_audit_k8s_sealer[0].name : null
-    cloudtrail_validator   = local.immutable_audit_validation_enabled ? aws_scheduler_schedule.immutable_audit_cloudtrail_validator[0].name : null
     k8s_manifest_validator = local.immutable_audit_validation_enabled ? aws_scheduler_schedule.immutable_audit_k8s_manifest_validator[0].name : null
   }
   description = "EventBridge Scheduler schedules that run recurring Mandate 12 audit control jobs"
@@ -188,11 +187,6 @@ output "immutable_audit_k8s_sealer_dlq_url" {
   description = "DLQ for failed scheduled K8s audit sealer invocations"
 }
 
-output "immutable_audit_cloudtrail_validator_lambda_name" {
-  value       = local.immutable_audit_validation_enabled ? aws_lambda_function.immutable_audit_cloudtrail_validator[0].function_name : null
-  description = "Lambda that writes scheduled CloudTrail validation health reports"
-}
-
 output "immutable_audit_k8s_manifest_validator_lambda_name" {
   value       = local.immutable_audit_validation_enabled ? aws_lambda_function.immutable_audit_k8s_manifest_validator[0].function_name : null
   description = "Lambda that validates signed K8s audit manifest chains"
@@ -214,14 +208,12 @@ output "immutable_audit_dlq_producer_alarm_names" {
     discord_throttles       = aws_cloudwatch_metric_alarm.immutable_audit_discord_forwarder_throttles[0].alarm_name
     health_check_errors     = aws_cloudwatch_metric_alarm.immutable_audit_health_check_errors[0].alarm_name
     k8s_sealer_errors       = aws_cloudwatch_metric_alarm.immutable_audit_k8s_sealer_errors[0].alarm_name
-    cloudtrail_validation   = aws_cloudwatch_metric_alarm.immutable_audit_cloudtrail_validation[0].alarm_name
     k8s_manifest_validation = aws_cloudwatch_metric_alarm.immutable_audit_k8s_manifest_validation[0].alarm_name
   } : null
   description = "Authoritative producer-health alarms required before immutable-audit DLQ archival and deletion"
 }
 output "immutable_audit_validation_alarm_names" {
   value = local.immutable_audit_validation_enabled ? {
-    cloudtrail    = aws_cloudwatch_metric_alarm.immutable_audit_cloudtrail_validation[0].alarm_name
     k8s_manifests = aws_cloudwatch_metric_alarm.immutable_audit_k8s_manifest_validation[0].alarm_name
   } : null
   description = "CloudWatch alarms that detect Mandate 12 validation failure or missing validation metrics"
