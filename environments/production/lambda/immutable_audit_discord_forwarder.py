@@ -153,7 +153,37 @@ def _format_k8s_message(alert):
     }
 
 
+def _normalized_alert(envelope):
+    normalized = envelope.get("normalized_event")
+    evidence = envelope.get("evidence", {})
+    if not isinstance(normalized, dict) or not isinstance(evidence, dict):
+        raise ValueError("invalid_audit_alert_ready_v1_contract")
+
+    alert = dict(normalized)
+    fallback_fields = {
+        "rule_id": evidence.get("rule_id"),
+        "severity": evidence.get("severity"),
+        "actor": evidence.get("actor"),
+        "action": evidence.get("action"),
+        "namespace": evidence.get("namespace"),
+        "resource": evidence.get("resource"),
+        "source_ip": evidence.get("source_ip"),
+        "event_time": evidence.get("event_time_utc"),
+        "status": evidence.get("status"),
+    }
+    for key, value in fallback_fields.items():
+        if not alert.get(key) and value is not None:
+            alert[key] = value
+    return alert
+
+
 def _message_contract(event):
+    if (
+        event.get("schema_version") == "audit-alert-ready/v1"
+        and event.get("event") == "audit_alert_ready"
+        and isinstance(event.get("normalized_event"), dict)
+    ):
+        return "audit_alert_ready_v1"
     if event.get("detail-type") == "AWS API Call via CloudTrail" or event.get("detail", {}).get("eventName"):
         return "cloudtrail_eventbridge"
     if event.get("source") == "eks_audit" or event.get("rule_id") or event.get("event") == "audit_detection_evidence":
@@ -163,6 +193,8 @@ def _message_contract(event):
 
 def _format_message(event):
     contract = _message_contract(event)
+    if contract == "audit_alert_ready_v1":
+        return _format_k8s_message(_normalized_alert(event))
     if contract == "cloudtrail_eventbridge":
         return _format_cloudtrail_message(event)
     if contract == "k8s_normalized_alert":
@@ -171,6 +203,29 @@ def _format_message(event):
 
 
 def _evidence_fields(event, contract):
+    if contract == "audit_alert_ready_v1":
+        evidence = event.get("evidence", {})
+        normalized = _normalized_alert(event)
+        event_time = (
+            evidence.get("event_time_utc")
+            or normalized.get("event_time_utc")
+            or normalized.get("event_time")
+        )
+        return {
+            "message_contract": contract,
+            "schema_version": event.get("schema_version"),
+            "rule_id": evidence.get("rule_id") or normalized.get("rule_id", "unknown"),
+            "severity": evidence.get("severity") or normalized.get("severity", "unknown"),
+            "actor": evidence.get("actor") or normalized.get("actor", "unknown"),
+            "action": evidence.get("action") or normalized.get("action", "unknown"),
+            "namespace": evidence.get("namespace") or normalized.get("namespace", "cluster-scope"),
+            "resource": evidence.get("resource") or normalized.get("resource", "unknown"),
+            "source_ip": evidence.get("source_ip") or normalized.get("source_ip", "unknown"),
+            "event_time": event_time,
+            "time_to_alert_ready_seconds": evidence.get("time_to_alert_ready_seconds"),
+            "end_to_end_ttd_seconds": _seconds_since(event_time),
+        }
+
     if contract == "cloudtrail_eventbridge":
         detail = event.get("detail", {})
         event_time = detail.get("eventTime", event.get("time"))
@@ -272,3 +327,7 @@ def handler(event, _context):
             failures.append({"itemIdentifier": record["messageId"]})
 
     return {"batchItemFailures": failures}
+
+
+# Change trail: @hungxqt - 2026-07-30 - Accept the versioned audit-alert-ready/v1
+# envelope emitted by the production parser while preserving legacy contracts.
