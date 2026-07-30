@@ -467,6 +467,31 @@ data "aws_iam_policy_document" "fis_prod_policy" {
   }
 
   statement {
+    sid    = "AllowFISLogDelivery"
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogDelivery",
+      "logs:GetLogDelivery",
+      "logs:UpdateLogDelivery",
+      "logs:DeleteLogDelivery",
+      "logs:ListLogDeliveries",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowFISS3LogDestinationPolicy"
+    effect = "Allow"
+    actions = [
+      "s3:GetBucketPolicy",
+      "s3:PutBucketPolicy",
+    ]
+    resources = [
+      "arn:aws:s3:::techx-prod-tf2-k8s-audit-raw-${local.account_id}",
+    ]
+  }
+
+  statement {
     sid    = "AllowS3EvidenceLogging"
     effect = "Allow"
     actions = [
@@ -476,6 +501,8 @@ data "aws_iam_policy_document" "fis_prod_policy" {
     resources = [
       "arn:aws:s3:::techx-prod-tf2-immutable-audit-${local.account_id}",
       "arn:aws:s3:::techx-prod-tf2-immutable-audit-${local.account_id}/mandate-21/fis/*",
+      "arn:aws:s3:::techx-prod-tf2-k8s-audit-raw-${local.account_id}",
+      "arn:aws:s3:::techx-prod-tf2-k8s-audit-raw-${local.account_id}/mandate-21/fis/*",
     ]
   }
 
