@@ -228,19 +228,8 @@ variable "immutable_audit_validation_enabled" {
 
 variable "immutable_audit_validation_schedule_expression" {
   type        = string
-  description = "EventBridge schedule expression for Mandate 12 validation Lambdas."
+  description = "EventBridge schedule expression for the Mandate 12 K8s signed manifest validation Lambda."
   default     = "rate(1 hour)"
-}
-
-variable "immutable_audit_cloudtrail_validation_lookback_hours" {
-  type        = number
-  description = "Lookback window in hours for CloudTrail validation reports."
-  default     = 24
-
-  validation {
-    condition     = var.immutable_audit_cloudtrail_validation_lookback_hours >= 1 && var.immutable_audit_cloudtrail_validation_lookback_hours <= 168
-    error_message = "immutable_audit_cloudtrail_validation_lookback_hours must be between 1 and 168."
-  }
 }
 
 variable "immutable_audit_k8s_manifest_validation_lookback_hours" {

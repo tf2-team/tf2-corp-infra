@@ -696,7 +696,6 @@ data "aws_iam_policy_document" "immutable_audit_health_check" {
     resources = compact([
       local.immutable_audit_health_enabled ? "arn:${data.aws_partition.current.partition}:scheduler:${var.aws_region}:${data.aws_caller_identity.current.account_id}:schedule/${local.immutable_audit_scheduler_group_name}/${local.immutable_audit_health_check_name}" : "",
       local.immutable_audit_k8s_sealer_enabled ? "arn:${data.aws_partition.current.partition}:scheduler:${var.aws_region}:${data.aws_caller_identity.current.account_id}:schedule/${local.immutable_audit_scheduler_group_name}/${local.immutable_audit_k8s_sealer_name}" : "",
-      local.immutable_audit_validation_enabled ? "arn:${data.aws_partition.current.partition}:scheduler:${var.aws_region}:${data.aws_caller_identity.current.account_id}:schedule/${local.immutable_audit_scheduler_group_name}/${local.immutable_audit_cloudtrail_validator_name}" : "",
       local.immutable_audit_validation_enabled ? "arn:${data.aws_partition.current.partition}:scheduler:${var.aws_region}:${data.aws_caller_identity.current.account_id}:schedule/${local.immutable_audit_scheduler_group_name}/${local.immutable_audit_k8s_manifest_validator_name}" : "",
     ])
   }
@@ -831,10 +830,7 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
       SCHEDULED_SCHEDULE_NAMES = jsonencode(compact(concat(
         [local.immutable_audit_health_check_name],
         local.immutable_audit_k8s_sealer_enabled ? [local.immutable_audit_k8s_sealer_name] : [],
-        local.immutable_audit_validation_enabled ? [
-          local.immutable_audit_cloudtrail_validator_name,
-          local.immutable_audit_k8s_manifest_validator_name,
-        ] : []
+        local.immutable_audit_validation_enabled ? [local.immutable_audit_k8s_manifest_validator_name] : []
       )))
       TAMPER_RULE_NAMES        = jsonencode([for rule in aws_cloudwatch_event_rule.immutable_audit_tamper : rule.name])
       TAMPER_TOPIC_ARN         = aws_sns_topic.immutable_audit_tamper_alerts.arn
@@ -842,7 +838,7 @@ resource "aws_lambda_function" "immutable_audit_health_check" {
       TRAIL_NAME               = aws_cloudtrail.immutable_audit.name
       VALIDATION_REPORT_BUCKET = aws_s3_bucket.immutable_audit_k8s_raw.bucket
       VALIDATION_REPORT_PREFIX = try(local.immutable_audit_validation_report_prefix, "validation-reports")
-      VALIDATION_REPORT_TYPES  = jsonencode(["cloudtrail", "k8s-manifests"])
+      VALIDATION_REPORT_TYPES  = jsonencode(["k8s-manifests"])
       AUDIT_DLQ_URLS = jsonencode(compact([
         local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord_dlq[0].url : "",
         local.immutable_audit_discord_enabled ? aws_sqs_queue.immutable_audit_discord_lambda_dlq[0].url : "",

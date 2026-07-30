@@ -49,7 +49,6 @@ immutable_audit_k8s_sealer_lambda_memory_mb       = 512
 # Mandate 12 Phase 4: scheduled integrity validation reports.
 immutable_audit_validation_enabled                     = true
 immutable_audit_validation_schedule_expression         = "rate(1 hour)"
-immutable_audit_cloudtrail_validation_lookback_hours   = 24
 immutable_audit_k8s_manifest_validation_lookback_hours = 6
 immutable_audit_validation_delay_minutes               = 30
 immutable_audit_validation_lambda_timeout_seconds      = 600
