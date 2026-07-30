@@ -27,10 +27,11 @@ run "consumer_roles_are_isolated" {
     oidc_issuer_url         = "https://example.eks.amazonaws.com/id/EXAMPLE"
     consumers = {
       product-reviews = {
-        namespace            = "techx-corp-dev"
-        service_account_name = "product-reviews"
-        model_prefix         = "protectai/deberta-v3-base-prompt-injection-v2/"
-        allow_list_bucket    = true
+        namespace                     = "techx-corp-dev"
+        service_account_name          = "product-reviews"
+        model_prefix                  = "protectai/deberta-v3-base-prompt-injection-v2/"
+        allow_list_bucket             = true
+        bedrock_inference_profile_ids = ["global.amazon.nova-2-lite-v1:0"]
       }
       shopping-copilot = {
         namespace                     = "techx-corp-dev"
@@ -127,8 +128,11 @@ run "consumer_roles_are_isolated" {
   }
 
   assert {
-    condition     = length(output.consumer_access_contracts["product-reviews"].bedrock_foundation_model_ids) == 0
-    error_message = "Consumers without Bedrock profiles must not receive foundation-model ids."
+    condition = (
+      length(output.consumer_access_contracts["product-reviews"].bedrock_foundation_model_ids) == 1 &&
+      contains(output.consumer_access_contracts["product-reviews"].bedrock_foundation_model_ids, "amazon.nova-2-lite-v1:0")
+    )
+    error_message = "Product Reviews must be limited to the approved Nova foundation model."
   }
 }
 
