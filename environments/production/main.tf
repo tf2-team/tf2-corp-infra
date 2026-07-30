@@ -1036,19 +1036,15 @@ module "vpc" {
   nat_gateways     = var.nat_gateways
   eks_cluster_name = var.cluster_name
 
-  # Keep AWS API traffic on private endpoints. S3 remains the existing
-  # Gateway endpoint created by ai_model_storage; do not duplicate it here.
+  # S3 remains the existing Gateway endpoint created by ai_model_storage; do
+  # not duplicate it here. DynamoDB is also a free Gateway endpoint.
   gateway_endpoint_services = ["dynamodb"]
-  interface_endpoint_services = [
-    "ec2",
-    "ecr.api",
-    "ecr.dkr",
-    "monitoring",
-    "secretsmanager",
-    "sqs",
-    "sts",
-  ]
-  interface_endpoint_subnet_keys = ["priv-1a-nodes", "priv-1b-nodes"]
+
+  # The seven paid Interface Endpoints had negligible data processing and do
+  # not serve the browse, cart, or checkout request path. NAT processing for
+  # this low-volume traffic costs less than their fixed hourly charge.
+  interface_endpoint_services    = []
+  interface_endpoint_subnet_keys = []
 
   flow_logs_enabled           = var.vpc_flow_logs_enabled
   flow_logs_retention_in_days = var.vpc_flow_logs_retention_in_days
