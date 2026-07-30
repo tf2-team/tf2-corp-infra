@@ -394,7 +394,7 @@ data "aws_iam_policy_document" "fis_prod_policy" {
     condition {
       test     = "StringEquals"
       variable = "aws:ResourceTag/kubernetes.io/cluster/techx-tf2-prod"
-      values   = ["shared"]
+      values   = ["owned"]
     }
   }
 

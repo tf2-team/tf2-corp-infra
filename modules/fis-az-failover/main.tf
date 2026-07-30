@@ -36,7 +36,7 @@ resource "aws_fis_experiment_template" "az_failover" {
 
     resource_tag {
       key   = "kubernetes.io/cluster/${var.eks_cluster_name}"
-      value = "shared"
+      value = "owned"
     }
 
     filter {
