@@ -700,6 +700,27 @@ data "aws_iam_policy_document" "immutable_audit_health_check" {
     ])
   }
 
+  dynamic "statement" {
+    for_each = local.immutable_audit_k8s_sealer_enabled || local.immutable_audit_validation_enabled ? [1] : []
+
+    content {
+      sid    = "DecryptAuditSchedulerState"
+      effect = "Allow"
+
+      actions = ["kms:Decrypt"]
+      resources = compact([
+        local.immutable_audit_k8s_sealer_enabled ? aws_kms_key.immutable_audit_k8s_sealer_runtime[0].arn : "",
+        local.immutable_audit_validation_enabled ? aws_kms_key.immutable_audit_validation_runtime[0].arn : "",
+      ])
+
+      condition {
+        test     = "StringEquals"
+        variable = "kms:ViaService"
+        values   = ["scheduler.${var.aws_region}.amazonaws.com"]
+      }
+    }
+  }
+
   statement {
     sid    = "ReadSnsSubscriptionState"
     effect = "Allow"
