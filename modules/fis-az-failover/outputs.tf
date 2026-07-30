@@ -31,8 +31,8 @@ output "contract" {
         target_selectors = {
           ec2 = {
             cluster_resource_tag = {
-              key   = "kubernetes.io/cluster/${var.eks_cluster_name}"
-              value = "owned"
+              key   = "eks:nodegroup-name"
+              value = "${var.eks_cluster_name}-system-${replace(var.template_variants[variant_key].zone, "us-east-", "")}"
             }
             state_filter = {
               path   = "State.Name"

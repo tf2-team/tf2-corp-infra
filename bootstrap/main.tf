@@ -393,8 +393,11 @@ data "aws_iam_policy_document" "fis_prod_policy" {
     ]
     condition {
       test     = "StringEquals"
-      variable = "aws:ResourceTag/kubernetes.io/cluster/techx-tf2-prod"
-      values   = ["owned"]
+      variable = "aws:ResourceTag/eks:nodegroup-name"
+      values = [
+        "techx-tf2-prod-system-1a",
+        "techx-tf2-prod-system-1b",
+      ]
     }
   }
 
@@ -413,22 +416,67 @@ data "aws_iam_policy_document" "fis_prod_policy" {
   }
 
   statement {
-    sid    = "AllowNACLDisruptionActions"
-    effect = "Allow"
-    actions = [
-      "ec2:CreateNetworkAcl",
-      "ec2:CreateNetworkAclEntry",
-      "ec2:CreateTags",
-      "ec2:DeleteNetworkAcl",
-      "ec2:DeleteNetworkAclEntry",
-      "ec2:ReplaceNetworkAclAssociation",
-    ]
-    resources = ["*"]
+    sid       = "CreateTagsOnFISNetworkAcl"
+    effect    = "Allow"
+    actions   = ["ec2:CreateTags"]
+    resources = ["arn:aws:ec2:${var.aws_region}:${local.account_id}:network-acl/*"]
+    condition {
+      test     = "StringEquals"
+      variable = "ec2:CreateAction"
+      values   = ["CreateNetworkAcl"]
+    }
     condition {
       test     = "StringEquals"
       variable = "aws:RequestTag/managedByFIS"
       values   = ["true"]
     }
+  }
+
+  statement {
+    sid       = "CreateFISNetworkAcl"
+    effect    = "Allow"
+    actions   = ["ec2:CreateNetworkAcl"]
+    resources = ["arn:aws:ec2:${var.aws_region}:${local.account_id}:network-acl/*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestTag/managedByFIS"
+      values   = ["true"]
+    }
+  }
+
+  statement {
+    sid    = "ManageFISNetworkAcl"
+    effect = "Allow"
+    actions = [
+      "ec2:CreateNetworkAclEntry",
+      "ec2:DeleteNetworkAcl",
+    ]
+    resources = [
+      "arn:aws:ec2:${var.aws_region}:${local.account_id}:network-acl/*",
+      "arn:aws:ec2:${var.aws_region}:${local.account_id}:vpc/*",
+    ]
+    condition {
+      test     = "StringEquals"
+      variable = "ec2:ResourceTag/managedByFIS"
+      values   = ["true"]
+    }
+  }
+
+  statement {
+    sid       = "CreateFISNetworkAclOnVpc"
+    effect    = "Allow"
+    actions   = ["ec2:CreateNetworkAcl"]
+    resources = ["arn:aws:ec2:${var.aws_region}:${local.account_id}:vpc/*"]
+  }
+
+  statement {
+    sid     = "ReplaceFISNetworkAclAssociation"
+    effect  = "Allow"
+    actions = ["ec2:ReplaceNetworkAclAssociation"]
+    resources = [
+      "arn:aws:ec2:${var.aws_region}:${local.account_id}:subnet/*",
+      "arn:aws:ec2:${var.aws_region}:${local.account_id}:network-acl/*",
+    ]
   }
 
   statement {

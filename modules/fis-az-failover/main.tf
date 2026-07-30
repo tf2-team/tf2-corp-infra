@@ -35,8 +35,8 @@ resource "aws_fis_experiment_template" "az_failover" {
     selection_mode = "ALL"
 
     resource_tag {
-      key   = "kubernetes.io/cluster/${var.eks_cluster_name}"
-      value = "owned"
+      key   = "eks:nodegroup-name"
+      value = "${var.eks_cluster_name}-system-${replace(each.value.zone, "us-east-", "")}"
     }
 
     filter {
