@@ -45,6 +45,14 @@ jobs:
             -backend-config="bucket=${TF_BACKEND_BUCKET}" \
             -backend-config="region=${TF_BACKEND_REGION}"
 
+      - name: Detach locked backup vault from Terraform state
+        run: |
+          terraform -chdir=environments/production state rm \
+            'module.mandate20_backup.aws_backup_vault_lock_configuration.mandate20' \
+            'module.mandate20_backup.aws_backup_vault.mandate20' \
+            'module.mandate20_backup.aws_kms_alias.backup' \
+            'module.mandate20_backup.aws_kms_key.backup' || true
+
       - name: Prepare production teardown blockers
         run: |
           account_id="$(aws sts get-caller-identity --query Account --output text)"
@@ -117,15 +125,7 @@ jobs:
               sleep 30
             done
 
-            recovery_points="$(aws backup list-recovery-points-by-backup-vault \
-              --backup-vault-name "$vault" \
-              --query 'RecoveryPoints[].RecoveryPointArn' \
-              --output text 2>/dev/null || true)"
-            for recovery_point in $recovery_points; do
-              aws backup delete-recovery-point \
-                --backup-vault-name "$vault" \
-                --recovery-point-arn "$recovery_point" || true
-            done
+            echo "Backup vault $vault is locked; keeping recovery points until AWS Backup retention expires."
           fi
 
           empty_bucket() {
