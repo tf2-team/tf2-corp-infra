@@ -45,6 +45,30 @@ jobs:
             -backend-config="bucket=${TF_BACKEND_BUCKET}" \
             -backend-config="region=${TF_BACKEND_REGION}"
 
+      - name: Disable production RDS deletion protection
+        run: |
+          for db in techx-prod-tf2-postgresql techx-prod-tf2-mem0-postgres; do
+            if ! aws rds describe-db-instances --db-instance-identifier "$db" >/dev/null 2>&1; then
+              echo "RDS instance $db not found; skipping"
+              continue
+            fi
+
+            deletion_protection="$(
+              aws rds describe-db-instances \
+                --db-instance-identifier "$db" \
+                --query 'DBInstances[0].DeletionProtection' \
+                --output text
+            )"
+
+            if [[ "$deletion_protection" == "True" ]]; then
+              aws rds modify-db-instance \
+                --db-instance-identifier "$db" \
+                --no-deletion-protection \
+                --apply-immediately
+              aws rds wait db-instance-available --db-instance-identifier "$db"
+            fi
+          done
+
       - name: Terraform destroy production
         run: |
           terraform -chdir=environments/production destroy -auto-approve

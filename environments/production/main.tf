@@ -1395,6 +1395,8 @@ module "rds_postgresql" {
   max_allocated_storage             = var.rds_postgresql_max_allocated_storage
   multi_az                          = var.rds_postgresql_multi_az
   backup_retention_period           = var.rds_postgresql_backup_retention_days
+  deletion_protection               = var.rds_postgresql_deletion_protection
+  skip_final_snapshot               = var.rds_postgresql_skip_final_snapshot
   destructive_ddl_alarm_action_arns = [aws_sns_topic.mandate20_data_loss_alerts.arn]
   tags                              = var.tags
 }

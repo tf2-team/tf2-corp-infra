@@ -194,14 +194,10 @@ resource "aws_db_instance" "this" {
   monitoring_interval             = 0
 
   auto_minor_version_upgrade = true
-  deletion_protection        = true
-  skip_final_snapshot        = false
-  final_snapshot_identifier  = "${local.identifier}-final"
+  deletion_protection        = var.deletion_protection
+  skip_final_snapshot        = var.skip_final_snapshot
+  final_snapshot_identifier  = var.skip_final_snapshot ? null : "${local.identifier}-final"
   apply_immediately          = false
-
-  lifecycle {
-    prevent_destroy = true
-  }
 
   depends_on = [
     aws_cloudwatch_log_group.postgresql,

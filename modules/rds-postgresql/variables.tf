@@ -66,6 +66,18 @@ variable "backup_retention_period" {
   description = "Automated backup/PITR retention in days."
 }
 
+variable "deletion_protection" {
+  type        = bool
+  default     = true
+  description = "Protect the PostgreSQL instance from accidental deletion."
+}
+
+variable "skip_final_snapshot" {
+  type        = bool
+  default     = false
+  description = "Whether destroy may skip the final PostgreSQL snapshot."
+}
+
 variable "destructive_ddl_alarm_action_arns" {
   type        = list(string)
   default     = []

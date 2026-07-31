@@ -492,6 +492,18 @@ variable "rds_postgresql_backup_retention_days" {
   description = "RDS automated backup and point-in-time recovery retention."
 }
 
+variable "rds_postgresql_deletion_protection" {
+  type        = bool
+  default     = true
+  description = "Protect production observability RDS from deletion."
+}
+
+variable "rds_postgresql_skip_final_snapshot" {
+  type        = bool
+  default     = false
+  description = "Whether production destroy may skip the final observability RDS snapshot."
+}
+
 variable "kubernetes_version" {
   type        = string
   default     = "1.31"
