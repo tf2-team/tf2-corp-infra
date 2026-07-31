@@ -32,7 +32,7 @@ locals {
   partition                = local.create ? data.aws_partition.current[0].partition : "aws"
   account_id               = local.create ? data.aws_caller_identity.current[0].account_id : "000000000000"
   node_role_arns           = [for arn in var.node_role_arns : arn if arn != ""]
-  enable_node_role_rule    = local.create && var.enable_node_role_anomaly_events && length(local.node_role_arns) > 0
+  enable_node_role_rule    = local.create && var.enable_node_role_anomaly_events
   enable_guardduty_rule    = local.create && var.enable_guardduty_eventbridge
   sanitized_vap_names_json = jsonencode(sort(tolist(var.vap_policy_names)))
 }

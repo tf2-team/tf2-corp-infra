@@ -30,7 +30,7 @@ output "guardduty_event_rule_name" {
 
 output "node_role_event_rule_name" {
   description = "EventBridge rule for selected worker-node role CloudTrail events."
-  value       = var.enabled && var.enable_node_role_anomaly_events && length(var.node_role_arns) > 0 ? aws_cloudwatch_event_rule.node_role_anomaly[0].name : null
+  value       = var.enabled && var.enable_node_role_anomaly_events ? aws_cloudwatch_event_rule.node_role_anomaly[0].name : null
 }
 
 output "operator_note" {
