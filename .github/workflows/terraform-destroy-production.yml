@@ -135,25 +135,29 @@ jobs:
               return
             fi
 
+            echo "Preparing S3 bucket $bucket for deletion"
             aws s3api delete-bucket-policy --bucket "$bucket" || true
-            aws s3 rm "s3://$bucket" --recursive || true
 
-            for attempt in $(seq 1 100); do
+            for attempt in $(seq 1 1000); do
               aws s3api list-object-versions \
                 --bucket "$bucket" \
-                --query '{Objects: Versions[].{Key:Key,VersionId:VersionId}}' \
-                --output json > /tmp/s3-versions.json
-              aws s3api list-object-versions \
-                --bucket "$bucket" \
-                --query '{Objects: DeleteMarkers[].{Key:Key,VersionId:VersionId}}' \
-                --output json > /tmp/s3-markers.json
+                --max-keys 1000 \
+                --output json > /tmp/s3-page.json
+
+              jq '{Objects: [(.Versions // [])[] | {Key: .Key, VersionId: .VersionId}]}' \
+                /tmp/s3-page.json > /tmp/s3-versions.json
+              jq '{Objects: [(.DeleteMarkers // [])[] | {Key: .Key, VersionId: .VersionId}]}' \
+                /tmp/s3-page.json > /tmp/s3-markers.json
 
               versions_count="$(jq '(.Objects // []) | length' /tmp/s3-versions.json)"
               markers_count="$(jq '(.Objects // []) | length' /tmp/s3-markers.json)"
 
               if [[ "$versions_count" == "0" && "$markers_count" == "0" ]]; then
+                echo "S3 bucket $bucket version cleanup complete"
                 break
               fi
+
+              echo "S3 bucket $bucket cleanup attempt $attempt: deleting ${versions_count} versions and ${markers_count} delete markers"
 
               if [[ "$versions_count" != "0" ]]; then
                 aws s3api delete-objects \
@@ -169,6 +173,19 @@ jobs:
                   --bypass-governance-retention || true
               fi
             done
+
+            remaining_versions="$(
+              aws s3api list-object-versions \
+                --bucket "$bucket" \
+                --max-keys 1 \
+                --query 'length(Versions || `[]`) + length(DeleteMarkers || `[]`)' \
+                --output text 2>/dev/null || echo 0
+            )"
+            if [[ "$remaining_versions" != "0" ]]; then
+              echo "::warning::S3 bucket $bucket still has object versions/delete markers after cleanup attempts"
+            fi
+
+            aws s3 rm "s3://$bucket" --recursive --only-show-errors || true
           }
 
           bucket_prefixes=(
