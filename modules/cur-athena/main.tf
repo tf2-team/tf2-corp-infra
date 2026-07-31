@@ -92,8 +92,9 @@ resource "aws_kms_alias" "cur_athena" {
 resource "aws_s3_bucket" "athena_results" {
   count = local.create ? 1 : 0
 
-  bucket = var.athena_results_bucket_name
-  tags   = var.tags
+  bucket        = var.athena_results_bucket_name
+  force_destroy = true
+  tags          = var.tags
 }
 
 resource "aws_s3_bucket_public_access_block" "athena_results" {
@@ -294,9 +295,10 @@ resource "aws_glue_crawler" "cur" {
 resource "aws_athena_workgroup" "grafana_cur" {
   count = local.create ? 1 : 0
 
-  name        = var.athena_workgroup_name
-  description = "Low-cost Athena workgroup for Grafana CUR dashboards."
-  state       = "ENABLED"
+  name          = var.athena_workgroup_name
+  description   = "Low-cost Athena workgroup for Grafana CUR dashboards."
+  force_destroy = true
+  state         = "ENABLED"
 
   configuration {
     enforce_workgroup_configuration    = true

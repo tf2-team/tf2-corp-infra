@@ -30,7 +30,7 @@ resource "aws_s3_bucket" "immutable_audit_k8s_raw" {
   #checkov:skip=CKV_AWS_145:SSE-S3 is sufficient for raw audit archive MVP and avoids Firehose/KMS delivery coupling; Object Lock is the integrity/retention control.
   bucket              = local.immutable_audit_k8s_raw_archive_bucket_name
   object_lock_enabled = true
-  force_destroy       = false
+  force_destroy       = true
 
   tags = merge(var.tags, {
     Name      = local.immutable_audit_k8s_raw_archive_bucket_name

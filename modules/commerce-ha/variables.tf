@@ -76,6 +76,12 @@ variable "valkey_snapshot_window" {
   description = "Daily ElastiCache snapshot window (UTC)"
 }
 
+variable "outbox_deletion_protection" {
+  type        = bool
+  default     = true
+  description = "Protect the checkout outbox DynamoDB table from accidental deletion."
+}
+
 variable "tags" {
   type        = map(string)
   default     = {}

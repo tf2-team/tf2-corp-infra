@@ -229,7 +229,7 @@ resource "aws_s3_bucket" "immutable_audit" {
   #checkov:skip=CKV_AWS_145:Bucket default encryption uses SSE-S3 to avoid double-KMS delivery failures; CloudTrail log files are still encrypted by the trail-level customer-managed KMS key.
   bucket              = local.immutable_audit_bucket_name
   object_lock_enabled = true
-  force_destroy       = false
+  force_destroy       = true
 
   tags = merge(var.tags, {
     Name      = local.immutable_audit_bucket_name
@@ -1258,6 +1258,7 @@ module "commerce_ha" {
   valkey_engine_version           = var.commerce_valkey_engine_version
   private_dns_zone                = var.commerce_private_dns_zone
   valkey_snapshot_retention_limit = var.commerce_valkey_snapshot_retention_limit
+  outbox_deletion_protection      = false
   tags                            = var.tags
 }
 

@@ -75,13 +75,13 @@ ecr_repository_overrides = {
     image_tag_mutability = "IMMUTABLE"
     scan_on_push         = true
     keep_last_n_images   = 10
-    force_delete         = false
+    force_delete         = true
   }
   cosign-artifacts = {
     image_tag_mutability = "MUTABLE"
     scan_on_push         = false
     keep_last_n_images   = 1000 # shared cosign repo (~services × image keep × 3 artifacts + buffer)
-    force_delete         = false
+    force_delete         = true
   }
 }
 

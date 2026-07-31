@@ -131,8 +131,9 @@ resource "aws_s3_bucket" "export" {
   #checkov:skip=CKV2_AWS_6:Public access block is declared in aws_s3_bucket_public_access_block.export; Checkov does not correlate it reliably with counted resources.
   count = local.create ? 1 : 0
 
-  bucket = var.bucket_name
-  tags   = var.tags
+  bucket        = var.bucket_name
+  force_destroy = true
+  tags          = var.tags
 }
 
 resource "aws_s3_bucket_public_access_block" "export" {
@@ -447,9 +448,10 @@ resource "aws_glue_crawler" "this" {
 resource "aws_athena_workgroup" "this" {
   count = local.create ? 1 : 0
 
-  name        = var.athena_workgroup_name
-  description = "Low-cost Athena workgroup for Cost Optimization Hub backlog review."
-  state       = "ENABLED"
+  name          = var.athena_workgroup_name
+  description   = "Low-cost Athena workgroup for Cost Optimization Hub backlog review."
+  force_destroy = true
+  state         = "ENABLED"
 
   configuration {
     enforce_workgroup_configuration    = true

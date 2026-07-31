@@ -143,7 +143,7 @@ resource "aws_dynamodb_table" "checkout_outbox" {
     kms_key_arn = aws_kms_key.commerce.arn
   }
 
-  deletion_protection_enabled = true
+  deletion_protection_enabled = var.outbox_deletion_protection
 
   tags = var.tags
 }

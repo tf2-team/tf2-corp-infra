@@ -45,8 +45,10 @@ jobs:
             -backend-config="bucket=${TF_BACKEND_BUCKET}" \
             -backend-config="region=${TF_BACKEND_REGION}"
 
-      - name: Disable production RDS deletion protection
+      - name: Prepare production teardown blockers
         run: |
+          account_id="$(aws sts get-caller-identity --query Account --output text)"
+
           for db in techx-prod-tf2-postgresql techx-prod-tf2-mem0-postgres; do
             if ! aws rds describe-db-instances --db-instance-identifier "$db" >/dev/null 2>&1; then
               echo "RDS instance $db not found; skipping"
@@ -68,6 +70,152 @@ jobs:
               aws rds wait db-instance-available --db-instance-identifier "$db"
             fi
           done
+
+          table="techx-prod-tf2-checkout-outbox"
+          if aws dynamodb describe-table --table-name "$table" >/dev/null 2>&1; then
+            table_deletion_protection="$(
+              aws dynamodb describe-table \
+                --table-name "$table" \
+                --query 'Table.DeletionProtectionEnabled' \
+                --output text
+            )"
+
+            if [[ "$table_deletion_protection" == "True" ]]; then
+              aws dynamodb update-table \
+                --table-name "$table" \
+                --no-deletion-protection-enabled
+              aws dynamodb wait table-exists --table-name "$table"
+            fi
+          fi
+
+          vault="techx-prod-tf2-mandate20"
+          if aws backup describe-backup-vault --backup-vault-name "$vault" >/dev/null 2>&1; then
+            for state in CREATED PENDING RUNNING; do
+              job_ids="$(aws backup list-backup-jobs \
+                --by-backup-vault-name "$vault" \
+                --by-state "$state" \
+                --query 'BackupJobs[].BackupJobId' \
+                --output text 2>/dev/null || true)"
+              for job_id in $job_ids; do
+                aws backup stop-backup-job --backup-job-id "$job_id" || true
+              done
+            done
+
+            for attempt in $(seq 1 60); do
+              active_jobs=""
+              for state in CREATED PENDING RUNNING ABORTING; do
+                active_jobs+=" $(aws backup list-backup-jobs \
+                  --by-backup-vault-name "$vault" \
+                  --by-state "$state" \
+                  --query 'BackupJobs[].BackupJobId' \
+                  --output text 2>/dev/null || true)"
+              done
+              if [[ -z "$active_jobs" || "$active_jobs" == "None" ]]; then
+                break
+              fi
+              sleep 30
+            done
+
+            recovery_points="$(aws backup list-recovery-points-by-backup-vault \
+              --backup-vault-name "$vault" \
+              --query 'RecoveryPoints[].RecoveryPointArn' \
+              --output text 2>/dev/null || true)"
+            for recovery_point in $recovery_points; do
+              aws backup delete-recovery-point \
+                --backup-vault-name "$vault" \
+                --recovery-point-arn "$recovery_point" || true
+            done
+          fi
+
+          empty_bucket() {
+            local bucket="$1"
+            if ! aws s3api head-bucket --bucket "$bucket" >/dev/null 2>&1; then
+              echo "S3 bucket $bucket not found; skipping"
+              return
+            fi
+
+            aws s3 rm "s3://$bucket" --recursive || true
+
+            for attempt in $(seq 1 100); do
+              aws s3api list-object-versions \
+                --bucket "$bucket" \
+                --query '{Objects: Versions[].{Key:Key,VersionId:VersionId}}' \
+                --output json > /tmp/s3-versions.json
+              aws s3api list-object-versions \
+                --bucket "$bucket" \
+                --query '{Objects: DeleteMarkers[].{Key:Key,VersionId:VersionId}}' \
+                --output json > /tmp/s3-markers.json
+
+              versions_count="$(jq '(.Objects // []) | length' /tmp/s3-versions.json)"
+              markers_count="$(jq '(.Objects // []) | length' /tmp/s3-markers.json)"
+
+              if [[ "$versions_count" == "0" && "$markers_count" == "0" ]]; then
+                break
+              fi
+
+              if [[ "$versions_count" != "0" ]]; then
+                aws s3api delete-objects \
+                  --bucket "$bucket" \
+                  --delete file:///tmp/s3-versions.json \
+                  --bypass-governance-retention || true
+              fi
+
+              if [[ "$markers_count" != "0" ]]; then
+                aws s3api delete-objects \
+                  --bucket "$bucket" \
+                  --delete file:///tmp/s3-markers.json \
+                  --bypass-governance-retention || true
+              fi
+            done
+          }
+
+          bucket_prefixes=(
+            "techx-prod-tf2-cloudtrail-immutable-${account_id}"
+            "techx-prod-tf2-k8s-audit-raw-${account_id}"
+            "techx-prod-tf2-ai-models-${account_id}"
+            "techx-prod-tf2-cost-optimization-exports-${account_id}"
+            "techx-prod-tf2-athena-results-${account_id}"
+          )
+          for prefix in "${bucket_prefixes[@]}"; do
+            buckets="$(aws s3api list-buckets \
+              --query "Buckets[?starts_with(Name, '${prefix}')].Name" \
+              --output text 2>/dev/null || true)"
+            for bucket in $buckets; do
+              empty_bucket "$bucket"
+            done
+          done
+
+          repos="$(aws ecr describe-repositories \
+            --query 'repositories[?starts_with(repositoryName, `techx-prod-corp/`)].repositoryName' \
+            --output text 2>/dev/null || true)"
+          for repo in $repos; do
+            for attempt in $(seq 1 100); do
+              aws ecr list-images \
+                --repository-name "$repo" \
+                --max-items 100 \
+                --query 'imageIds' \
+                --output json > /tmp/ecr-images.json
+              image_count="$(jq 'length' /tmp/ecr-images.json)"
+              if [[ "$image_count" == "0" ]]; then
+                break
+              fi
+              aws ecr batch-delete-image \
+                --repository-name "$repo" \
+                --image-ids file:///tmp/ecr-images.json || true
+            done
+          done
+
+          aws eks update-kubeconfig \
+            --name techx-tf2-prod \
+            --region "${AWS_REGION}" >/dev/null 2>&1 || true
+          kubectl delete job msk-orders-persisted-bootstrap \
+            --namespace techx-corp-prod \
+            --ignore-not-found \
+            --wait=false || true
+          helm uninstall karpenter-node-resources \
+            --namespace kube-system \
+            --no-hooks \
+            --wait=false || true
 
       - name: Terraform destroy production
         run: |

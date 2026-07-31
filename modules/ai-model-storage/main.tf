@@ -52,8 +52,9 @@ locals {
 }
 
 resource "aws_s3_bucket" "models" {
-  bucket = local.bucket_name
-  tags   = var.tags
+  bucket        = local.bucket_name
+  force_destroy = true
+  tags          = var.tags
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "models" {
