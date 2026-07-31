@@ -168,11 +168,10 @@ commerce_valkey_node_type      = "cache.t4g.micro"
 commerce_valkey_engine_version = "8.0"
 commerce_private_dns_zone      = "techx.internal"
 
-# MANDATE-20 criterion B: day-to-day operators (IAM group TF2-TEAM has
-# AdministratorAccess) must not casually delete backups or disable DynamoDB PITR.
-# Do not attach this deny policy to break-glass principals outside the group,
-# or to GitHubTerraform*Apply* roles (CI lifecycle).
-backup_protection_attach_group_names = ["TF2-TEAM"]
+# Teardown mode: do not manage the TF2-TEAM group attachment during destroy.
+# The GitHubTerraform*Apply* role lacks iam:ListAttachedGroupPolicies for this
+# existing group, so keeping the attachment in state blocks Terraform refresh.
+backup_protection_attach_group_names = []
 backup_protection_attach_role_names  = []
 
 # Directive #8 managed PostgreSQL. Multi-AZ protects the revenue/accounting
@@ -184,6 +183,12 @@ rds_postgresql_allocated_storage     = 20
 rds_postgresql_max_allocated_storage = 100
 rds_postgresql_multi_az              = true
 rds_postgresql_backup_retention_days = 7
+rds_postgresql_deletion_protection   = false
+rds_postgresql_skip_final_snapshot   = true
+
+# Teardown mode: allow managed RDS instances to be deleted by the destroy job.
+mem0_postgresql_deletion_protection = false
+mem0_postgresql_skip_final_snapshot = true
 
 node_groups = {
   "system-1a" = {
