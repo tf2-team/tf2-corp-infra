@@ -1,13 +1,6 @@
 name: Promote Production
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "environments/production/**"
-      - "modules/**"
-      - ".github/workflows/**"
   workflow_dispatch:
     inputs:
       plan_only:
